@@ -1,0 +1,374 @@
+// Attendly — Prisma schema
+// Multi-tenant: every tenant-scoped table has institutionId.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CORE
+  SUDO_ADMIN
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum InstitutionStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum SessionStatus {
+  SCHEDULED
+  OPEN
+  CLOSED
+  CANCELED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+}
+
+enum DeviceBindingStatus {
+  ACTIVE
+  RESET_PENDING
+  REVOKED
+}
+
+enum ReasonCode {
+  TOKEN_INVALID
+  TOKEN_EXPIRED
+  TOKEN_REUSED
+  SESSION_CLOSED
+  DEVICE_MISMATCH
+  GEOFENCE_FAILED
+  ATTESTATION_FAILED
+  ALREADY_MARKED
+  SUSPICIOUS_REJECTED
+  MOCK_LOCATION
+  RATE_LIMITED
+}
+
+// ─── Tenancy ─────────────────────────────────────────────────────────────
+
+model Institution {
+  id           String            @id @default(cuid())
+  code         String            @unique
+  name         String
+  slug         String            @unique
+  logoUrl      String?
+  status       InstitutionStatus @default(PENDING)
+  geofenceLat  Float?
+  geofenceLng  Float?
+  geofenceM    Int?              @default(100)
+  qrRotationSec Int              @default(7)
+  qrWindowMin  Int               @default(15)
+  lateAfterMin Int               @default(10)
+  minAttendancePct Int           @default(75)
+  subscriptionId String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  users        User[]
+  students     Student[]
+  classes      Klass[]
+  departments  Department[]
+  subjects     Subject[]
+  sessions     ClassSession[]
+  attendance   AttendanceRecord[]
+  auditLogs    AuditLog[]
+  suspicious   SuspiciousActivityLog[]
+  subscription Subscription?     @relation(fields: [subscriptionId], references: [id])
+}
+
+model Subscription {
+  id           String       @id @default(cuid())
+  plan         String       // FREE, STARTER, PRO, ENTERPRISE
+  seatsLimit   Int
+  startedAt    DateTime
+  expiresAt    DateTime?
+  active       Boolean      @default(true)
+  Institution  Institution[]
+  billing      BillingRecord[]
+}
+
+model BillingRecord {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  amountCents    Int
+  currency       String       @default("USD")
+  status         String       // PAID, FAILED, PENDING
+  invoiceUrl     String?
+  createdAt      DateTime     @default(now())
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+}
+
+// ─── Users ───────────────────────────────────────────────────────────────
+
+model User {
+  id             String      @id @default(cuid())
+  institutionId  String
+  email          String
+  passwordHash   String
+  fullName       String
+  role           UserRole
+  totpSecret     String?
+  suspended      Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  institution    Institution @relation(fields: [institutionId], references: [id])
+  teachingSessions ClassSession[] @relation("TeacherSessions")
+  refreshTokens  RefreshToken[]
+
+  @@unique([institutionId, email])
+  @@index([institutionId, role])
+}
+
+model Student {
+  id             String      @id @default(cuid())
+  institutionId  String
+  rollNo         String
+  fullName       String
+  email          String?
+  passwordHash   String
+  klassId        String?
+  batchId        String?
+  sectionId      String?
+  suspended      Boolean     @default(false)
+  bindingGen     Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  institution    Institution @relation(fields: [institutionId], references: [id])
+  klass          Klass?      @relation(fields: [klassId], references: [id])
+  batch          Batch?      @relation(fields: [batchId], references: [id])
+  section        Section?    @relation(fields: [sectionId], references: [id])
+  device         DeviceBinding?
+  attendance     AttendanceRecord[]
+  refreshTokens  RefreshToken[]
+
+  @@unique([institutionId, rollNo])
+  @@index([institutionId, klassId])
+}
+
+model RefreshToken {
+  id            String   @id @default(cuid())
+  tokenHash     String   @unique
+  familyId      String
+  userId        String?
+  studentId     String?
+  deviceBindingId String?
+  used          Boolean  @default(false)
+  revoked       Boolean  @default(false)
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  user          User?    @relation(fields: [userId], references: [id])
+  student       Student? @relation(fields: [studentId], references: [id])
+
+  @@index([familyId])
+}
+
+// ─── Academic Structure ──────────────────────────────────────────────────
+
+model Department {
+  id            String       @id @default(cuid())
+  institutionId String
+  name          String
+  code          String
+  institution   Institution  @relation(fields: [institutionId], references: [id])
+  klasses       Klass[]
+  @@unique([institutionId, code])
+}
+
+model Klass {
+  id            String       @id @default(cuid())
+  institutionId String
+  departmentId  String?
+  parentId      String?
+  name          String
+  level         Int          @default(0)
+  institution   Institution  @relation(fields: [institutionId], references: [id])
+  department    Department?  @relation(fields: [departmentId], references: [id])
+  parent        Klass?       @relation("KlassToChildren", fields: [parentId], references: [id])
+  children      Klass[]      @relation("KlassToChildren")
+  batches       Batch[]
+  sections      Section[]
+  students      Student[]
+  sessions      ClassSession[]
+  subjects      Subject[]
+
+  @@index([institutionId])
+}
+
+model Batch {
+  id        String   @id @default(cuid())
+  klassId   String
+  name      String   // e.g., 2024-2028
+  klass     Klass    @relation(fields: [klassId], references: [id])
+  students  Student[]
+}
+
+model Section {
+  id        String   @id @default(cuid())
+  klassId   String
+  name      String   // A, B, C
+  klass     Klass    @relation(fields: [klassId], references: [id])
+  students  Student[]
+}
+
+model Subject {
+  id            String       @id @default(cuid())
+  institutionId String
+  klassId       String?
+  name          String
+  code          String
+  institution   Institution  @relation(fields: [institutionId], references: [id])
+  klass         Klass?       @relation(fields: [klassId], references: [id])
+  sessions      ClassSession[]
+}
+
+// ─── Sessions & QR ───────────────────────────────────────────────────────
+
+model ClassSession {
+  id              String        @id @default(cuid())
+  institutionId   String
+  klassId         String
+  subjectId       String?
+  teacherId       String?
+  title           String?
+  status          SessionStatus @default(SCHEDULED)
+  qrRotationSec   Int           @default(7)
+  windowMin       Int           @default(15)
+  geofenceLat     Float?
+  geofenceLng     Float?
+  geofenceM       Int?          @default(80)
+  startedAt       DateTime?
+  endedAt         DateTime?
+  scheduledAt     DateTime?
+  createdAt       DateTime      @default(now())
+
+  institution     Institution   @relation(fields: [institutionId], references: [id])
+  klass           Klass         @relation(fields: [klassId], references: [id])
+  subject         Subject?      @relation(fields: [subjectId], references: [id])
+  teacher         User?         @relation("TeacherSessions", fields: [teacherId], references: [id])
+  attendance      AttendanceRecord[]
+  tokens          QrToken[]
+
+  @@index([institutionId, status])
+  @@index([klassId, scheduledAt])
+}
+
+model QrToken {
+  id            String       @id @default(cuid())
+  sessionId     String
+  nonce         String       @unique
+  issuedAt      DateTime     @default(now())
+  expiresAt     DateTime
+  consumed      Boolean      @default(false)
+  consumedAt    DateTime?
+  session       ClassSession @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId, expiresAt])
+}
+
+model AttendanceRecord {
+  id             String           @id @default(cuid())
+  institutionId  String
+  sessionId      String
+  studentId      String
+  status         AttendanceStatus @default(PRESENT)
+  markedAt       DateTime         @default(now())
+  scanLat        Float?
+  scanLng        Float?
+  scanAccuracyM  Int?
+  distanceM      Int?
+  deviceId       String?
+  flagged        Boolean          @default(false)
+
+  institution    Institution      @relation(fields: [institutionId], references: [id])
+  session        ClassSession     @relation(fields: [sessionId], references: [id])
+  student        Student          @relation(fields: [studentId], references: [id])
+
+  @@unique([sessionId, studentId])
+  @@index([institutionId, markedAt])
+}
+
+// ─── Devices ─────────────────────────────────────────────────────────────
+
+model DeviceBinding {
+  id                String              @id @default(cuid())
+  studentId         String              @unique
+  deviceId          String
+  deviceFingerprint String
+  platform          String
+  model             String?
+  osVersion         String?
+  appInstanceId     String?
+  pushToken         String?
+  bindingGen        Int                 @default(0)
+  status            DeviceBindingStatus @default(ACTIVE)
+  boundAt           DateTime            @default(now())
+  resetRequestedAt  DateTime?
+
+  student           Student             @relation(fields: [studentId], references: [id])
+  @@index([deviceFingerprint])
+}
+
+// ─── Audit & Fraud ───────────────────────────────────────────────────────
+
+model AuditLog {
+  id            String       @id @default(cuid())
+  institutionId String
+  actorUserId   String?
+  actorRole     UserRole?
+  action        String
+  targetType    String?
+  targetId      String?
+  ip            String?
+  userAgent     String?
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  institution   Institution  @relation(fields: [institutionId], references: [id])
+
+  @@index([institutionId, createdAt])
+  @@index([action])
+}
+
+model SuspiciousActivityLog {
+  id            String       @id @default(cuid())
+  institutionId String
+  sessionId     String?
+  studentId     String?
+  deviceId      String?
+  reason        ReasonCode
+  score         Int
+  ip            String?
+  metadata      Json?
+  resolved      Boolean      @default(false)
+  resolvedById  String?
+  createdAt     DateTime     @default(now())
+
+  institution   Institution  @relation(fields: [institutionId], references: [id])
+  @@index([institutionId, createdAt])
+  @@index([resolved])
+}
+
+model Notification {
+  id            String       @id @default(cuid())
+  institutionId String
+  audience      String       // STUDENT, ADMIN, ALL
+  title         String
+  body          String
+  data          Json?
+  createdAt     DateTime     @default(now())
+  @@index([institutionId, createdAt])
+}
