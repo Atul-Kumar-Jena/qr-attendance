@@ -230,6 +230,43 @@ html.dark section {
   background-color: transparent;
 }
 
+/* Override gradient sections in dark mode */
+html.dark [class*="from-cream"],
+html.dark [class*="to-cream"],
+html.dark [class*="bg-gradient"] {
+  background: var(--bg) !important;
+  background-image: none !important;
+}
+
+/* Ensure text stays readable in dark mode */
+html.dark h1, html.dark h2, html.dark h3, html.dark h4 {
+  color: var(--ink);
+}
+html.dark p, html.dark li, html.dark span:not(.text-accent):not([class*="bg-"]):not([class*="text-sage"]):not([class*="text-green"]):not([class*="text-red"]) {
+  color: inherit;
+}
+
+/* Dark mode for stat/card borders */
+html.dark [class*="border-ink"] {
+  border-color: var(--line) !important;
+}
+
+/* QR cell in dark mode */
+html.dark .qr-cell {
+  background: var(--ink);
+}
+
+/* Dark mode pricing cards */
+html.dark [class*="bg-ink"] {
+  /* keep ink backgrounds as-is — they look good in both modes */
+}
+
+/* ParallaxColumns in dark mode */
+html.dark .pcol-card {
+  background: rgba(25, 30, 42, 0.85);
+  border-color: rgba(240, 237, 230, 0.08);
+}
+
 /* ─── Theme toggle button ────────────────────────────────────────────────── */
 .theme-toggle {
   display: flex;

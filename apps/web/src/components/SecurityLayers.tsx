@@ -66,7 +66,7 @@ export function SecurityLayers() {
   }, []);
 
   return (
-    <section id="security" ref={root} className="py-28 lg:py-40 bg-gradient-to-b from-cream-100 to-cream-50 relative">
+    <section id="security" ref={root} className="py-28 lg:py-40 relative" style={{ background: 'var(--bg-2)' }}>
       <div className="container">
         <div className="mb-16">
           <span className="text-[11px] tracking-[0.3em] text-ink-mute uppercase">[ 03 — security ]</span>
