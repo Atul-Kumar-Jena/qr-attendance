@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Magnetic } from './Magnetic';
@@ -228,48 +228,124 @@ function Stat({
   );
 }
 
-function QrMosaic() {
-  const cells: { x: number; y: number; on: boolean }[] = [];
-  const N = 21;
-  const isFinder = (x: number, y: number) =>
-    (x < 7 && y < 7) || (x >= N - 7 && y < 7) || (x < 7 && y >= N - 7);
-  const rng = (i: number) => {
-    const x = Math.sin(i * 9301 + 49297) * 233280;
-    return x - Math.floor(x);
-  };
+const N = 21;
+
+function isFinder(x: number, y: number) {
+  return (x < 7 && y < 7) || (x >= N - 7 && y < 7) || (x < 7 && y >= N - 7);
+}
+
+function finderOn(x: number, y: number) {
+  const lx = x >= N - 7 ? x - (N - 7) : x;
+  const ly = y >= N - 7 ? y - (N - 7) : y;
+  const fx = Math.min(lx, 6 - lx);
+  const fy = Math.min(ly, 6 - ly);
+  return Math.min(fx, fy) === 0 || Math.min(fx, fy) === 2;
+}
+
+function rng(seed: number, i: number) {
+  // Seeded pseudo-random — changes every tick but is deterministic within a tick
+  const x = Math.sin(i * 9301 + 49297 + seed * 1000) * 233280;
+  return x - Math.floor(x);
+}
+
+function buildCells(seed: number) {
+  const cells: { on: boolean; isFnd: boolean }[] = [];
   for (let y = 0; y < N; y++) {
     for (let x = 0; x < N; x++) {
-      const finder = isFinder(x, y);
-      let on = false;
-      if (finder) {
-        const lx = x >= N - 7 ? x - (N - 7) : x;
-        const ly = y >= N - 7 ? y - (N - 7) : y;
-        const fx = Math.min(lx, 6 - lx);
-        const fy = Math.min(ly, 6 - ly);
-        on = Math.min(fx, fy) === 0 || Math.min(fx, fy) === 2;
-      } else {
-        on = rng(x * 31 + y * 17) > 0.55;
-      }
-      cells.push({ x, y, on });
+      const fnd = isFinder(x, y);
+      cells.push({
+        isFnd: fnd,
+        on: fnd ? finderOn(x, y) : rng(seed, x * 31 + y * 17) > 0.52,
+      });
     }
   }
+  return cells;
+}
+
+function QrMosaic() {
+  const [tick, setTick] = useState(0);
+  const [cells, setCells] = useState(() => buildCells(0));
+  const [prevCells, setPrevCells] = useState<typeof cells>([]);
+  const [flipping, setFlipping] = useState(false);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTick((t) => {
+        const next = t + 1;
+        const newCells = buildCells(next);
+        // store previous for transition reference
+        setPrevCells(cells);
+        setCells(newCells);
+        setFlipping(true);
+        setTimeout(() => setFlipping(false), 350);
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="relative h-full w-full">
       <div className="absolute inset-0 rounded-[28px] glass shadow-[0_40px_100px_-20px_rgba(11,18,32,0.2)]" />
+
+      {/* Live QR token timer ring */}
+      <svg
+        className="absolute inset-0 pointer-events-none z-10"
+        viewBox="0 0 100 100"
+        aria-hidden
+      >
+        {/* Static dashed orbit */}
+        <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(11,18,32,0.05)" strokeDasharray="2 5" />
+        {/* Countdown arc — depletes over 1 second */}
+        <circle
+          cx="50" cy="50" r="44"
+          fill="none"
+          stroke="#FF6B3D"
+          strokeWidth="1.5"
+          strokeOpacity="0.5"
+          strokeDasharray="276.46"
+          strokeDashoffset="0"
+          strokeLinecap="round"
+          transform="rotate(-90 50 50)"
+          style={{
+            animation: 'qrCountdown 1s linear infinite',
+          }}
+        />
+      </svg>
+
       <div
         className="absolute inset-6 grid"
         style={{ gridTemplateColumns: `repeat(${N}, 1fr)`, gap: '2.5px' }}
       >
-        {cells.map((c, i) => (
-          <div key={i} className="qr-cell aspect-square" style={{ visibility: c.on ? 'visible' : 'hidden' }} />
-        ))}
+        {cells.map((c, i) => {
+          const changed = !c.isFnd && prevCells[i] && prevCells[i].on !== c.on;
+          return (
+            <div
+              key={i}
+              className="qr-cell aspect-square"
+              style={{
+                opacity: c.on ? 1 : 0,
+                transform: c.on ? 'scale(1)' : 'scale(0)',
+                transition: changed && flipping
+                  ? `opacity 0.28s ease ${(i % 11) * 0.008}s, transform 0.28s ease ${(i % 11) * 0.008}s`
+                  : 'none',
+                visibility: 'visible',
+              }}
+            />
+          );
+        })}
       </div>
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-14 w-14 rounded-2xl bg-cream-50 grid place-items-center shadow-lg">
+
+      {/* Center logo */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-14 w-14 rounded-2xl bg-cream-50 grid place-items-center shadow-lg z-20">
         <div className="h-6 w-6 rounded-lg bg-accent icon-pulse" />
       </div>
-      <svg className="absolute inset-0 animate-[spin_24s_linear_infinite]" viewBox="0 0 100 100" aria-hidden>
-        <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(11,18,32,0.05)" strokeDasharray="2 5" />
-      </svg>
+
+      {/* Tick label */}
+      <div className="absolute bottom-3 right-4 z-20 font-mono text-[9px] text-accent/60 tracking-widest select-none">
+        #{tick.toString().padStart(4, '0')} · 1s
+      </div>
     </div>
   );
 }
