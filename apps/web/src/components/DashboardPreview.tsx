@@ -3,8 +3,9 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { initGSAP } from '@/lib/gsap-init';
 
-if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
+if (typeof window !== 'undefined') initGSAP();
 
 /**
  * 3D-tilted dashboard mockup that scrubs its rotation as you scroll past.

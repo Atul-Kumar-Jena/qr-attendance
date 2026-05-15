@@ -1,8 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
+import gsap from 'gsap';
+import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
+import { AuthModal } from '@/components/AuthModal';
 
 const links = [
   { href: '#solution', label: 'Solution' },
@@ -12,62 +16,217 @@ const links = [
   { href: '#pricing', label: 'Pricing' },
 ];
 
+function SunIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/>
+      <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  );
+}
+
+function AutoIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 3v9l4 4"/>
+    </svg>
+  );
+}
+
+function ThemeToggle() {
+  const { mode, cycleMode } = useTheme();
+  const label = mode === 'light' ? 'Switch to dark mode' : mode === 'dark' ? 'Switch to auto mode' : 'Switch to light mode';
+
+  return (
+    <button
+      onClick={cycleMode}
+      className="theme-toggle"
+      aria-label={label}
+      title={label}
+    >
+      {mode === 'light' && <SunIcon />}
+      {mode === 'dark' && <MoonIcon />}
+      {mode === 'auto' && <AutoIcon />}
+    </button>
+  );
+}
+
+function UserAvatar() {
+  const { user, role } = useAuth();
+  if (!user) return null;
+  const initials = user.displayName
+    ? user.displayName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+    : '?';
+  return (
+    <span className="flex items-center gap-1.5">
+      {user.photoURL ? (
+        <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full object-cover" />
+      ) : (
+        <span className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center text-accent text-[11px] font-medium">
+          {initials}
+        </span>
+      )}
+      {role === 'developer' && (
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20 hidden sm:inline">
+          Dev
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function Nav() {
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    const onScroll = () => setScrolled(window.scrollY > 40);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Animate menu open/close
+  useEffect(() => {
+    if (!menuRef.current) return;
+    if (menuOpen) {
+      gsap.fromTo(menuRef.current,
+        { opacity: 0, y: -12, pointerEvents: 'none' },
+        { opacity: 1, y: 0, duration: 0.3, ease: 'power3.out', pointerEvents: 'auto' },
+      );
+    } else {
+      gsap.to(menuRef.current, { opacity: 0, y: -8, duration: 0.2, ease: 'power2.in', pointerEvents: 'none' });
+    }
+  }, [menuOpen]);
+
+  // Entrance animation
+  useEffect(() => {
+    gsap.fromTo(headerRef.current,
+      { y: -20, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out', delay: 0.1 },
+    );
+  }, []);
+
+  const signInTrigger = user ? (
+    <button className="hidden sm:flex items-center gap-2 text-[12.5px] tracking-wide text-ink-mute hover:text-ink transition-colors">
+      <UserAvatar />
+    </button>
+  ) : (
+    <button className="hidden sm:block text-[12.5px] tracking-wide text-ink-mute hover:text-ink transition-colors">
+      Sign in
+    </button>
+  );
+
   return (
-    <header
-      className={cn(
-        'fixed inset-x-0 top-0 z-50 transition-all duration-500',
-        scrolled ? 'py-3' : 'py-6',
-      )}
-    >
-      <div
+    <>
+      <header
+        ref={headerRef}
         className={cn(
-          'container flex items-center justify-between transition-all duration-500',
-          scrolled && 'rounded-full glass px-5 py-2 max-w-4xl',
+          'fixed inset-x-0 top-0 z-50 transition-all duration-500',
+          scrolled ? 'py-2' : 'py-5',
         )}
       >
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <Logo />
-          <span className="font-display text-[1.35rem] leading-none">Attendly</span>
-        </Link>
-        <nav className="hidden md:flex items-center gap-8 text-[13px] text-ink-mute">
+        <div
+          className={cn(
+            'container flex items-center justify-between transition-all duration-500',
+            scrolled
+              ? 'rounded-2xl border border-ink/8 px-5 py-3 max-w-3xl backdrop-blur-xl bg-cream-50/80 shadow-[0_4px_32px_-4px_rgba(11,18,32,0.12)]'
+              : '',
+          )}
+        >
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <Logo />
+            <span className="font-display text-[1.25rem] leading-none tracking-tight">Attendly</span>
+          </Link>
+
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-7 text-[13px] tracking-wide text-ink-mute">
+            {links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="relative py-1 hover:text-ink transition-colors duration-200 after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full"
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            {/* Theme toggle */}
+            <ThemeToggle />
+
+            {/* Sign in / avatar */}
+            <AuthModal trigger={signInTrigger} />
+
+            <Link
+              href="#demo"
+              className="rounded-xl bg-ink px-4 py-2 text-[12.5px] font-medium tracking-wide text-cream-50 hover:bg-ink-soft transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+            >
+              Request demo
+            </Link>
+            {/* Hamburger */}
+            <button
+              className="md:hidden flex flex-col gap-1.5 p-1"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-label="Toggle menu"
+            >
+              <span className={cn('block h-px w-5 bg-ink transition-all duration-300', menuOpen && 'rotate-45 translate-y-2')} />
+              <span className={cn('block h-px w-5 bg-ink transition-all duration-300', menuOpen && 'opacity-0')} />
+              <span className={cn('block h-px w-5 bg-ink transition-all duration-300', menuOpen && '-rotate-45 -translate-y-2')} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile menu */}
+      <div
+        ref={menuRef}
+        className="fixed inset-x-4 top-20 z-40 rounded-2xl border border-ink/8 bg-cream-50/95 backdrop-blur-xl p-6 shadow-lg md:hidden opacity-0 pointer-events-none"
+      >
+        <nav className="flex flex-col gap-5">
           {links.map((l) => (
-            <Link key={l.href} href={l.href} className="link-line hover:text-ink transition-colors">
+            <Link
+              key={l.href}
+              href={l.href}
+              onClick={() => setMenuOpen(false)}
+              className="text-[15px] text-ink-mute hover:text-ink transition-colors border-b border-ink/6 pb-4 last:border-0 last:pb-0"
+            >
               {l.label}
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-3">
-          <Link href="/admin" className="hidden sm:block text-[13px] link-line text-ink-mute hover:text-ink">
-            Sign in
-          </Link>
-          <Link
-            href="#demo"
-            className="rounded-full bg-ink px-4 py-2 text-[12.5px] font-medium text-cream-50 hover:bg-ink-soft transition-colors"
-          >
-            Request demo
-          </Link>
-        </div>
       </div>
-    </header>
+    </>
   );
 }
 
 function Logo() {
   return (
-    <svg width="22" height="22" viewBox="0 0 22 22" className="text-ink" aria-hidden>
-      <rect x="0" y="0" width="9" height="9" rx="1.5" fill="currentColor" />
-      <rect x="13" y="0" width="9" height="9" rx="1.5" fill="currentColor" />
-      <rect x="0" y="13" width="9" height="9" rx="1.5" fill="currentColor" />
-      <rect x="15" y="15" width="7" height="7" rx="1.5" fill="#FF6B3D" />
+    <svg width="20" height="20" viewBox="0 0 22 22" className="text-ink flex-shrink-0" aria-hidden>
+      <rect x="0" y="0" width="9" height="9" rx="2" fill="currentColor" />
+      <rect x="13" y="0" width="9" height="9" rx="2" fill="currentColor" />
+      <rect x="0" y="13" width="9" height="9" rx="2" fill="currentColor" />
+      <rect x="15" y="15" width="7" height="7" rx="2" fill="#FF6B3D" />
     </svg>
   );
 }

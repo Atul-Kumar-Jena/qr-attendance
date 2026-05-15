@@ -2,6 +2,7 @@ import { Nav } from '@/components/Nav';
 import { Hero } from '@/components/Hero';
 import { Marquee } from '@/components/Marquee';
 import { ProblemSolution } from '@/components/ProblemSolution';
+import { ParallaxColumns } from '@/components/ParallaxColumns';
 import { Features } from '@/components/Features';
 import { SecurityLayers } from '@/components/SecurityLayers';
 import { DashboardPreview } from '@/components/DashboardPreview';
@@ -13,10 +14,12 @@ import { Footer } from '@/components/Footer';
 import { Cursor } from '@/components/Cursor';
 import { ScrollProgress } from '@/components/ScrollProgress';
 import { SmoothScroll } from '@/components/SmoothScroll';
+import { GridBackground } from '@/components/GridBackground';
 
 export default function Page() {
   return (
     <main className="relative">
+      <GridBackground />
       <SmoothScroll />
       <ScrollProgress />
       <Cursor />
@@ -24,6 +27,7 @@ export default function Page() {
       <Hero />
       <Marquee />
       <ProblemSolution />
+      <ParallaxColumns />
       <Features />
       <SecurityLayers />
       <DashboardPreview />

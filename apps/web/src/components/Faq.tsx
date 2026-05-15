@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { initGSAP } from '@/lib/gsap-init';
 
-if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
+if (typeof window !== 'undefined') initGSAP();
 
 const Q = [
   { q: 'Can a student forward the QR to a friend?',

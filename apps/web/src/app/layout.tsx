@@ -1,17 +1,21 @@
 import type { Metadata } from 'next';
-import { Inter, Instrument_Serif } from 'next/font/google';
+import { DM_Sans, Cormorant_Garamond } from 'next/font/google';
 import '../styles/globals.css';
+import { PageTransition } from '@/components/PageTransition';
+import { Providers } from '@/components/Providers';
 
-const sans = Inter({
+const sans = DM_Sans({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
+  weight: ['300', '400', '500', '600'],
 });
 
-const display = Instrument_Serif({
+const display = Cormorant_Garamond({
   subsets: ['latin'],
   variable: '--font-display',
-  weight: ['400'],
+  weight: ['300', '400', '500', '600'],
+  style: ['normal', 'italic'],
   display: 'swap',
 });
 
@@ -24,8 +28,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${display.variable}`}>
-      <body className="font-sans antialiased">{children}</body>
+    <html lang="en" suppressHydrationWarning className={`${sans.variable} ${display.variable}`}>
+      <body className="font-sans antialiased">
+        <Providers>
+          <PageTransition>{children}</PageTransition>
+        </Providers>
+      </body>
     </html>
   );
 }

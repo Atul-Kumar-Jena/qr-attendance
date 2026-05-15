@@ -3,9 +3,10 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { initGSAP } from '@/lib/gsap-init';
 import { Magnetic } from './Magnetic';
 
-if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
+if (typeof window !== 'undefined') initGSAP();
 
 /**
  * Huge text reveal — a giant word that scales and wipes in as you scroll.
