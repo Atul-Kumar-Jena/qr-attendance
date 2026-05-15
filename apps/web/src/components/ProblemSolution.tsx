@@ -45,14 +45,11 @@ export function ProblemSolution() {
       });
 
       // Headline mask line-by-line on enter
-      gsap.from('.ps-head .reveal-line', {
-        yPercent: 110,
-        rotateZ: 1.5,
-        duration: 1.1,
-        ease: 'expo.out',
-        stagger: 0.08,
-        scrollTrigger: { trigger: '.ps-head', start: 'top 80%' },
-      });
+      gsap.fromTo('.ps-head .reveal-line',
+        { yPercent: 110, rotateZ: 1.5 },
+        { yPercent: 0, rotateZ: 0, duration: 1.1, ease: 'expo.out', stagger: 0.08,
+          scrollTrigger: { trigger: '.ps-head', start: 'top 80%' } },
+      );
 
       // Strike-through draw on each problem title
       gsap.utils.toArray<HTMLElement>('.strike-line').forEach((s) => {

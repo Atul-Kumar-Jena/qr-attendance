@@ -20,14 +20,10 @@ export function Hero() {
   useEffect(() => {
     const ctx = gsap.context(() => {
       // 1) Headline mask reveal (word-by-word, stagger, ease-out-quint)
-      gsap.from('.hero-line .reveal-line', {
-        yPercent: 110,
-        rotateZ: 2,
-        duration: 1.2,
-        ease: 'expo.out',
-        stagger: 0.08,
-        delay: 0.15,
-      });
+      gsap.fromTo('.hero-line .reveal-line',
+        { yPercent: 110, rotateZ: 2 },
+        { yPercent: 0, rotateZ: 0, duration: 1.2, ease: 'expo.out', stagger: 0.08, delay: 0.15 },
+      );
 
       // 2) Char-by-char scramble for subtitle
       const target = sub.current!;

@@ -97,7 +97,7 @@ html { scroll-behavior: smooth; }
 
 /* Reveal mask used by GSAP */
 .reveal-mask { overflow: hidden; display: inline-block; vertical-align: top; }
-.reveal-line { display: inline-block; will-change: transform; transform: translateY(110%); }
+.reveal-line { display: inline-block; will-change: transform; }
 
 /* Counter style */
 .counter-num {
