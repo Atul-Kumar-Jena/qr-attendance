@@ -146,14 +146,14 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
       return { ok: true };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      // Revert optimistic update on failure
-      setConfig(configRef.current);
-      writeLocalStorage(configRef.current);
+      const isPermission = msg.includes('permission') || msg.includes('Permission');
+      // Keep the localStorage/state changes — only Firestore failed.
+      // The change is live locally; user just needs to deploy rules to sync globally.
       return {
         ok: false,
-        error: msg.includes('permission') || msg.includes('Permission')
-          ? 'Firestore permission denied. Add the rule below to Firebase Console → Firestore → Rules:\n\nmatch /config/{docId} {\n  allow read: if true;\n  allow write: if request.auth != null;\n}'
-          : `Save failed: ${msg}`,
+        error: isPermission
+          ? 'Saved locally ✓ — Firestore sync blocked (permission denied).\n\nTo sync globally, deploy this rule in Firebase Console → Firestore → Rules:\n\nmatch /config/{docId} {\n  allow read: if true;\n  allow write: if request.auth != null;\n}'
+          : `Saved locally ✓ — Firestore sync failed: ${msg}`,
       };
     }
   };

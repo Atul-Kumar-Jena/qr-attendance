@@ -50,11 +50,11 @@ export function Cursor() {
     <>
       <div
         ref={ring}
-        className="pointer-events-none fixed left-0 top-0 z-[100] h-7 w-7 rounded-full border border-ink/30 hidden md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[100] h-7 w-7 rounded-full border border-ink/30 dark:border-white/25 hidden md:block"
       />
       <div
         ref={dot}
-        className="pointer-events-none fixed left-0 top-0 z-[100] h-1.5 w-1.5 rounded-full bg-ink hidden md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[100] h-1.5 w-1.5 rounded-full bg-ink dark:bg-[#F0EDE6] hidden md:block"
       />
     </>
   );

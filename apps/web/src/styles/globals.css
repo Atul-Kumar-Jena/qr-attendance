@@ -273,6 +273,34 @@ html.dark .pcol-card {
   border-color: rgba(240, 237, 230, 0.08);
 }
 
+/* ── Dark mode hover & opacity-variant fixes ──────────────────────────────── */
+
+/* Hover text → theme-adaptive (Tailwind hover:text-ink uses hardcoded #0B1220) */
+html.dark .hover\:text-ink:hover { color: var(--ink) !important; }
+html.dark .hover\:text-ink-soft:hover { color: var(--ink-soft) !important; }
+
+/* Hover backgrounds → theme-adaptive */
+html.dark .hover\:bg-cream-50:hover  { background-color: var(--bg)   !important; }
+html.dark .hover\:bg-cream-100:hover { background-color: var(--bg-2)  !important; }
+html.dark .hover\:bg-ink-soft:hover  { background-color: rgba(26, 34, 54, 0.5) !important; }
+
+/* Opacity-variant backgrounds not caught by base `.bg-cream-*` selectors */
+html.dark .bg-cream-100\/60 { background-color: rgba(19, 22, 29, 0.6) !important; }
+html.dark .bg-cream-100\/70 { background-color: rgba(19, 22, 29, 0.7) !important; }
+html.dark .bg-cream-100\/80 { background-color: rgba(19, 22, 29, 0.8) !important; }
+html.dark .bg-cream-50\/50  { background-color: rgba(13, 15, 20, 0.5) !important; }
+html.dark .bg-cream-50\/30  { background-color: rgba(13, 15, 20, 0.3) !important; }
+html.dark .bg-cream-50\/10  { background-color: rgba(13, 15, 20, 0.1) !important; }
+
+/* Hover opacity-variant backgrounds */
+html.dark .hover\:bg-cream-100\/70:hover { background-color: rgba(19, 22, 29, 0.7) !important; }
+
+/* Grain overlay — screen blend mode creates white scroll artifacts on dark bg */
+html.dark body::before {
+  mix-blend-mode: normal;
+  opacity: 0.04;
+}
+
 /* ─── Theme toggle button ────────────────────────────────────────────────── */
 .theme-toggle {
   display: flex;

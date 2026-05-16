@@ -16,7 +16,7 @@ export function ScrollProgress() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
   return (
-    <div className="fixed top-0 left-0 right-0 z-[60] h-px bg-transparent">
+    <div className="fixed top-0 left-0 right-0 z-[60] h-px bg-transparent pointer-events-none">
       <div ref={bar} className="origin-left h-full w-full bg-accent" style={{ transform: 'scaleX(0)' }} />
     </div>
   );

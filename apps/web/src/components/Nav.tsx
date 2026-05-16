@@ -180,7 +180,7 @@ export function Nav() {
 
             <Link
               href="#demo"
-              className="rounded-xl bg-ink px-4 py-2 text-[12.5px] font-medium tracking-wide text-cream-50 hover:bg-ink-soft transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+              className="rounded-xl bg-ink px-4 py-2 text-[12.5px] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:border dark:border-white/15 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
             >
               Request demo
             </Link>
@@ -190,9 +190,9 @@ export function Nav() {
               onClick={() => setMenuOpen((o) => !o)}
               aria-label="Toggle menu"
             >
-              <span className={cn('block h-px w-5 bg-ink transition-all duration-300', menuOpen && 'rotate-45 translate-y-2')} />
-              <span className={cn('block h-px w-5 bg-ink transition-all duration-300', menuOpen && 'opacity-0')} />
-              <span className={cn('block h-px w-5 bg-ink transition-all duration-300', menuOpen && '-rotate-45 -translate-y-2')} />
+              <span className={cn('block h-px w-5 bg-ink dark:bg-[#F0EDE6] transition-all duration-300', menuOpen && 'rotate-45 translate-y-2')} />
+              <span className={cn('block h-px w-5 bg-ink dark:bg-[#F0EDE6] transition-all duration-300', menuOpen && 'opacity-0')} />
+              <span className={cn('block h-px w-5 bg-ink dark:bg-[#F0EDE6] transition-all duration-300', menuOpen && '-rotate-45 -translate-y-2')} />
             </button>
           </div>
         </div>

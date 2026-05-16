@@ -916,8 +916,12 @@ service cloud.firestore {
         </button>
         {savedMsg && <span className="text-[13px] text-green-600 mt-2">{savedMsg}</span>}
         {saveError && (
-          <div className="flex-1 rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-[12px] text-red-700 whitespace-pre-wrap">
-            <strong>Save failed:</strong><br />{saveError}
+          <div className={`flex-1 rounded-lg px-4 py-2 text-[12px] whitespace-pre-wrap ${
+            saveError.startsWith('Saved locally')
+              ? 'bg-amber-50 border border-amber-200 text-amber-800'
+              : 'bg-red-50 border border-red-200 text-red-700'
+          }`}>
+            {saveError}
           </div>
         )}
       </div>
