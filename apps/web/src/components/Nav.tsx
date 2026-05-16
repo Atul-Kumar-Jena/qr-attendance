@@ -109,6 +109,7 @@ export function Nav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -117,6 +118,21 @@ export function Nav() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // Outside-click dismiss for mobile menu
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        hamburgerRef.current && !hamburgerRef.current.contains(e.target as Node)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
 
   // Animate menu open/close
   useEffect(() => {
@@ -139,15 +155,6 @@ export function Nav() {
     );
   }, []);
 
-  const signInTrigger = user ? (
-    <button className="hidden sm:flex items-center gap-2 text-[12.5px] tracking-wide text-ink-mute hover:text-ink transition-colors">
-      <UserAvatar />
-    </button>
-  ) : (
-    <button className="hidden sm:block text-[12.5px] tracking-wide text-ink-mute hover:text-ink transition-colors">
-      Sign in
-    </button>
-  );
 
   return (
     <>
@@ -162,7 +169,7 @@ export function Nav() {
           className={cn(
             'container flex items-center justify-between transition-all duration-500',
             scrolled
-              ? 'rounded-2xl border border-ink/8 px-5 py-3 max-w-3xl backdrop-blur-xl bg-cream-50/80 shadow-[0_4px_32px_-4px_rgba(11,18,32,0.12)]'
+              ? 'rounded-2xl border border-ink/8 px-5 py-3 max-w-3xl backdrop-blur-xl bg-cream-50/80 shadow-[0_4px_32px_-4px_rgba(11,18,32,0.12)] dark:shadow-[0_4px_40px_-4px_rgba(0,0,0,0.6),0_0_0_1px_rgba(240,237,230,0.07)]'
               : '',
           )}
         >
@@ -177,7 +184,7 @@ export function Nav() {
               <Link
                 key={l.href}
                 href={l.href}
-                className="relative py-1 hover:text-ink transition-colors duration-200 after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full"
+                className="relative py-1 hover:text-ink dark:hover:text-white/90 transition-colors duration-200 after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full"
               >
                 {l.label}
               </Link>
@@ -189,16 +196,27 @@ export function Nav() {
             <ThemeToggle />
 
             {/* Sign in / avatar */}
-            <AuthModal trigger={signInTrigger} />
+            {user ? (
+              <Link href="/admin" className="hidden sm:flex items-center gap-2 text-[12.5px] tracking-wide text-ink-mute hover:text-ink dark:hover:text-white/90 transition-colors">
+                <UserAvatar />
+              </Link>
+            ) : (
+              <AuthModal trigger={
+                <button className="hidden sm:block text-[12.5px] tracking-wide text-ink-mute hover:text-ink dark:hover:text-white/90 transition-colors">
+                  Sign in
+                </button>
+              } />
+            )}
 
             <Link
-              href="#demo"
+              href="#pricing"
               className="rounded-xl bg-ink dark:bg-[#1A2236] px-4 py-2 text-[12.5px] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:hover:bg-[#222c3e] dark:border dark:border-white/15 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
             >
               Request demo
             </Link>
             {/* Hamburger */}
             <button
+              ref={hamburgerRef}
               className="md:hidden flex flex-col gap-1.5 p-1"
               onClick={() => setMenuOpen((o) => !o)}
               aria-label="Toggle menu"
@@ -210,6 +228,9 @@ export function Nav() {
           </div>
         </div>
       </header>
+
+      {/* Mobile menu backdrop */}
+      {menuOpen && <div className="fixed inset-0 z-30 md:hidden" onClick={() => setMenuOpen(false)} />}
 
       {/* Mobile menu — top adjusts with header height */}
       <div

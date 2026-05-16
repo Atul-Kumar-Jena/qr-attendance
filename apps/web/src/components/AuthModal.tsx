@@ -41,8 +41,9 @@ export function AuthModal({ trigger }: AuthModalProps) {
       await signIn();
       setOpen(false);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Sign-in failed';
-      setError(msg.includes('popup-closed') ? 'Sign-in cancelled.' : msg);
+      const msg = e instanceof Error ? (e as Error & { code?: string }).code ?? e.message : 'Sign-in failed';
+      const isCancelled = msg.includes('popup-closed-by-user') || msg.includes('popup-closed') || msg.includes('cancelled');
+      setError(isCancelled ? 'Sign-in cancelled.' : msg);
     } finally {
       setBusy(false);
     }

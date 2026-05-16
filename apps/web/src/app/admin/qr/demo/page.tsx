@@ -17,8 +17,18 @@ export default function QrDisplay() {
   const [starting, setStarting] = useState(false);
   const [ending, setEnding] = useState(false);
   const [tick, setTick] = useState(0);
+  const [liveCount, setLiveCount] = useState(0);
   const qr = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Live attendance count subscription
+  useEffect(() => {
+    if (!sessionId || stage !== 'live') return;
+    const { onSession } = require('@/lib/firestore-db');
+    return onSession(sessionId, (s: import('@/lib/firestore-db').FSSession | null) => {
+      if (s) setLiveCount(s.attendanceCount);
+    });
+  }, [sessionId, stage]);
 
   // QR rotation interval (only while live)
   useEffect(() => {
@@ -65,7 +75,9 @@ export default function QrDisplay() {
       if (user && institutionId) {
         await logAudit({ institutionId, actorId: user.uid, actorName: user.displayName ?? user.email ?? '', action: 'SESSION_ENDED', targetId: sessionId, details: `${subjectName} · ${className}` });
       }
-    } catch {/* ignore */}
+    } catch (e: unknown) {
+      alert('Session end failed: ' + (e instanceof Error ? e.message : String(e)));
+    }
     setStage('ended');
     setEnding(false);
   };
@@ -141,7 +153,7 @@ export default function QrDisplay() {
       </div>
       <div className="absolute top-6 right-6 flex items-center gap-2 text-[12px] text-cream-50/50">
         <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-        Session OPEN · auto-rotating
+        {liveCount} scanned · auto-rotating
       </div>
 
       <div className="font-display text-[2rem] mb-3">Scan to mark attendance</div>

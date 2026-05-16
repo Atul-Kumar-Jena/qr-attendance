@@ -160,6 +160,19 @@ export function OnboardingFlow({ user, onComplete }: Props) {
                 </div>
               </div>
               <div>
+                <label className="block text-[11px] tracking-wide text-ink-mute mb-2">I am joining as…</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['student', 'teacher'] as const).map((r) => (
+                    <button key={r} type="button" onClick={() => setJoiningRole(r)}
+                      className={`rounded-lg border-2 py-2.5 text-[13px] font-medium transition-all ${
+                        joiningRole === r ? 'border-accent bg-accent/8 text-accent' : 'border-ink/10 text-ink-mute hover:border-ink/20'
+                      }`}>
+                      {r === 'student' ? '🎓 Student' : '📚 Teacher'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
                 <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Institution code</label>
                 <input
                   value={code}

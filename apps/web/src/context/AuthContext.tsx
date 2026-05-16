@@ -111,7 +111,13 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
 
   const signOut = async () => { await signOutUser(); onSignOut?.(); };
 
-  const markOnboardingDone = () => setNeedsOnboarding(false);
+  const markOnboardingDone = () => {
+    setNeedsOnboarding(false);
+    if (user && db) {
+      const { doc, updateDoc } = require('firebase/firestore');
+      updateDoc(doc(db, 'users', user.uid), { onboardingDone: true }).catch(() => {});
+    }
+  };
 
   return (
     <AuthContext.Provider value={{ user, role, institutionId, loading, needsOnboarding, markOnboardingDone, signIn, signOut }}>

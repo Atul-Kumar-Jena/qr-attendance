@@ -159,7 +159,7 @@ export function Hero() {
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <Magnetic strength={0.22}>
                 <a
-                  href="#demo"
+                  href="#pricing"
                   className="hero-cta group inline-flex items-center gap-2.5 rounded-xl bg-ink dark:bg-[#1A2236] dark:border dark:border-white/10 px-7 py-3.5 text-[13px] font-medium tracking-wide text-cream-50 transition-all hover:bg-ink-soft dark:hover:bg-[#222c3e] hover:scale-[1.03] active:scale-[0.97]"
                 >
                   Get started
@@ -170,7 +170,7 @@ export function Hero() {
               </Magnetic>
               <Magnetic strength={0.18}>
                 <a
-                  href="#demo"
+                  href="#features"
                   className="hero-cta inline-flex items-center gap-2 rounded-xl border border-ink/12 bg-cream-50/50 px-7 py-3.5 text-[13px] tracking-wide text-ink hover:bg-cream-100 transition-all"
                 >
                   Watch 90-sec demo

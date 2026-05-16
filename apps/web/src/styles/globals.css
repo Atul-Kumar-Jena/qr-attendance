@@ -130,8 +130,8 @@ h1, h2, h3 {
 }
 
 /* ─── Reveal mask (GSAP fromTo) ──────────────────────────────────────────── */
-.reveal-mask { overflow: hidden; display: inline-block; vertical-align: top; }
-.reveal-line  { display: inline-block; will-change: transform; }
+.reveal-mask { overflow: hidden; }
+.reveal-line  { display: block; will-change: transform; }
 
 /* ─── Section entrance — used by GSAP for scroll-triggered items ─────────── */
 .section-fade {

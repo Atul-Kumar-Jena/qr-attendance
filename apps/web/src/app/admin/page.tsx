@@ -138,7 +138,7 @@ export default function AdminHome() {
 
   return (
     <div className="min-h-screen flex bg-cream-100">
-      <aside className="w-64 border-r border-ink/10 bg-cream-50 p-5 flex flex-col flex-shrink-0">
+      <aside className="w-64 border-r border-ink/10 dark:border-white/10 bg-cream-50 p-5 flex flex-col flex-shrink-0">
         <div className="font-display text-[1.4rem] mb-2">Attendly</div>
         <div className="flex items-center gap-2 mb-8 text-[11px] text-ink-mute">
           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${meta.dot}`} />
