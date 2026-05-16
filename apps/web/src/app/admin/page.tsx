@@ -498,22 +498,31 @@ function StudentsPanel({ role }: { role: Role }) {
   const submitRemark = async () => {
     if (!remarkText.trim() || !selected || !me || !institutionId) return;
     setRemarkSaving(true);
-    const { addRemark } = require('@/lib/firestore-db');
-    await addRemark({
-      teacherId: me.uid, teacherName: me.displayName ?? me.email ?? 'Unknown',
-      studentId: selected.id, content: remarkText, isPrivate,
-      institutionId,
-    });
-    setRemarkText('');
-    setRemarkSaving(false);
+    try {
+      const { addRemark } = require('@/lib/firestore-db');
+      await addRemark({
+        teacherId: me.uid, teacherName: me.displayName ?? me.email ?? 'Unknown',
+        studentId: selected.id, content: remarkText, isPrivate,
+        institutionId,
+      });
+      setRemarkText('');
+    } catch (e: unknown) {
+      alert('Failed to save remark: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setRemarkSaving(false);
+    }
   };
 
   const addStudent = async () => {
     if (!newStudent.fullName || !newStudent.rollNo || !institutionId) return;
-    const { createStudent } = require('@/lib/firestore-db');
-    await createStudent({ ...newStudent, suspended: false, institutionId });
-    setNewStudent({ rollNo: '', fullName: '', email: '', klassName: '' });
-    setShowAddStudent(false);
+    try {
+      const { createStudent } = require('@/lib/firestore-db');
+      await createStudent({ ...newStudent, suspended: false, institutionId });
+      setNewStudent({ rollNo: '', fullName: '', email: '', klassName: '' });
+      setShowAddStudent(false);
+    } catch (e: unknown) {
+      alert('Failed to add student: ' + (e instanceof Error ? e.message : String(e)));
+    }
   };
 
   const startEdit = () => {
@@ -525,11 +534,16 @@ function StudentsPanel({ role }: { role: Role }) {
   const saveEdit = async () => {
     if (!selected || !editForm.fullName || !editForm.rollNo) return;
     setEditSaving(true);
-    const { patchStudent } = require('@/lib/firestore-db');
-    await patchStudent(selected.id, { rollNo: editForm.rollNo, fullName: editForm.fullName, email: editForm.email, klassName: editForm.klassName });
-    setSelected((s) => s ? { ...s, ...editForm } : null);
-    setEditingStudent(false);
-    setEditSaving(false);
+    try {
+      const { patchStudent } = require('@/lib/firestore-db');
+      await patchStudent(selected.id, { rollNo: editForm.rollNo, fullName: editForm.fullName, email: editForm.email, klassName: editForm.klassName });
+      setSelected((s) => s ? { ...s, ...editForm } : null);
+      setEditingStudent(false);
+    } catch (e: unknown) {
+      alert('Failed to save changes: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   return (
@@ -715,12 +729,17 @@ function ClassesPanel() {
   const addClass = async () => {
     if (!form.name.trim() || !institutionId) return;
     setSaving(true);
-    const { createClass, logAudit } = require('@/lib/firestore-db');
-    await createClass({ institutionId, name: form.name.trim(), section: form.section.trim() || undefined, description: form.description.trim() || undefined });
-    await logAudit({ institutionId, actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'CLASS_CREATED', details: form.name.trim() });
-    setForm({ name: '', section: '', description: '' });
-    setShowAdd(false);
-    setSaving(false);
+    try {
+      const { createClass, logAudit } = require('@/lib/firestore-db');
+      await createClass({ institutionId, name: form.name.trim(), section: form.section.trim() || undefined, description: form.description.trim() || undefined });
+      await logAudit({ institutionId, actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'CLASS_CREATED', details: form.name.trim() });
+      setForm({ name: '', section: '', description: '' });
+      setShowAdd(false);
+    } catch (e: unknown) {
+      alert('Failed to add class: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const startEdit = (c: import('@/lib/firestore-db').FSClass) => {
@@ -730,10 +749,15 @@ function ClassesPanel() {
 
   const saveEdit = async (id: string) => {
     setSaving(true);
-    const { patchClass } = require('@/lib/firestore-db');
-    await patchClass(id, { name: editForm.name.trim(), section: editForm.section.trim() || undefined, description: editForm.description.trim() || undefined });
-    setEditingId(null);
-    setSaving(false);
+    try {
+      const { patchClass } = require('@/lib/firestore-db');
+      await patchClass(id, { name: editForm.name.trim(), section: editForm.section.trim() || undefined, description: editForm.description.trim() || undefined });
+      setEditingId(null);
+    } catch (e: unknown) {
+      alert('Failed to save class: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (id: string, name: string) => {

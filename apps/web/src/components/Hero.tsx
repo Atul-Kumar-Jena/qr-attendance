@@ -267,22 +267,27 @@ function QrMosaic() {
   const [cells, setCells] = useState(() => buildCells(0));
   const [prevCells, setPrevCells] = useState<typeof cells>([]);
   const [flipping, setFlipping] = useState(false);
+  const flipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => {
       setTick((t) => {
         const next = t + 1;
-        const newCells = buildCells(next);
-        // store previous for transition reference
-        setPrevCells(cells);
-        setCells(newCells);
+        // Use functional updater so `prev` is always the current cells — no stale closure
+        setCells((prev) => {
+          setPrevCells(prev);
+          return buildCells(next);
+        });
         setFlipping(true);
-        setTimeout(() => setFlipping(false), 350);
+        if (flipTimerRef.current) clearTimeout(flipTimerRef.current);
+        flipTimerRef.current = setTimeout(() => setFlipping(false), 350);
         return next;
       });
     }, 1000);
-    return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      clearInterval(id);
+      if (flipTimerRef.current) clearTimeout(flipTimerRef.current);
+    };
   }, []);
 
   return (

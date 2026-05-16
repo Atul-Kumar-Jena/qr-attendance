@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const STORAGE_KEY = 'atd_cookies';
 
 export function CookieConsent() {
   const [visible, setVisible] = useState(false);
   const [animating, setAnimating] = useState(false);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!localStorage.getItem(STORAGE_KEY)) {
@@ -15,10 +16,15 @@ export function CookieConsent() {
     }
   }, []);
 
+  useEffect(() => {
+    return () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); };
+  }, []);
+
   const accept = (level: 'all' | 'necessary') => {
     localStorage.setItem(STORAGE_KEY, level);
     setAnimating(false);
-    setTimeout(() => setVisible(false), 400);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setVisible(false), 400);
   };
 
   if (!visible) return null;

@@ -47,8 +47,8 @@ export function OnboardingFlow({ user, onComplete }: Props) {
       }
       setCreatedId(id);
       setStep('done-inst');
-    } catch (e: any) {
-      setError(e.message ?? 'Something went wrong.');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.');
     } finally {
       setBusy(false);
     }
@@ -63,8 +63,8 @@ export function OnboardingFlow({ user, onComplete }: Props) {
       if (!inst) { setError('No institution found with that code. Double-check and try again.'); setBusy(false); return; }
       setJoinedName(inst.name);
       setStep('done-student');
-    } catch (e: any) {
-      setError(e.message ?? 'Something went wrong.');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.');
     } finally {
       setBusy(false);
     }

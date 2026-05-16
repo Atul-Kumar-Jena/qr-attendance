@@ -97,11 +97,14 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
 
   const signIn = async () => {
     if (!isConfigured) return;
-    const { doc, getDoc } = require('firebase/firestore');
-    const u = await signInWithGoogle();
+    const u = await signInWithGoogle(); // throws on popup cancel / network error — let caller handle
     let isNew = false;
     if (db) {
-      try { const snap = await getDoc(doc(db, 'users', u.uid)); isNew = !snap.exists(); } catch { /* ignore */ }
+      try {
+        const { doc, getDoc } = require('firebase/firestore');
+        const snap = await getDoc(doc(db, 'users', u.uid));
+        isNew = !snap.exists();
+      } catch { /* non-critical — isNew stays false */ }
     }
     onSignIn?.(u, isNew);
   };
