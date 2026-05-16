@@ -13,6 +13,8 @@ import { siteConfigRouter } from './modules/site-config/site-config.controller.j
 import { institutionsRouter } from './modules/institutions/institutions.controller.js';
 import { teacherPermsRouter } from './modules/teacher-permissions/teacher-permissions.controller.js';
 import { usersRouter } from './modules/users/users.controller.js';
+import { studentsRouter } from './modules/students/students.controller.js';
+import { remarksRouter } from './modules/remarks/remarks.controller.js';
 import { mintToken } from './modules/qr/qr.service.js';
 import { prisma } from './config/db.js';
 
@@ -32,6 +34,8 @@ app.use('/v1/site-config', siteConfigRouter);
 app.use('/v1/institutions', institutionsRouter);
 app.use('/v1/teacher-permissions', teacherPermsRouter);
 app.use('/v1/users', usersRouter);
+app.use('/v1/students', studentsRouter);
+app.use('/v1/remarks', remarksRouter);
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -45,16 +49,11 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, { cors: { origin: env.CORS_ORIGIN } });
 
-/**
- * Live QR fan-out. Admin dashboard joins `session:<id>` after auth and
- * receives a `qr:tick` every rotation interval with a fresh signed token.
- */
 io.of('/sessions').on('connection', (socket) => {
   socket.on('join', async ({ sessionId }: { sessionId: string }) => {
     const s = await prisma.classSession.findUnique({
       where: { id: sessionId },
-      select: { id: true, klassId: true, institutionId: true,
-                status: true, qrRotationSec: true },
+      select: { id: true, klassId: true, institutionId: true, status: true, qrRotationSec: true },
     });
     if (!s || s.status !== 'OPEN') return socket.emit('error', 'NOT_OPEN');
     socket.join(`session:${sessionId}`);

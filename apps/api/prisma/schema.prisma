@@ -13,8 +13,8 @@ datasource db {
 enum UserRole {
   DEVELOPER    // God mode — full control across all institutions
   INSTITUTION  // Org-level owner: manages their school config, billing, assigns admins
-  ADMIN        // Day-to-day ops: sessions, students, teacher rights
-  TEACHER      // Elevated student: sudo within sessions, rights customised by Admin
+  ADMIN        // Day-to-day ops: sessions, students, teacher rights; can create sub-admins
+  TEACHER      // Elevated: sudo within sessions, rights customised by Admin
   STUDENT      // Standard learner
 }
 
@@ -57,29 +57,38 @@ enum ReasonCode {
   RATE_LIMITED
 }
 
+enum PricingMode {
+  LIMITED_OFFER  // Flash-sale / early-access; discounted prices shown
+  PAID           // Full prices; existing limited-offer users prompted to pay
+}
+
 // ─── Global Site Config (single row, Developer-managed) ───────────────────
 
 model SiteConfig {
-  id                    String   @id @default(cuid())
+  id                    String      @id @default(cuid())
   // Branding
-  siteTitle             String   @default("Attendly")
-  tagline               String   @default("Attendance that can't be fooled.")
+  siteTitle             String      @default("Attendly")
+  tagline               String      @default("Attendance that can't be fooled.")
   logoUrl               String?
   faviconUrl            String?
-  primaryColor          String   @default("#6366f1")
-  accentColor           String   @default("#8b5cf6")
+  primaryColor          String      @default("#6366f1")
+  accentColor           String      @default("#8b5cf6")
+  // Pricing mode
+  pricingMode           PricingMode @default(LIMITED_OFFER)
+  limitedOfferLabel     String      @default("Early access — 60% off")
+  limitedOfferDiscountPct Int        @default(60)  // applied to non-zero tier prices
   // Feature flags
-  geofencingEnabled     Boolean  @default(true)
-  deviceBindingEnabled  Boolean  @default(true)
-  attestationEnabled    Boolean  @default(false)
-  mockLocationDetection Boolean  @default(true)
-  qrRotationEnabled     Boolean  @default(true)
-  maintenanceMode       Boolean  @default(false)
-  // System config (reflected at runtime; require restart for TTL changes)
-  defaultQrRotationSec  Int      @default(7)
-  loginRateLimitMax     Int      @default(5)
-  scanRateLimitMax      Int      @default(10)
-  updatedAt             DateTime @updatedAt
+  geofencingEnabled     Boolean     @default(true)
+  deviceBindingEnabled  Boolean     @default(true)
+  attestationEnabled    Boolean     @default(false)
+  mockLocationDetection Boolean     @default(true)
+  qrRotationEnabled     Boolean     @default(true)
+  maintenanceMode       Boolean     @default(false)
+  // System config (reflected at runtime; rate limit / TTL changes need API restart)
+  defaultQrRotationSec  Int         @default(7)
+  loginRateLimitMax     Int         @default(5)
+  scanRateLimitMax      Int         @default(10)
+  updatedAt             DateTime    @updatedAt
   updatedById           String?
 }
 
@@ -113,6 +122,7 @@ model Institution {
   auditLogs    AuditLog[]
   suspicious   SuspiciousActivityLog[]
   teacherPerms TeacherPermission[]
+  remarks      StudentRemark[]
   subscription Subscription?     @relation(fields: [subscriptionId], references: [id])
 }
 
@@ -123,6 +133,7 @@ model Subscription {
   startedAt    DateTime
   expiresAt    DateTime?
   active       Boolean      @default(true)
+  lockedToLimitedOffer Boolean @default(false) // flagged when pricing flips to PAID
   Institution  Institution[]
   billing      BillingRecord[]
 }
@@ -149,12 +160,15 @@ model User {
   role           UserRole
   totpSecret     String?
   suspended      Boolean     @default(false)
+  // Track who created this user so creators can't be deleted by those they created
+  createdById    String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   institution    Institution @relation(fields: [institutionId], references: [id])
   teachingSessions ClassSession[] @relation("TeacherSessions")
   refreshTokens  RefreshToken[]
   teacherPerm    TeacherPermission?
+  remarks        StudentRemark[]   @relation("TeacherRemarks")
 
   @@unique([institutionId, email])
   @@index([institutionId, role])
@@ -182,6 +196,7 @@ model Student {
   device         DeviceBinding?
   attendance     AttendanceRecord[]
   refreshTokens  RefreshToken[]
+  remarks        StudentRemark[]
 
   @@unique([institutionId, rollNo])
   @@index([institutionId, klassId])
@@ -218,11 +233,35 @@ model TeacherPermission {
   canExportReports     Boolean     @default(false)
   canViewAuditLog      Boolean     @default(false)
   canManageClasses     Boolean     @default(false)
+  canAddRemarks        Boolean     @default(true)
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 
   institution          Institution @relation(fields: [institutionId], references: [id])
   teacher              User        @relation(fields: [teacherId], references: [id])
+}
+
+// ─── Student Remarks (teacher observations, visible to admin/institution/dev) ─
+
+model StudentRemark {
+  id            String       @id @default(cuid())
+  institutionId String
+  teacherId     String
+  studentId     String
+  sessionId     String?      // null = general remark not tied to a session
+  content       String
+  isPrivate     Boolean      @default(false) // private = visible only to admin+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  institution   Institution  @relation(fields: [institutionId], references: [id])
+  teacher       User         @relation("TeacherRemarks", fields: [teacherId], references: [id])
+  student       Student      @relation(fields: [studentId], references: [id])
+  session       ClassSession? @relation(fields: [sessionId], references: [id])
+
+  @@index([institutionId, studentId])
+  @@index([teacherId])
+  @@index([sessionId])
 }
 
 // ─── Academic Structure ──────────────────────────────────────────────────
@@ -310,6 +349,7 @@ model ClassSession {
   teacher         User?         @relation("TeacherSessions", fields: [teacherId], references: [id])
   attendance      AttendanceRecord[]
   tokens          QrToken[]
+  remarks         StudentRemark[]
 
   @@index([institutionId, status])
   @@index([klassId, scheduledAt])

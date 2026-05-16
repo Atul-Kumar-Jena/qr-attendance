@@ -5,24 +5,25 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initGSAP } from '@/lib/gsap-init';
 import { Magnetic } from './Magnetic';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 
 if (typeof window !== 'undefined') initGSAP();
 
-const TIERS = [
+const BASE_TIERS = [
   {
-    name: 'Starter', price: 0, unit: '/ month',
+    name: 'Starter', fullPrice: 0, unit: '/ month',
     pitch: 'For coaching centers up to 200 students.',
     feats: ['1 institution', '200 students', 'Dynamic QR', 'Email reports', 'Community support'],
     cta: 'Start free',
   },
   {
-    name: 'Pro', price: 99, unit: '/ month',
+    name: 'Pro', fullPrice: 99, unit: '/ month',
     pitch: 'Most schools and small colleges.',
     feats: ['Up to 5000 students', 'Geofence + device binding', 'PDF / Excel reports', 'Fraud queue', 'Priority support'],
     cta: 'Choose Pro', highlight: true,
   },
   {
-    name: 'Enterprise', price: null, unit: 'custom',
+    name: 'Enterprise', fullPrice: null, unit: 'custom',
     pitch: 'Universities, multi-campus, SSO.',
     feats: ['Unlimited students', 'Custom geofence policies', 'SAML SSO + audit export', 'Webhooks', 'Dedicated SLA'],
     cta: 'Talk to sales',
@@ -31,6 +32,9 @@ const TIERS = [
 
 export function Pricing() {
   const root = useRef<HTMLDivElement>(null);
+  const { config } = useSiteConfig();
+  const isLimitedOffer = config.pricingMode === 'LIMITED_OFFER';
+  const discountMultiplier = 1 - config.limitedOfferDiscountPct / 100;
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -39,8 +43,7 @@ export function Pricing() {
         stagger: 0.12, duration: 1, ease: 'power3.out',
         scrollTrigger: { trigger: root.current, start: 'top 75%' },
       });
-      // Price flip-in
-      gsap.utils.toArray<HTMLElement>('.price').forEach((el) => {
+      gsap.utils.toArray<HTMLElement>('.price-counter').forEach((el) => {
         const v = Number(el.dataset.v);
         if (!Number.isFinite(v)) return;
         const o = { x: 0 };
@@ -54,7 +57,7 @@ export function Pricing() {
       });
     }, root);
     return () => ctx.revert();
-  }, []);
+  }, [isLimitedOffer]);
 
   return (
     <section id="pricing" ref={root} className="py-28 lg:py-40">
@@ -64,60 +67,95 @@ export function Pricing() {
           <h2 className="mt-4 font-display text-[2.5rem] lg:text-[4rem] leading-[1.02] tracking-tightish">
             Honest pricing. <em className="not-italic text-accent">No per-scan tax.</em>
           </h2>
+          {isLimitedOffer && (
+            <div className="mt-4 inline-flex items-center gap-2 bg-accent/10 border border-accent/20 rounded-full px-4 py-1.5">
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+              <span className="text-[12px] text-accent font-medium">{config.limitedOfferLabel}</span>
+            </div>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-5">
-          {TIERS.map((t) => (
-            <div
-              key={t.name}
-              className={`tier rounded-2xl p-8 border transition-all ${
-                t.highlight
-                  ? 'bg-ink text-cream-50 border-ink shadow-[0_30px_80px_-20px_rgba(11,18,32,0.4)]'
-                  : 'bg-cream-50 border-ink/10'
-              }`}
-            >
-              <div className="flex items-baseline justify-between">
-                <h3 className="font-display text-[1.6rem]">{t.name}</h3>
-                {t.highlight && <span className="text-[10px] tracking-widest text-accent uppercase">Most picked</span>}
+          {BASE_TIERS.map((t) => {
+            const displayPrice = (isLimitedOffer && t.fullPrice !== null && t.fullPrice > 0)
+              ? Math.round(t.fullPrice * discountMultiplier)
+              : t.fullPrice;
+
+            return (
+              <div
+                key={t.name}
+                className={`tier rounded-2xl p-8 border transition-all ${
+                  t.highlight
+                    ? 'bg-ink text-cream-50 border-ink shadow-[0_30px_80px_-20px_rgba(11,18,32,0.4)]'
+                    : 'bg-cream-50 border-ink/10'
+                }`}
+              >
+                <div className="flex items-baseline justify-between">
+                  <h3 className="font-display text-[1.6rem]">{t.name}</h3>
+                  {t.highlight && <span className="text-[10px] tracking-widest text-accent uppercase">Most picked</span>}
+                </div>
+                <p className={`mt-1 text-[13px] ${t.highlight ? 'text-cream-50/60' : 'text-ink-mute'}`}>
+                  {t.pitch}
+                </p>
+
+                <div className="mt-6 flex items-baseline gap-2">
+                  {t.fullPrice === null ? (
+                    <span className="font-display text-[3rem] leading-none">Custom</span>
+                  ) : (
+                    <div className="flex flex-col gap-0.5">
+                      {isLimitedOffer && t.fullPrice > 0 && (
+                        <span className={`text-[13px] line-through ${t.highlight ? 'text-cream-50/40' : 'text-ink/30'}`}>
+                          ${t.fullPrice}/mo
+                        </span>
+                      )}
+                      <div className="flex items-baseline gap-2">
+                        <span
+                          className="price-counter font-display text-[3.4rem] leading-none"
+                          data-v={displayPrice ?? 0}
+                        >
+                          ${displayPrice ?? 0}
+                        </span>
+                        <span className={`text-[12px] ${t.highlight ? 'text-cream-50/60' : 'text-ink-mute'}`}>
+                          {t.unit}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <ul className="mt-6 space-y-2 text-[13.5px]">
+                  {t.feats.map((f) => (
+                    <li key={f} className="flex items-center gap-2">
+                      <span className={t.highlight ? 'text-accent' : 'text-sage-600'}>✓</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-8">
+                  <Magnetic strength={0.2}>
+                    <a
+                      href="#demo"
+                      className={`inline-flex w-full justify-center items-center rounded-full px-5 py-3 text-[13px] font-medium ${
+                        t.highlight ? 'bg-accent text-cream-50' : 'bg-ink text-cream-50'
+                      }`}
+                    >
+                      {isLimitedOffer && t.fullPrice !== null && t.fullPrice > 0
+                        ? `${t.cta} — limited offer`
+                        : t.cta}
+                    </a>
+                  </Magnetic>
+                </div>
               </div>
-              <p className={`mt-1 text-[13px] ${t.highlight ? 'text-cream-50/60' : 'text-ink-mute'}`}>
-                {t.pitch}
-              </p>
-              <div className="mt-6 flex items-baseline gap-2">
-                {t.price === null ? (
-                  <span className="font-display text-[3rem] leading-none">Custom</span>
-                ) : (
-                  <>
-                    <span className="price counter-num font-display text-[3.4rem] leading-none" data-v={t.price}>
-                      $0
-                    </span>
-                    <span className={`text-[12px] ${t.highlight ? 'text-cream-50/60' : 'text-ink-mute'}`}>{t.unit}</span>
-                  </>
-                )}
-              </div>
-              <ul className="mt-6 space-y-2 text-[13.5px]">
-                {t.feats.map((f) => (
-                  <li key={f} className="flex items-center gap-2">
-                    <span className={t.highlight ? 'text-accent' : 'text-sage-600'}>✓</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-8">
-                <Magnetic strength={0.2}>
-                  <a
-                    href="#demo"
-                    className={`inline-flex w-full justify-center items-center rounded-full px-5 py-3 text-[13px] font-medium ${
-                      t.highlight ? 'bg-accent text-cream-50' : 'bg-ink text-cream-50'
-                    }`}
-                  >
-                    {t.cta}
-                  </a>
-                </Magnetic>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
+
+        {!isLimitedOffer && (
+          <p className="mt-8 text-center text-[12px] text-ink-mute">
+            Early-access pricing has ended. All plans billed at full rate.
+          </p>
+        )}
       </div>
     </section>
   );

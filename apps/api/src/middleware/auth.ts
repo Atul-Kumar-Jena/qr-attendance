@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
 import { verifyAccess, roleLevel, type AccessClaims, type UserRole } from '../utils/jwt.js';
 
+export { roleLevel };
+
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
