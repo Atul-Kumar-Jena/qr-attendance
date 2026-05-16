@@ -261,15 +261,21 @@ html.dark [class*="border-ink"] {
   border-color: var(--line) !important;
 }
 
+/* divide-* borders (divide-ink/X uses a different class than border-ink/X) */
+html.dark .divide-ink\/10 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(240, 237, 230, 0.10) !important; }
+html.dark .divide-ink\/8  > :not([hidden]) ~ :not([hidden]) { border-color: rgba(240, 237, 230, 0.08) !important; }
+html.dark .divide-ink\/6  > :not([hidden]) ~ :not([hidden]) { border-color: rgba(240, 237, 230, 0.06) !important; }
+
+/* text-ink-soft missing standalone dark override */
+html.dark .text-ink-soft { color: var(--ink-soft) !important; }
+
 /* QR cell in dark mode */
 html.dark .qr-cell {
   background: var(--ink);
 }
 
-/* Dark mode pricing cards */
-html.dark [class*="bg-ink"] {
-  /* keep ink backgrounds as-is — they look good in both modes */
-}
+/* bg-ink opacity variants for decorative circles / dots */
+html.dark .bg-ink\/15 { background-color: rgba(240, 237, 230, 0.15) !important; }
 
 /* ParallaxColumns in dark mode */
 html.dark .pcol-card {
@@ -286,7 +292,7 @@ html.dark .hover\:text-ink-soft:hover { color: var(--ink-soft) !important; }
 /* Hover backgrounds → theme-adaptive */
 html.dark .hover\:bg-cream-50:hover  { background-color: var(--bg)   !important; }
 html.dark .hover\:bg-cream-100:hover { background-color: var(--bg-2)  !important; }
-html.dark .hover\:bg-ink-soft:hover  { background-color: rgba(26, 34, 54, 0.5) !important; }
+html.dark .hover\:bg-ink-soft:hover  { background-color: #222c3e !important; }
 
 /* Opacity-variant backgrounds not caught by base `.bg-cream-*` selectors */
 html.dark .bg-cream-100\/60 { background-color: rgba(19, 22, 29, 0.6) !important; }
@@ -418,9 +424,8 @@ html.dark body::before {
 /* Root cause: Tailwind compiles text-ink to hardcoded #0B1220 (invisible on dark bg) */
 
 /* All hover:text-* states */
-html.dark .hover\:text-ink:hover,
-html.dark .hover\:text-ink-soft:hover { color: var(--ink) !important; }
-
+html.dark .hover\:text-ink:hover      { color: var(--ink) !important; }
+html.dark .hover\:text-ink-soft:hover { color: var(--ink-soft) !important; }
 html.dark .hover\:text-ink-mute:hover { color: var(--ink-mute) !important; }
 
 /* Focus states */
@@ -436,9 +441,9 @@ html.dark .border-ink\/6  { border-color: rgba(240, 237, 230, 0.06) !important; 
 html.dark .border-ink\/20 { border-color: rgba(240, 237, 230, 0.20) !important; }
 
 /* Hover backgrounds for nav + interactive elements */
-html.dark .hover\:bg-cream-50:hover  { background-color: var(--bg)  !important; }
-html.dark .hover\:bg-cream-100:hover { background-color: var(--bg-2) !important; }
-html.dark .hover\:bg-ink-soft:hover  { background-color: rgba(240, 237, 230, 0.08) !important; }
+html.dark .hover\:bg-cream-50:hover  { background-color: var(--bg)   !important; }
+html.dark .hover\:bg-cream-100:hover { background-color: var(--bg-2)  !important; }
+html.dark .hover\:bg-ink-soft:hover  { background-color: #222c3e !important; }
 
 /* select element styling */
 html.dark select { background-color: var(--bg-2) !important; color: var(--ink) !important; border-color: var(--line) !important; }

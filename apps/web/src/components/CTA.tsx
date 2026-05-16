@@ -58,7 +58,7 @@ export function CTA() {
         <div className="mt-8 flex items-center justify-center gap-4">
           <Magnetic strength={0.25}>
             <a href="mailto:hello@attendly.app"
-               className="rounded-full bg-ink text-cream-50 px-7 py-3.5 text-[13.5px] font-medium">
+               className="rounded-full bg-ink dark:bg-[#1A2236] dark:border dark:border-white/10 text-cream-50 px-7 py-3.5 text-[13.5px] font-medium">
               Request demo
             </a>
           </Magnetic>

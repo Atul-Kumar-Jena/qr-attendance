@@ -193,7 +193,7 @@ export function Nav() {
 
             <Link
               href="#demo"
-              className="rounded-xl bg-ink px-4 py-2 text-[12.5px] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:border dark:border-white/15 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+              className="rounded-xl bg-ink dark:bg-[#1A2236] px-4 py-2 text-[12.5px] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:hover:bg-[#222c3e] dark:border dark:border-white/15 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
             >
               Request demo
             </Link>

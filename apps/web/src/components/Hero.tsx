@@ -160,7 +160,7 @@ export function Hero() {
               <Magnetic strength={0.22}>
                 <a
                   href="#demo"
-                  className="hero-cta group inline-flex items-center gap-2.5 rounded-xl bg-ink px-7 py-3.5 text-[13px] font-medium tracking-wide text-cream-50 transition-all hover:bg-ink-soft hover:scale-[1.03] active:scale-[0.97]"
+                  className="hero-cta group inline-flex items-center gap-2.5 rounded-xl bg-ink dark:bg-[#1A2236] dark:border dark:border-white/10 px-7 py-3.5 text-[13px] font-medium tracking-wide text-cream-50 transition-all hover:bg-ink-soft dark:hover:bg-[#222c3e] hover:scale-[1.03] active:scale-[0.97]"
                 >
                   Get started
                   <svg width="13" height="13" viewBox="0 0 14 14" className="transition-transform group-hover:translate-x-1">

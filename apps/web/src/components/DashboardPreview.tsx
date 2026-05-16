@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initGSAP } from '@/lib/gsap-init';
+import { useTheme } from '@/context/ThemeContext';
 
 if (typeof window !== 'undefined') initGSAP();
 
@@ -14,6 +15,8 @@ if (typeof window !== 'undefined') initGSAP();
 export function DashboardPreview() {
   const root = useRef<HTMLDivElement>(null);
   const card = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
+  const barBg = theme === 'dark' ? 'rgba(240, 237, 230, 0.65)' : 'rgba(11,18,32,0.85)';
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -141,7 +144,7 @@ export function DashboardPreview() {
                         className="bar rounded-t-sm"
                         style={{
                           height: `${h}%`,
-                          background: i === 12 ? '#FF6B3D' : 'rgba(11,18,32,0.85)',
+                          background: i === 12 ? '#FF6B3D' : barBg,
                         }}
                       />
                     ))}

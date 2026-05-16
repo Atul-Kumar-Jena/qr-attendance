@@ -86,7 +86,7 @@ export function Pricing() {
                 key={t.name}
                 className={`tier rounded-2xl p-8 border transition-all ${
                   t.highlight
-                    ? 'bg-ink text-cream-50 border-ink shadow-[0_30px_80px_-20px_rgba(11,18,32,0.4)]'
+                    ? 'bg-ink dark:bg-[#1A2236] text-cream-50 border-ink dark:border-white/10 shadow-[0_30px_80px_-20px_rgba(11,18,32,0.4)]'
                     : 'bg-cream-50 border-ink/10'
                 }`}
               >
@@ -137,7 +137,7 @@ export function Pricing() {
                     <a
                       href="#demo"
                       className={`inline-flex w-full justify-center items-center rounded-full px-5 py-3 text-[13px] font-medium ${
-                        t.highlight ? 'bg-accent text-cream-50' : 'bg-ink text-cream-50'
+                        t.highlight ? 'bg-accent text-cream-50' : 'bg-ink dark:bg-[#1A2236] dark:border dark:border-white/10 text-cream-50'
                       }`}
                     >
                       {isLimitedOffer && t.fullPrice !== null && t.fullPrice > 0
