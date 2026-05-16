@@ -21,8 +21,9 @@ export function OnboardingFlow({ user, onComplete }: Props) {
   const [createdCode, setCreatedCode] = useState('');
   const [createdId, setCreatedId] = useState('');
 
-  // Student form
+  // Student/teacher join form
   const [code, setCode] = useState('');
+  const [joiningRole, setJoiningRole] = useState<'student' | 'teacher'>('student');
   const [joinedName, setJoinedName] = useState('');
 
   const handleCreateInstitution = async () => {
@@ -58,7 +59,7 @@ export function OnboardingFlow({ user, onComplete }: Props) {
     setBusy(true); setError('');
     try {
       const { joinInstitutionByCode } = await import('@/lib/firestore-db');
-      const inst = await joinInstitutionByCode(user.uid, code.trim());
+      const inst = await joinInstitutionByCode(user.uid, code.trim(), joiningRole);
       if (!inst) { setError('No institution found with that code. Double-check and try again.'); setBusy(false); return; }
       setJoinedName(inst.name);
       setStep('done-student');
@@ -141,9 +142,23 @@ export function OnboardingFlow({ user, onComplete }: Props) {
             </div>
           )}
 
-          {/* Step: join as student */}
+          {/* Step: join as student/teacher */}
           {step === 'student' && (
             <div className="space-y-4 pt-2">
+              {/* Role selector */}
+              <div>
+                <label className="block text-[11px] tracking-wide text-ink-mute mb-2">I am joining as…</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['student', 'teacher'] as const).map((r) => (
+                    <button key={r} type="button" onClick={() => setJoiningRole(r)}
+                      className={`rounded-lg border-2 py-2.5 text-[13px] font-medium transition-all ${
+                        joiningRole === r ? 'border-accent bg-accent/8 text-accent' : 'border-ink/10 text-ink-mute hover:border-ink/20'
+                      }`}>
+                      {r === 'student' ? '🎓 Student' : '📚 Teacher'}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div>
                 <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Institution code</label>
                 <input
@@ -153,7 +168,7 @@ export function OnboardingFlow({ user, onComplete }: Props) {
                   maxLength={6}
                   className="w-full text-[20px] font-mono tracking-[0.25em] text-center bg-cream-100 dark:bg-white/5 border border-ink/10 rounded-lg px-3 py-3 focus:outline-none focus:border-accent/50 transition-colors uppercase"
                 />
-                <p className="text-[11px] text-ink-mute mt-1.5">Ask your teacher or admin for the 6-character code.</p>
+                <p className="text-[11px] text-ink-mute mt-1.5">Ask your admin for the 6-character institution code.</p>
               </div>
               {error && <p className="text-[12px] text-red-500">{error}</p>}
               <div className="flex gap-3 pt-1">
@@ -199,15 +214,17 @@ export function OnboardingFlow({ user, onComplete }: Props) {
             </div>
           )}
 
-          {/* Done: joined as student */}
+          {/* Done: joined as student/teacher */}
           {step === 'done-student' && (
             <div className="space-y-5 pt-2">
               <div className="rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 p-5">
                 <div className="text-[13px] font-medium text-green-800 dark:text-green-300 mb-1">
-                  🎉 Joined {joinedName}!
+                  🎉 Joined {joinedName} as {joiningRole}!
                 </div>
                 <p className="text-[12.5px] text-green-700 dark:text-green-400">
-                  Your teacher will see you in the student list. Open the Attendly app to mark attendance.
+                  {joiningRole === 'teacher'
+                    ? 'An admin will see you in Manage Users and can set your permissions.'
+                    : 'Your teacher will see you in the student list. Open the Attendly app to mark attendance.'}
                 </p>
               </div>
               <button onClick={() => { onComplete(); window.location.reload(); }}

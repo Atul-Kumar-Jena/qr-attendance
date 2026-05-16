@@ -35,6 +35,7 @@ type Tab =
   | 'overview'
   | 'sessions'
   | 'students'
+  | 'classes'
   | 'reports'
   | 'audit'
   | 'manage-users'
@@ -47,17 +48,17 @@ const ROLE_META: Record<Role, { label: string; dot: string; access: Tab[] }> = {
   developer: {
     label: 'Developer',
     dot: 'bg-red-500',
-    access: ['overview', 'sessions', 'students', 'reports', 'audit', 'manage-users', 'teacher-perms', 'institution', 'institutions', 'god-mode'],
+    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'manage-users', 'teacher-perms', 'institution', 'institutions', 'god-mode'],
   },
   institution: {
     label: 'Institution',
     dot: 'bg-orange-500',
-    access: ['overview', 'sessions', 'students', 'reports', 'audit', 'manage-users', 'teacher-perms', 'institution'],
+    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'manage-users', 'teacher-perms', 'institution'],
   },
   admin: {
     label: 'Admin',
     dot: 'bg-yellow-500',
-    access: ['overview', 'sessions', 'students', 'reports', 'audit', 'manage-users', 'teacher-perms'],
+    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'manage-users', 'teacher-perms'],
   },
   teacher: {
     label: 'Teacher',
@@ -75,6 +76,7 @@ const TAB_LABELS: Record<Tab, string> = {
   'overview':      'Overview',
   'sessions':      'Sessions',
   'students':      'Students',
+  'classes':       'Classes',
   'reports':       'Reports',
   'audit':         'Audit Logs',
   'manage-users':  'Manage Users',
@@ -190,6 +192,7 @@ export default function AdminHome() {
         {currentTab === 'overview'      && <OverviewPanel role={role!} />}
         {currentTab === 'sessions'      && <SessionsPanel />}
         {currentTab === 'students'      && <StudentsPanel role={role!} />}
+        {currentTab === 'classes'       && <ClassesPanel />}
         {currentTab === 'reports'       && <ReportsPanel />}
         {currentTab === 'audit'         && <AuditPanel role={role!} />}
         {currentTab === 'manage-users'  && <ManageUsersPanel role={role!} />}
@@ -256,14 +259,6 @@ function Badge({ role }: { role: string }) {
   );
 }
 
-function Placeholder({ name }: { name: string }) {
-  return (
-    <Card className="p-10 text-center text-ink-mute">
-      {name} — wire to <code className="font-mono text-[12px]">/v1/{name.toLowerCase().replace(/ /g, '-')}</code>
-    </Card>
-  );
-}
-
 // ─── Overview ─────────────────────────────────────────────────────────────────
 
 function OverviewPanel({ role }: { role: Role }) {
@@ -284,9 +279,14 @@ function OverviewPanel({ role }: { role: Role }) {
 
   useEffect(() => {
     if (!roleAtLeast(role, 'developer')) return;
-    const { onAllInstitutions } = require('@/lib/firestore-db');
-    return onAllInstitutions(setAllInstitutions);
-  }, [role]);
+    const { onAllInstitutions, onUsers } = require('@/lib/firestore-db');
+    const u1 = onAllInstitutions(setAllInstitutions);
+    // Load all users globally for developer stats (no institutionId filter)
+    const u2 = onUsers(null, (all: import('@/lib/firestore-db').FSUser[]) => {
+      if (!institutionId) setUsers(all);
+    });
+    return () => { u1(); u2(); };
+  }, [role, institutionId]);
 
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const todaySessions = sessions.filter((s) => {
@@ -469,6 +469,9 @@ function StudentsPanel({ role }: { role: Role }) {
   const [remarkSaving, setRemarkSaving] = useState(false);
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [newStudent, setNewStudent] = useState({ rollNo: '', fullName: '', email: '', klassName: '' });
+  const [editingStudent, setEditingStudent] = useState(false);
+  const [editForm, setEditForm] = useState({ rollNo: '', fullName: '', email: '', klassName: '' });
+  const [editSaving, setEditSaving] = useState(false);
 
   const canAdmin = roleAtLeast(role, 'admin');
   const canRemark = roleAtLeast(role, 'teacher');
@@ -511,6 +514,22 @@ function StudentsPanel({ role }: { role: Role }) {
     await createStudent({ ...newStudent, suspended: false, institutionId });
     setNewStudent({ rollNo: '', fullName: '', email: '', klassName: '' });
     setShowAddStudent(false);
+  };
+
+  const startEdit = () => {
+    if (!selected) return;
+    setEditForm({ rollNo: selected.rollNo, fullName: selected.fullName, email: selected.email ?? '', klassName: selected.klassName ?? '' });
+    setEditingStudent(true);
+  };
+
+  const saveEdit = async () => {
+    if (!selected || !editForm.fullName || !editForm.rollNo) return;
+    setEditSaving(true);
+    const { patchStudent } = require('@/lib/firestore-db');
+    await patchStudent(selected.id, { rollNo: editForm.rollNo, fullName: editForm.fullName, email: editForm.email, klassName: editForm.klassName });
+    setSelected((s) => s ? { ...s, ...editForm } : null);
+    setEditingStudent(false);
+    setEditSaving(false);
   };
 
   return (
@@ -571,29 +590,56 @@ function StudentsPanel({ role }: { role: Role }) {
         {selected ? (
           <div className="flex-1 flex flex-col gap-4 overflow-auto">
             <Card className="p-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="font-display text-[1.8rem]">{selected.fullName}</h2>
-                  <div className="text-[12px] text-ink-mute mt-1">{selected.rollNo} · {selected.email} · {selected.klassName}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {selected.suspended && (
-                    <span className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded-full uppercase tracking-wider">Suspended</span>
-                  )}
-                  {canAdmin && (
-                    <button onClick={async () => {
-                      const { patchStudent, logAudit } = require('@/lib/firestore-db');
-                      await patchStudent(selected.id, { suspended: !selected.suspended });
-                      await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: selected.suspended ? 'STUDENT_UNSUSPENDED' : 'STUDENT_SUSPENDED', targetId: selected.id, targetName: selected.fullName });
-                      setSelected((s) => s ? { ...s, suspended: !s.suspended } : null);
-                    }} className={`text-[11px] px-2 py-1 rounded border transition-colors ${
-                      selected.suspended ? 'border-green-300 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20' : 'border-red-300 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
-                    }`}>
-                      {selected.suspended ? 'Unsuspend' : 'Suspend'}
+              {editingStudent ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Roll no." value={editForm.rollNo} onChange={(v) => setEditForm((f) => ({ ...f, rollNo: v }))} />
+                    <Field label="Full name" value={editForm.fullName} onChange={(v) => setEditForm((f) => ({ ...f, fullName: v }))} />
+                    <Field label="Email" value={editForm.email} onChange={(v) => setEditForm((f) => ({ ...f, email: v }))} />
+                    <Field label="Class / section" value={editForm.klassName} onChange={(v) => setEditForm((f) => ({ ...f, klassName: v }))} />
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={saveEdit} disabled={editSaving || !editForm.fullName || !editForm.rollNo}
+                      className="rounded-lg bg-accent text-cream-50 px-4 py-1.5 text-[12.5px] font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
+                      {editSaving ? 'Saving…' : 'Save changes'}
                     </button>
-                  )}
+                    <button onClick={() => setEditingStudent(false)}
+                      className="rounded-lg border border-ink/10 px-4 py-1.5 text-[12.5px] text-ink-mute hover:text-ink transition-all">
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="font-display text-[1.8rem]">{selected.fullName}</h2>
+                    <div className="text-[12px] text-ink-mute mt-1">{selected.rollNo} · {selected.email} · {selected.klassName}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selected.suspended && (
+                      <span className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded-full uppercase tracking-wider">Suspended</span>
+                    )}
+                    {canAdmin && (
+                      <>
+                        <button onClick={startEdit}
+                          className="text-[11px] px-2 py-1 rounded border border-ink/15 text-ink-mute hover:text-ink hover:border-ink/30 transition-colors">
+                          ✎ Edit
+                        </button>
+                        <button onClick={async () => {
+                          const { patchStudent, logAudit } = require('@/lib/firestore-db');
+                          await patchStudent(selected.id, { suspended: !selected.suspended });
+                          await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: selected.suspended ? 'STUDENT_UNSUSPENDED' : 'STUDENT_SUSPENDED', targetId: selected.id, targetName: selected.fullName });
+                          setSelected((s) => s ? { ...s, suspended: !s.suspended } : null);
+                        }} className={`text-[11px] px-2 py-1 rounded border transition-colors ${
+                          selected.suspended ? 'border-green-300 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20' : 'border-red-300 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+                        }`}>
+                          {selected.suspended ? 'Unsuspend' : 'Suspend'}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </Card>
 
             <Card className="p-5 flex-1 flex flex-col gap-4 overflow-auto">
@@ -639,6 +685,170 @@ function StudentsPanel({ role }: { role: Role }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Classes ─────────────────────────────────────────────────────────────────
+
+function ClassesPanel() {
+  const { institutionId, user: me } = useAuth();
+  const [classes, setClasses] = useState<import('@/lib/firestore-db').FSClass[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: '', section: '', description: '' });
+  const [editForm, setEditForm] = useState({ name: '', section: '', description: '' });
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!institutionId) { setLoading(false); return; }
+    const { onClasses } = require('@/lib/firestore-db');
+    const unsub = onClasses(institutionId, (list: import('@/lib/firestore-db').FSClass[]) => {
+      setClasses(list);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [institutionId]);
+
+  const addClass = async () => {
+    if (!form.name.trim() || !institutionId) return;
+    setSaving(true);
+    const { createClass, logAudit } = require('@/lib/firestore-db');
+    await createClass({ institutionId, name: form.name.trim(), section: form.section.trim() || undefined, description: form.description.trim() || undefined });
+    await logAudit({ institutionId, actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'CLASS_CREATED', details: form.name.trim() });
+    setForm({ name: '', section: '', description: '' });
+    setShowAdd(false);
+    setSaving(false);
+  };
+
+  const startEdit = (c: import('@/lib/firestore-db').FSClass) => {
+    setEditingId(c.id);
+    setEditForm({ name: c.name, section: c.section ?? '', description: c.description ?? '' });
+  };
+
+  const saveEdit = async (id: string) => {
+    setSaving(true);
+    const { patchClass } = require('@/lib/firestore-db');
+    await patchClass(id, { name: editForm.name.trim(), section: editForm.section.trim() || undefined, description: editForm.description.trim() || undefined });
+    setEditingId(null);
+    setSaving(false);
+  };
+
+  const remove = async (id: string, name: string) => {
+    if (!confirm(`Delete class "${name}"? This cannot be undone.`)) return;
+    setDeleting(id);
+    const { deleteClass, logAudit } = require('@/lib/firestore-db');
+    await deleteClass(id);
+    await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'CLASS_DELETED', details: name });
+    setDeleting(null);
+  };
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <div className="flex items-center justify-between">
+        <p className="text-[13px] text-ink-mute">Manage class / batch / section records for your institution.</p>
+        <button onClick={() => { setShowAdd((x) => !x); setEditingId(null); }}
+          className="rounded-xl bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all flex-shrink-0 ml-4">
+          + Add class
+        </button>
+      </div>
+
+      {showAdd && (
+        <Card className="p-5 space-y-3 border-accent/30">
+          <SectionTitle>New class</SectionTitle>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Class name *" value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} placeholder="e.g. Computer Science" />
+            <Field label="Section / batch" value={form.section} onChange={(v) => setForm((f) => ({ ...f, section: v }))} placeholder="e.g. Batch A" />
+            <Field label="Description" value={form.description} onChange={(v) => setForm((f) => ({ ...f, description: v }))} placeholder="Optional notes" className="col-span-2" />
+          </div>
+          <div className="flex gap-3">
+            <button onClick={addClass} disabled={saving || !form.name.trim()}
+              className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all disabled:opacity-50">
+              {saving ? 'Adding…' : 'Add class'}
+            </button>
+            <button onClick={() => setShowAdd(false)}
+              className="rounded-lg border border-ink/10 px-4 py-2 text-[12.5px] text-ink-mute hover:text-ink transition-all">
+              Cancel
+            </button>
+          </div>
+        </Card>
+      )}
+
+      {loading ? (
+        <div className="text-center text-ink-mute text-[13px] py-8">Loading classes…</div>
+      ) : classes.length === 0 ? (
+        <Card className="p-8 text-center space-y-2">
+          <div className="text-ink-mute text-[13px]">No classes yet.</div>
+          <div className="text-[11.5px] text-ink-mute">Add your first class or batch using the button above.</div>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden">
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="border-b border-ink/8 text-[10.5px] tracking-[0.15em] text-ink-mute uppercase">
+                <th className="text-left px-5 py-3">Class name</th>
+                <th className="text-left px-5 py-3">Section</th>
+                <th className="text-left px-5 py-3">Description</th>
+                <th className="text-left px-5 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {classes.map((c) => (
+                <tr key={c.id} className="border-b border-ink/6 last:border-0 hover:bg-cream-100/50 transition-colors">
+                  {editingId === c.id ? (
+                    <>
+                      <td className="px-5 py-2">
+                        <input value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                          className="w-full text-[13px] text-ink bg-cream-100 border border-accent/30 rounded px-2 py-1 focus:outline-none" />
+                      </td>
+                      <td className="px-5 py-2">
+                        <input value={editForm.section} onChange={(e) => setEditForm((f) => ({ ...f, section: e.target.value }))}
+                          className="w-full text-[13px] text-ink bg-cream-100 border border-ink/10 rounded px-2 py-1 focus:outline-none" />
+                      </td>
+                      <td className="px-5 py-2">
+                        <input value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                          className="w-full text-[13px] text-ink bg-cream-100 border border-ink/10 rounded px-2 py-1 focus:outline-none" />
+                      </td>
+                      <td className="px-5 py-2">
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => saveEdit(c.id)} disabled={saving || !editForm.name.trim()}
+                            className="text-[11px] border border-accent/40 text-accent rounded px-2 py-1 hover:bg-accent/5 transition-colors disabled:opacity-50">
+                            {saving ? '…' : 'Save'}
+                          </button>
+                          <button onClick={() => setEditingId(null)}
+                            className="text-[11px] border border-ink/15 text-ink-mute rounded px-2 py-1 hover:text-ink transition-colors">
+                            Cancel
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-5 py-3 font-medium">{c.name}</td>
+                      <td className="px-5 py-3 text-ink-mute">{c.section ?? '—'}</td>
+                      <td className="px-5 py-3 text-ink-mute text-[12px]">{c.description ?? '—'}</td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => startEdit(c)}
+                            className="text-[11px] border border-ink/15 text-ink-mute rounded px-2 py-1 hover:text-ink transition-colors">
+                            ✎ Edit
+                          </button>
+                          <button onClick={() => remove(c.id, c.name)} disabled={deleting === c.id}
+                            className="text-[11px] border border-red-300 text-red-500 rounded px-2 py-1 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50">
+                            {deleting === c.id ? '…' : 'Delete'}
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
     </div>
   );
 }
@@ -805,6 +1015,8 @@ const ACTION_META: Record<string, { label: string; color: string }> = {
   STUDENT_SUSPENDED:   { label: 'Student suspended',    color: 'text-red-500 bg-red-50 dark:bg-red-900/20' },
   STUDENT_UNSUSPENDED: { label: 'Student unsuspended',  color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20' },
   PERMS_UPDATED:       { label: 'Permissions updated',  color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20' },
+  CLASS_CREATED:       { label: 'Class created',         color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' },
+  CLASS_DELETED:       { label: 'Class deleted',         color: 'text-red-500 bg-red-50 dark:bg-red-900/20' },
 };
 
 function AuditPanel({ role }: { role: Role }) {
@@ -1559,6 +1771,9 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     match /auditLogs/{id} {
+      allow read, write: if request.auth != null;
+    }
+    match /classes/{id} {
       allow read, write: if request.auth != null;
     }
   }

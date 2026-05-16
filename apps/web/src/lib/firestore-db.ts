@@ -205,6 +205,7 @@ export function onAllInstitutions(cb: (i: FSInstitution[]) => void): Unsub {
 export async function joinInstitutionByCode(
   userId: string,
   code: string,
+  joiningRole: 'student' | 'teacher' = 'student',
 ): Promise<FSInstitution | null> {
   if (!db) throw new Error('Firebase not configured');
   const { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } = require('firebase/firestore');
@@ -213,7 +214,7 @@ export async function joinInstitutionByCode(
   if (snap.empty) return null;
   const inst = { id: snap.docs[0].id, ...snap.docs[0].data() } as FSInstitution;
   await updateDoc(doc(db, 'users', userId), {
-    institutionId: inst.id, role: 'student', onboardingDone: true, updatedAt: serverTimestamp(),
+    institutionId: inst.id, role: joiningRole, onboardingDone: true, updatedAt: serverTimestamp(),
   });
   return inst;
 }
@@ -304,6 +305,51 @@ export function onAuditLogs(institutionId: string, cb: (logs: FSAuditLog[]) => v
   return onSnapshot(q, (snap: any) => {
     cb(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as FSAuditLog)));
   }, () => cb([]));
+}
+
+// ── Classes ───────────────────────────────────────────────────────────────────
+
+export interface FSClass {
+  id: string;
+  institutionId: string;
+  name: string;
+  section?: string;
+  description?: string;
+  teacherId?: string;
+  studentCount?: number;
+  createdAt?: unknown;
+}
+
+export function onClasses(institutionId: string, cb: (c: FSClass[]) => void): Unsub {
+  if (!db || !institutionId) { cb([]); return () => {}; }
+  const { collection, query, where, orderBy, onSnapshot } = require('firebase/firestore');
+  const q = query(
+    collection(db, 'classes'),
+    where('institutionId', '==', institutionId),
+    orderBy('name', 'asc'),
+  );
+  return onSnapshot(q, (snap: any) => {
+    cb(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as FSClass)));
+  }, () => cb([]));
+}
+
+export async function createClass(data: Omit<FSClass, 'id'>): Promise<string> {
+  if (!db) throw new Error('Firebase not configured');
+  const { collection, addDoc, serverTimestamp } = require('firebase/firestore');
+  const ref = await addDoc(collection(db, 'classes'), { ...data, createdAt: serverTimestamp() });
+  return ref.id;
+}
+
+export async function patchClass(id: string, patch: Partial<FSClass>): Promise<void> {
+  if (!db) return;
+  const { doc, updateDoc, serverTimestamp } = require('firebase/firestore');
+  await updateDoc(doc(db, 'classes', id), { ...patch, updatedAt: serverTimestamp() });
+}
+
+export async function deleteClass(id: string): Promise<void> {
+  if (!db) return;
+  const { doc, deleteDoc } = require('firebase/firestore');
+  await deleteDoc(doc(db, 'classes', id));
 }
 
 export async function getSession(id: string): Promise<FSSession | null> {
