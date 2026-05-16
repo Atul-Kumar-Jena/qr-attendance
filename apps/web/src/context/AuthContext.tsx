@@ -5,13 +5,8 @@ import { auth, db, isConfigured, signInWithGoogle, signOutUser } from '@/lib/fir
 
 export type Role = 'developer' | 'institution' | 'admin' | 'teacher' | 'student';
 
-// Numeric weight for hierarchy checks — mirrors the API's roleLevel()
 export const ROLE_WEIGHT: Record<Role, number> = {
-  developer:   50,
-  institution: 40,
-  admin:       30,
-  teacher:     20,
-  student:     10,
+  developer: 50, institution: 40, admin: 30, teacher: 20, student: 10,
 };
 
 export function roleAtLeast(userRole: Role | null, minRole: Role): boolean {
@@ -19,23 +14,20 @@ export function roleAtLeast(userRole: Role | null, minRole: Role): boolean {
   return ROLE_WEIGHT[userRole] >= ROLE_WEIGHT[minRole];
 }
 
-// Developer email — gets the god-mode role automatically
 const DEVELOPER_EMAILS: string[] = ['jenaatul8@gmail.com'];
 
 interface AuthState {
   user: User | null;
   role: Role | null;
+  institutionId: string | null;
   loading: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState>({
-  user: null,
-  role: null,
-  loading: false,
-  signIn: async () => {},
-  signOut: async () => {},
+  user: null, role: null, institutionId: null, loading: false,
+  signIn: async () => {}, signOut: async () => {},
 });
 
 export function AuthProvider({ children, onSignIn, onSignOut }: {
@@ -45,13 +37,11 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
 }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role | null>(null);
+  const [institutionId, setInstitutionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(isConfigured);
 
   useEffect(() => {
-    if (!isConfigured || !auth) {
-      setLoading(false);
-      return;
-    }
+    if (!isConfigured || !auth) { setLoading(false); return; }
 
     const { onAuthStateChanged } = require('firebase/auth');
     const { doc, getDoc, setDoc, serverTimestamp } = require('firebase/firestore');
@@ -60,6 +50,7 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
       setUser(u);
       if (u) {
         let resolvedRole: Role = 'student';
+        let resolvedInstId: string | null = null;
         if (u.email && DEVELOPER_EMAILS.includes(u.email)) {
           resolvedRole = 'developer';
         } else if (db) {
@@ -67,40 +58,29 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
             const ref = doc(db, 'users', u.uid);
             const snap = await getDoc(ref);
             if (snap.exists()) {
-              const stored = snap.data()?.role as string;
-              // Map old role names to new ones for backwards compat
+              const data = snap.data();
               const mapped: Record<string, Role> = {
-                developer: 'developer',
-                sudo_admin: 'institution',
-                institution: 'institution',
-                admin: 'admin',
-                enterprise: 'institution',
-                teacher: 'teacher',
-                student: 'student',
+                developer: 'developer', sudo_admin: 'institution', institution: 'institution',
+                admin: 'admin', enterprise: 'institution', teacher: 'teacher', student: 'student',
               };
-              resolvedRole = mapped[stored] ?? 'student';
+              resolvedRole = mapped[data?.role as string] ?? 'student';
+              resolvedInstId = data?.institutionId ?? null;
             } else {
               await setDoc(ref, {
-                uid: u.uid,
-                email: u.email,
-                displayName: u.displayName,
-                photoURL: u.photoURL,
-                role: 'student',
-                createdAt: serverTimestamp(),
+                uid: u.uid, email: u.email, displayName: u.displayName,
+                photoURL: u.photoURL, role: 'student', createdAt: serverTimestamp(),
               });
-              resolvedRole = 'student';
             }
-          } catch {
-            resolvedRole = 'student';
-          }
+          } catch { resolvedRole = 'student'; }
         }
         setRole(resolvedRole);
+        setInstitutionId(resolvedInstId);
       } else {
         setRole(null);
+        setInstitutionId(null);
       }
       setLoading(false);
     });
-
     return () => unsub();
   }, []);
 
@@ -110,26 +90,18 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
     const u = await signInWithGoogle();
     let isNew = false;
     if (db) {
-      try {
-        const snap = await getDoc(doc(db, 'users', u.uid));
-        isNew = !snap.exists();
-      } catch { /* ignore */ }
+      try { const snap = await getDoc(doc(db, 'users', u.uid)); isNew = !snap.exists(); } catch { /* ignore */ }
     }
     onSignIn?.(u, isNew);
   };
 
-  const signOut = async () => {
-    await signOutUser();
-    onSignOut?.();
-  };
+  const signOut = async () => { await signOutUser(); onSignOut?.(); };
 
   return (
-    <AuthContext.Provider value={{ user, role, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, role, institutionId, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export function useAuth() { return useContext(AuthContext); }

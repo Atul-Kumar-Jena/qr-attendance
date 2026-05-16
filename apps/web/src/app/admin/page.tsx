@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth, roleAtLeast, ROLE_WEIGHT, type Role } from '@/context/AuthContext';
 import { useSiteConfig, type SiteConfig, type PricingMode } from '@/context/SiteConfigContext';
@@ -63,6 +63,7 @@ const TAB_LABELS: Record<Tab, string> = {
 
 export default function AdminHome() {
   const { user, role, loading } = useAuth();
+  // institutionId is consumed by child panels via useAuth()
   const [tab, setTab] = useState<Tab>('overview');
 
   if (loading) {
@@ -275,210 +276,257 @@ function SessionsPanel() {
 
 // ─── Students + Remarks ───────────────────────────────────────────────────────
 
-interface MockStudent { id: string; rollNo: string; fullName: string; email?: string; klassName?: string; suspended: boolean }
-
-const MOCK_STUDENTS: MockStudent[] = [
-  { id: '1', rollNo: 'CS001', fullName: 'Priya Sharma', email: 'priya@inst.edu', klassName: 'CS-A', suspended: false },
-  { id: '2', rollNo: 'CS002', fullName: 'Rahul Verma', email: 'rahul@inst.edu', klassName: 'CS-A', suspended: false },
-  { id: '3', rollNo: 'CS003', fullName: 'Anita Patel', email: 'anita@inst.edu', klassName: 'CS-B', suspended: true },
-];
-
 function StudentsPanel({ role }: { role: Role }) {
+  const { user: me, institutionId } = useAuth();
+  const [students, setStudents] = useState<import('@/lib/firestore-db').FSStudent[]>([]);
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<MockStudent | null>(null);
+  const [selected, setSelected] = useState<import('@/lib/firestore-db').FSStudent | null>(null);
   const [remarkText, setRemarkText] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
-  const [remarks, setRemarks] = useState<{ id: string; content: string; isPrivate: boolean; teacher: string; createdAt: string }[]>([]);
-  const [remarkSaved, setRemarkSaved] = useState(false);
+  const [remarks, setRemarks] = useState<import('@/lib/firestore-db').FSRemark[]>([]);
+  const [remarkSaving, setRemarkSaving] = useState(false);
+  const [showAddStudent, setShowAddStudent] = useState(false);
+  const [newStudent, setNewStudent] = useState({ rollNo: '', fullName: '', email: '', klassName: '' });
 
-  const filtered = MOCK_STUDENTS.filter((s) =>
+  const canAdmin = roleAtLeast(role, 'admin');
+  const canRemark = roleAtLeast(role, 'teacher');
+
+  useEffect(() => {
+    if (!institutionId) return;
+    const { onStudents } = require('@/lib/firestore-db');
+    const unsub = onStudents(institutionId, setStudents);
+    return () => unsub();
+  }, [institutionId]);
+
+  useEffect(() => {
+    if (!selected) { setRemarks([]); return; }
+    const { onRemarks } = require('@/lib/firestore-db');
+    const unsub = onRemarks(selected.id, canAdmin, setRemarks);
+    return () => unsub();
+  }, [selected?.id, canAdmin]);
+
+  const filtered = students.filter((s) =>
     s.fullName.toLowerCase().includes(search.toLowerCase()) ||
-    s.rollNo.toLowerCase().includes(search.toLowerCase())
+    (s.rollNo ?? '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const addRemark = () => {
-    if (!remarkText.trim() || !selected) return;
-    setRemarks((prev) => [...prev, {
-      id: Date.now().toString(), content: remarkText, isPrivate,
-      teacher: 'You', createdAt: new Date().toLocaleString(),
-    }]);
+  const submitRemark = async () => {
+    if (!remarkText.trim() || !selected || !me || !institutionId) return;
+    setRemarkSaving(true);
+    const { addRemark } = require('@/lib/firestore-db');
+    await addRemark({
+      teacherId: me.uid, teacherName: me.displayName ?? me.email ?? 'Unknown',
+      studentId: selected.id, content: remarkText, isPrivate,
+      institutionId,
+    });
     setRemarkText('');
-    setRemarkSaved(true);
-    setTimeout(() => setRemarkSaved(false), 2000);
+    setRemarkSaving(false);
+  };
+
+  const addStudent = async () => {
+    if (!newStudent.fullName || !newStudent.rollNo || !institutionId) return;
+    const { createStudent } = require('@/lib/firestore-db');
+    await createStudent({ ...newStudent, suspended: false, institutionId });
+    setNewStudent({ rollNo: '', fullName: '', email: '', klassName: '' });
+    setShowAddStudent(false);
   };
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-14rem)]">
-      {/* Student list */}
-      <div className="w-72 flex-shrink-0 flex flex-col gap-3">
-        <input
-          type="text" placeholder="Search name or roll no…"
-          value={search} onChange={(e) => setSearch(e.target.value)}
-          className="w-full text-[13px] bg-cream-50 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50"
-        />
-        <Card className="flex-1 overflow-auto p-2 space-y-1">
-          {filtered.map((s) => (
-            <button key={s.id} onClick={() => setSelected(s)}
-              className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${
-                selected?.id === s.id ? 'bg-ink dark:bg-white/10 dark:border dark:border-white/10 text-cream-50' : 'hover:bg-cream-100'
-              }`}
-            >
-              <div className="text-[13px] font-medium flex items-center gap-2">
-                {s.fullName}
-                {s.suspended && <span className="text-[9px] text-red-500 uppercase tracking-wider">suspended</span>}
-              </div>
-              <div className={`text-[11px] ${selected?.id === s.id ? 'text-cream-50/60' : 'text-ink-mute'}`}>
-                {s.rollNo} · {s.klassName}
-              </div>
-            </button>
-          ))}
-          {filtered.length === 0 && (
-            <div className="text-[12px] text-ink-mute text-center py-6">No students found</div>
-          )}
-        </Card>
-        <p className="text-[11px] text-ink-mute">
-          Wire to <code className="font-mono">GET /v1/students</code>
-        </p>
-      </div>
-
-      {/* Student detail + remarks */}
-      {selected ? (
-        <div className="flex-1 flex flex-col gap-4 overflow-auto">
-          <Card className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="font-display text-[1.8rem]">{selected.fullName}</h2>
-                <div className="text-[12px] text-ink-mute mt-1">{selected.rollNo} · {selected.email} · {selected.klassName}</div>
-              </div>
-              {selected.suspended && (
-                <span className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded-full uppercase tracking-wider">Suspended</span>
-              )}
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-3 text-[12px]">
-              {[['Attendance', '87%'], ['Sessions', '34'], ['Flagged', '2']].map(([l, v]) => (
-                <div key={l} className="bg-cream-100 rounded-lg p-3">
-                  <div className="text-ink-mute uppercase tracking-wider text-[10px]">{l}</div>
-                  <div className="font-display text-[1.6rem] mt-1">{v}</div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Remarks */}
-          <Card className="p-5 flex-1 flex flex-col gap-4 overflow-auto">
-            <SectionTitle>Remarks</SectionTitle>
-
-            <div className="flex-1 overflow-auto space-y-3 min-h-0">
-              {remarks.length === 0 && (
-                <p className="text-[12px] text-ink-mute">No remarks yet for this student.</p>
-              )}
-              {remarks.map((r) => (
-                <div key={r.id} className={`rounded-lg p-3 text-[13px] ${r.isPrivate ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/30' : 'bg-cream-100'}`}>
-                  <div className="text-ink leading-relaxed">{r.content}</div>
-                  <div className="flex items-center gap-2 mt-1.5 text-[10.5px] text-ink-mute">
-                    <span>{r.teacher}</span>
-                    <span>·</span>
-                    <span>{r.createdAt}</span>
-                    {r.isPrivate && <span className="text-amber-600 font-medium">· private</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Add remark form */}
-            <div className="border-t border-ink/8 pt-4 space-y-2">
-              <textarea
-                value={remarkText}
-                onChange={(e) => setRemarkText(e.target.value)}
-                placeholder="Add a remark about this student…"
-                rows={3}
-                className="w-full text-[13px] text-ink bg-cream-100 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50 resize-none"
-              />
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 text-[12px] text-ink-mute cursor-pointer">
-                  <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)}
-                    className="accent-accent" />
-                  Private (only visible to admin+)
-                </label>
-                <button onClick={addRemark}
-                  className="rounded-lg bg-accent text-cream-50 px-4 py-1.5 text-[12.5px] font-medium hover:bg-accent/90 transition-all">
-                  {remarkSaved ? 'Saved!' : 'Add remark'}
-                </button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center text-ink-mute text-[13px]">
-          Select a student to view their profile and add remarks
+    <div className="space-y-4">
+      {canAdmin && (
+        <div className="flex justify-end">
+          <button onClick={() => setShowAddStudent((x) => !x)}
+            className="rounded-xl bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all">
+            + Add student
+          </button>
         </div>
       )}
+
+      {showAddStudent && (
+        <Card className="p-5 space-y-3 border-accent/30">
+          <SectionTitle>New student</SectionTitle>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Roll no." value={newStudent.rollNo} onChange={(v) => setNewStudent((s) => ({ ...s, rollNo: v }))} />
+            <Field label="Full name" value={newStudent.fullName} onChange={(v) => setNewStudent((s) => ({ ...s, fullName: v }))} />
+            <Field label="Email" value={newStudent.email} onChange={(v) => setNewStudent((s) => ({ ...s, email: v }))} />
+            <Field label="Class / section" value={newStudent.klassName} onChange={(v) => setNewStudent((s) => ({ ...s, klassName: v }))} />
+          </div>
+          <div className="flex gap-3">
+            <button onClick={addStudent} className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all">Add</button>
+            <button onClick={() => setShowAddStudent(false)} className="rounded-lg border border-ink/10 px-4 py-2 text-[12.5px] text-ink-mute hover:text-ink transition-all">Cancel</button>
+          </div>
+        </Card>
+      )}
+
+      <div className="flex gap-6 h-[calc(100vh-18rem)]">
+        <div className="w-72 flex-shrink-0 flex flex-col gap-3">
+          <input type="text" placeholder="Search name or roll no…"
+            value={search} onChange={(e) => setSearch(e.target.value)}
+            className="w-full text-[13px] bg-cream-50 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50" />
+          <Card className="flex-1 overflow-auto p-2 space-y-1">
+            {filtered.map((s) => (
+              <button key={s.id} onClick={() => setSelected(s)}
+                className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${
+                  selected?.id === s.id ? 'bg-ink dark:bg-white/10 dark:border dark:border-white/10 text-cream-50' : 'hover:bg-cream-100'
+                }`}>
+                <div className="text-[13px] font-medium flex items-center gap-2">
+                  {s.fullName}
+                  {s.suspended && <span className="text-[9px] text-red-500 uppercase tracking-wider">suspended</span>}
+                </div>
+                <div className={`text-[11px] ${selected?.id === s.id ? 'text-cream-50/60' : 'text-ink-mute'}`}>
+                  {s.rollNo} · {s.klassName}
+                </div>
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <div className="text-[12px] text-ink-mute text-center py-6">
+                {students.length === 0 ? 'No students added yet.' : 'No match.'}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {selected ? (
+          <div className="flex-1 flex flex-col gap-4 overflow-auto">
+            <Card className="p-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="font-display text-[1.8rem]">{selected.fullName}</h2>
+                  <div className="text-[12px] text-ink-mute mt-1">{selected.rollNo} · {selected.email} · {selected.klassName}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {selected.suspended && (
+                    <span className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded-full uppercase tracking-wider">Suspended</span>
+                  )}
+                  {canAdmin && (
+                    <button onClick={async () => {
+                      const { patchStudent } = require('@/lib/firestore-db');
+                      await patchStudent(selected.id, { suspended: !selected.suspended });
+                      setSelected((s) => s ? { ...s, suspended: !s.suspended } : null);
+                    }} className={`text-[11px] px-2 py-1 rounded border transition-colors ${
+                      selected.suspended ? 'border-green-300 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20' : 'border-red-300 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+                    }`}>
+                      {selected.suspended ? 'Unsuspend' : 'Suspend'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5 flex-1 flex flex-col gap-4 overflow-auto">
+              <SectionTitle>Remarks ({remarks.length})</SectionTitle>
+              <div className="flex-1 overflow-auto space-y-3 min-h-0">
+                {remarks.length === 0 && (
+                  <p className="text-[12px] text-ink-mute">No remarks yet.</p>
+                )}
+                {remarks.map((r) => (
+                  <div key={r.id} className={`rounded-lg p-3 text-[13px] ${r.isPrivate ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/30' : 'bg-cream-100'}`}>
+                    <div className="text-ink leading-relaxed">{r.content}</div>
+                    <div className="flex items-center gap-2 mt-1.5 text-[10.5px] text-ink-mute">
+                      <span>{r.teacherName ?? r.teacherId}</span>
+                      <span>·</span>
+                      <span>{r.createdAt ? new Date((r.createdAt as any).seconds * 1000).toLocaleDateString() : 'Just now'}</span>
+                      {r.isPrivate && <span className="text-amber-600 dark:text-amber-400 font-medium">· private</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {canRemark && (
+                <div className="border-t border-ink/8 pt-4 space-y-2">
+                  <textarea value={remarkText} onChange={(e) => setRemarkText(e.target.value)}
+                    placeholder="Add a remark about this student…" rows={3}
+                    className="w-full text-[13px] text-ink bg-cream-100 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50 resize-none" />
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 text-[12px] text-ink-mute cursor-pointer">
+                      <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} className="accent-accent" />
+                      Private (admin+ only)
+                    </label>
+                    <button onClick={submitRemark} disabled={remarkSaving || !remarkText.trim()}
+                      className="rounded-lg bg-accent text-cream-50 px-4 py-1.5 text-[12.5px] font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
+                      {remarkSaving ? 'Saving…' : 'Add remark'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-ink-mute text-[13px]">
+            Select a student to view their profile and remarks
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 // ─── Manage Users ─────────────────────────────────────────────────────────────
 
-type MockUser = { id: string; fullName: string; email: string; role: string; suspended: boolean; createdById?: string }
-
-const MOCK_USERS: MockUser[] = [
-  { id: 'u1', fullName: 'Shreya Nair', email: 'shreya@inst.edu', role: 'ADMIN', suspended: false },
-  { id: 'u2', fullName: 'Dev Kapoor', email: 'dev@inst.edu', role: 'TEACHER', suspended: false },
-  { id: 'u3', fullName: 'Meena Das', email: 'meena@inst.edu', role: 'TEACHER', suspended: true, createdById: 'u1' },
-];
-
 function ManageUsersPanel({ role }: { role: Role }) {
-  const [users, setUsers] = useState<MockUser[]>(MOCK_USERS);
+  const { user: me, institutionId } = useAuth();
+  const [users, setUsers] = useState<import('@/lib/firestore-db').FSUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ email: '', fullName: '', password: '', role: 'TEACHER' });
+  const [form, setForm] = useState({ email: '', fullName: '', role: 'TEACHER' });
   const [status, setStatus] = useState('');
 
-  // Roles this user can assign
-  const ALL_ROLES = ['DEVELOPER', 'INSTITUTION', 'ADMIN', 'TEACHER', 'STUDENT'];
   const myLevel = ROLE_WEIGHT[role];
+  const ALL_ROLES = ['DEVELOPER', 'INSTITUTION', 'ADMIN', 'TEACHER', 'STUDENT'];
   const assignableRoles = ALL_ROLES.filter((r) => {
-    const level: Record<string, number> = { DEVELOPER: 50, INSTITUTION: 40, ADMIN: 30, TEACHER: 20, STUDENT: 10 };
-    return level[r] < myLevel;
+    const w: Record<string, number> = { DEVELOPER: 50, INSTITUTION: 40, ADMIN: 30, TEACHER: 20, STUDENT: 10 };
+    return w[r] < myLevel;
   });
 
-  const canModify = (target: MockUser) => {
-    const level: Record<string, number> = { DEVELOPER: 50, INSTITUTION: 40, ADMIN: 30, TEACHER: 20, STUDENT: 10 };
-    if (level[target.role] >= myLevel) return false;
-    return true;
+  const canModify = (target: import('@/lib/firestore-db').FSUser) => {
+    const w: Record<string, number> = { developer: 50, institution: 40, admin: 30, teacher: 20, student: 10 };
+    return (w[target.role] ?? 0) < myLevel && target.uid !== me?.uid;
   };
 
-  const toggleSuspend = (id: string) => {
-    setUsers((prev) => prev.map((u) => u.id === id ? { ...u, suspended: !u.suspended } : u));
+  useEffect(() => {
+    const { onUsers } = require('@/lib/firestore-db');
+    const unsub = onUsers(role === 'developer' ? null : institutionId, (list: import('@/lib/firestore-db').FSUser[]) => {
+      setUsers(list);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [institutionId, role]);
+
+  const changeRole = async (uid: string, newRole: string) => {
+    const { patchUser } = require('@/lib/firestore-db');
+    await patchUser(uid, { role: newRole.toLowerCase() as import('@/lib/firestore-db').UserRole });
+    setEditingId(null);
   };
 
-  const changeRole = (id: string, newRole: string) => {
-    setUsers((prev) => prev.map((u) => u.id === id ? { ...u, role: newRole } : u));
+  const toggleSuspend = async (u: import('@/lib/firestore-db').FSUser) => {
+    const { patchUser } = require('@/lib/firestore-db');
+    await patchUser(u.uid, { suspended: !u.suspended });
   };
 
-  const createUser = () => {
+  const createUser = async () => {
     if (!form.email || !form.fullName) return;
-    const newUser: MockUser = {
-      id: Date.now().toString(), fullName: form.fullName, email: form.email,
-      role: form.role, suspended: false, createdById: 'self',
-    };
-    setUsers((prev) => [...prev, newUser]);
-    setForm({ email: '', fullName: '', password: '', role: 'TEACHER' });
+    const { createPendingUser } = require('@/lib/firestore-db');
+    await createPendingUser({
+      email: form.email, displayName: form.fullName,
+      role: form.role.toLowerCase() as import('@/lib/firestore-db').UserRole,
+      institutionId: institutionId ?? undefined,
+    });
+    setForm({ email: '', fullName: '', role: 'TEACHER' });
     setShowCreate(false);
-    setStatus('User created. Wire to POST /v1/users');
-    setTimeout(() => setStatus(''), 3000);
+    setStatus('User invited. They will get this role when they sign in.');
+    setTimeout(() => setStatus(''), 4000);
   };
 
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center justify-between">
         <p className="text-[13px] text-ink-mute">
-          You can manage roles and access for users below your privilege level.
-          {roleAtLeast(role, 'admin') && ' Admins can create sub-admins who cannot remove their creator.'}
+          Manage roles and access for users below your privilege level.
+          {roleAtLeast(role, 'admin') && ' Sub-admins you create cannot remove you.'}
         </p>
         <button onClick={() => setShowCreate(true)}
           className="rounded-xl bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all flex-shrink-0 ml-4">
-          + Add user
+          + Invite user
         </button>
       </div>
 
@@ -486,14 +534,15 @@ function ManageUsersPanel({ role }: { role: Role }) {
         <div className="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 px-4 py-2 text-[12.5px] text-green-700 dark:text-green-400">{status}</div>
       )}
 
-      {/* Create form */}
       {showCreate && (
         <Card className="p-5 space-y-4 border-accent/30">
-          <SectionTitle>New user</SectionTitle>
+          <SectionTitle>Invite user</SectionTitle>
+          <p className="text-[12px] text-ink-mute -mt-2">
+            Creates a pending record. The user gets this role the next time they sign in with this email.
+          </p>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Full name" value={form.fullName} onChange={(v) => setForm((f) => ({ ...f, fullName: v }))} />
             <Field label="Email" value={form.email} onChange={(v) => setForm((f) => ({ ...f, email: v }))} type="email" />
-            <Field label="Password" value={form.password} onChange={(v) => setForm((f) => ({ ...f, password: v }))} type="password" />
             <div>
               <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Role</label>
               <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
@@ -505,7 +554,7 @@ function ManageUsersPanel({ role }: { role: Role }) {
           <div className="flex gap-3">
             <button onClick={createUser}
               className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all">
-              Create
+              Create invite
             </button>
             <button onClick={() => setShowCreate(false)}
               className="rounded-lg border border-ink/10 px-4 py-2 text-[12.5px] text-ink-mute hover:text-ink transition-all">
@@ -515,79 +564,74 @@ function ManageUsersPanel({ role }: { role: Role }) {
         </Card>
       )}
 
-      {/* User table */}
       <Card className="overflow-hidden">
-        <table className="w-full text-[13px]">
-          <thead>
-            <tr className="border-b border-ink/8 text-[10.5px] tracking-[0.15em] text-ink-mute uppercase">
-              <th className="text-left px-5 py-3">User</th>
-              <th className="text-left px-5 py-3">Role</th>
-              <th className="text-left px-5 py-3">Status</th>
-              <th className="text-left px-5 py-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => {
-              const editable = canModify(u);
-              return (
-                <tr key={u.id} className="border-b border-ink/6 last:border-0 hover:bg-cream-100/50 transition-colors">
-                  <td className="px-5 py-3">
-                    <div className="font-medium">{u.fullName}</div>
-                    <div className="text-[11px] text-ink-mute">{u.email}</div>
-                  </td>
-                  <td className="px-5 py-3">
-                    {editable && editingId === u.id ? (
-                      <select
-                        value={u.role}
-                        onChange={(e) => { changeRole(u.id, e.target.value); setEditingId(null); }}
-                        autoFocus
-                        onBlur={() => setEditingId(null)}
-                        className="text-[12px] bg-cream-100 border border-accent/30 rounded px-2 py-1 focus:outline-none"
-                      >
-                        {assignableRoles.map((r) => <option key={r}>{r}</option>)}
-                      </select>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Badge role={u.role} />
-                        {editable && (
-                          <button onClick={() => setEditingId(u.id)}
-                            className="text-ink-mute hover:text-ink transition-colors text-[11px]">
-                            ✎
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className={`text-[11px] uppercase tracking-wider ${u.suspended ? 'text-red-500' : 'text-green-600'}`}>
-                      {u.suspended ? 'Suspended' : 'Active'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3">
-                    {editable ? (
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => toggleSuspend(u.id)}
+        {loading ? (
+          <div className="p-8 text-center text-ink-mute text-[13px]">Loading users…</div>
+        ) : (
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="border-b border-ink/8 text-[10.5px] tracking-[0.15em] text-ink-mute uppercase">
+                <th className="text-left px-5 py-3">User</th>
+                <th className="text-left px-5 py-3">Role</th>
+                <th className="text-left px-5 py-3">Status</th>
+                <th className="text-left px-5 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u) => {
+                const editable = canModify(u);
+                return (
+                  <tr key={u.uid} className="border-b border-ink/6 last:border-0 hover:bg-cream-100/50 transition-colors">
+                    <td className="px-5 py-3">
+                      <div className="font-medium">{u.displayName || u.email}</div>
+                      <div className="text-[11px] text-ink-mute">{u.email}</div>
+                    </td>
+                    <td className="px-5 py-3">
+                      {editable && editingId === u.uid ? (
+                        <select value={u.role} onChange={(e) => changeRole(u.uid, e.target.value)}
+                          autoFocus onBlur={() => setEditingId(null)}
+                          className="text-[12px] bg-cream-100 border border-accent/30 rounded px-2 py-1 focus:outline-none">
+                          {assignableRoles.map((r) => <option key={r} value={r.toLowerCase()}>{r}</option>)}
+                        </select>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Badge role={u.role.toUpperCase()} />
+                          {editable && (
+                            <button onClick={() => setEditingId(u.uid)}
+                              className="text-ink-mute hover:text-ink transition-colors text-[11px]">✎</button>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className={`text-[11px] uppercase tracking-wider ${u.suspended ? 'text-red-500' : 'text-green-600'}`}>
+                        {u.suspended ? 'Suspended' : 'Active'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      {editable ? (
+                        <button onClick={() => toggleSuspend(u)}
                           className={`text-[11px] px-2 py-1 rounded border transition-colors ${
-                            u.suspended ? 'border-green-300 text-green-600 hover:bg-green-50' : 'border-red-300 text-red-500 hover:bg-red-50'
+                            u.suspended ? 'border-green-300 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20' : 'border-red-300 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
                           }`}>
                           {u.suspended ? 'Unsuspend' : 'Suspend'}
                         </button>
-                        <button onClick={() => setUsers((prev) => prev.filter((x) => x.id !== u.id))}
-                          className="text-[11px] px-2 py-1 rounded border border-red-300 text-red-500 hover:bg-red-50 transition-colors">
-                          Delete
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-[11px] text-ink/30">Protected</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                      ) : (
+                        <span className="text-[11px] text-ink/30 dark:text-white/20">
+                          {u.uid === me?.uid ? 'You' : 'Protected'}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {users.length === 0 && (
+                <tr><td colSpan={4} className="px-5 py-8 text-center text-ink-mute text-[13px]">No users yet. Invite some above.</td></tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </Card>
-      <p className="text-[11px] text-ink-mute">Wire to <code className="font-mono">GET /v1/users/institution</code></p>
     </div>
   );
 }
@@ -606,39 +650,84 @@ const PERM_CONFIG = [
 ];
 
 function TeacherPermsPanel() {
-  const [teacherEmail, setTeacherEmail] = useState('');
+  const { institutionId } = useAuth();
+  const [teachers, setTeachers] = useState<import('@/lib/firestore-db').FSUser[]>([]);
+  const [selectedTeacher, setSelectedTeacher] = useState<string>('');
   const [perms, setPerms] = useState<Record<string, boolean>>(
-    Object.fromEntries(PERM_CONFIG.map((p) => [
-      p.key,
-      ['canCreateSessions', 'canEndSessions', 'canViewAllAttendance', 'canAddRemarks'].includes(p.key),
-    ]))
+    Object.fromEntries(PERM_CONFIG.map((p) => [p.key,
+      ['canCreateSessions','canEndSessions','canViewAllAttendance','canAddRemarks'].includes(p.key)]))
   );
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const { onUsers } = require('@/lib/firestore-db');
+    const unsub = onUsers(institutionId, (users: import('@/lib/firestore-db').FSUser[]) => {
+      setTeachers(users.filter((u) => u.role === 'teacher'));
+    });
+    return () => unsub();
+  }, [institutionId]);
+
+  useEffect(() => {
+    if (!selectedTeacher || !institutionId) return;
+    const { onTeacherPerm } = require('@/lib/firestore-db');
+    const unsub = onTeacherPerm(selectedTeacher, institutionId, (p: import('@/lib/firestore-db').FSTeacherPerm) => {
+      setPerms({
+        canCreateSessions: p.canCreateSessions, canEndSessions: p.canEndSessions,
+        canViewAllAttendance: p.canViewAllAttendance, canManageStudents: p.canManageStudents,
+        canExportReports: p.canExportReports, canViewAuditLog: p.canViewAuditLog,
+        canManageClasses: p.canManageClasses, canAddRemarks: p.canAddRemarks,
+      });
+    });
+    return () => unsub();
+  }, [selectedTeacher, institutionId]);
+
+  const savePerms = async () => {
+    if (!selectedTeacher || !institutionId) return;
+    setSaving(true);
+    const { saveTeacherPerm } = require('@/lib/firestore-db');
+    await saveTeacherPerm(selectedTeacher, { ...perms, institutionId });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
 
   return (
     <div className="space-y-6 max-w-2xl">
       <Card className="p-6 space-y-3">
         <SectionTitle>Select teacher</SectionTitle>
-        <Field label="Teacher email or ID" value={teacherEmail} onChange={setTeacherEmail} placeholder="dev@school.edu" />
-        <p className="text-[11px] text-ink-mute">Wire to <code className="font-mono">GET /v1/users/institution?role=TEACHER</code></p>
+        <select value={selectedTeacher} onChange={(e) => setSelectedTeacher(e.target.value)}
+          className="w-full text-[13px] text-ink bg-cream-100 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none">
+          <option value="">— choose a teacher —</option>
+          {teachers.map((t) => (
+            <option key={t.uid} value={t.uid}>{t.displayName || t.email}</option>
+          ))}
+        </select>
+        {teachers.length === 0 && (
+          <p className="text-[11px] text-ink-mute">No teachers found. Invite teachers in Manage Users first.</p>
+        )}
       </Card>
 
-      <Card className="p-6 space-y-4">
-        <SectionTitle>Permissions</SectionTitle>
-        <p className="text-[12px] text-ink-mute -mt-2">
-          Teachers have sudo-level access within sessions by default. Use this to restrict or grant specific rights.
-        </p>
-        {PERM_CONFIG.map((p) => (
-          <Toggle key={p.key} label={p.label} description={p.desc}
-            checked={perms[p.key] ?? false}
-            onChange={(v) => setPerms((c) => ({ ...c, [p.key]: v }))} />
-        ))}
-      </Card>
+      {selectedTeacher && (
+        <>
+          <Card className="p-6 space-y-4">
+            <SectionTitle>Permissions</SectionTitle>
+            <p className="text-[12px] text-ink-mute -mt-2">
+              Teachers have sudo-level access within sessions by default.
+            </p>
+            {PERM_CONFIG.map((p) => (
+              <Toggle key={p.key} label={p.label} description={p.desc}
+                checked={perms[p.key] ?? false}
+                onChange={(v) => setPerms((c) => ({ ...c, [p.key]: v }))} />
+            ))}
+          </Card>
 
-      <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000); }}
-        className="rounded-xl bg-accent text-cream-50 px-6 py-2.5 text-[13.5px] font-medium hover:bg-accent/90 transition-all">
-        {saved ? 'Saved!' : 'Save permissions'}
-      </button>
+          <button onClick={savePerms} disabled={saving}
+            className="rounded-xl bg-accent text-cream-50 px-6 py-2.5 text-[13.5px] font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
+            {saving ? 'Saving…' : saved ? 'Saved!' : 'Save permissions'}
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -888,24 +977,33 @@ function GodModePanel() {
       </Card>
 
       {/* Firestore rules hint */}
-      <Card className="p-5 border-blue-200 bg-blue-50/30 space-y-2">
+      <Card className="p-5 border-blue-200 dark:border-blue-900/40 bg-blue-50/30 dark:bg-blue-900/10 space-y-2">
         <SectionTitle>Firebase setup — Firestore rules</SectionTitle>
-        <p className="text-[12px] text-ink-mute">If you see "missing permissions" when saving, deploy these rules in Firebase Console → Firestore → Rules:</p>
+        <p className="text-[12px] text-ink-mute">Deploy these rules in Firebase Console → Firestore → Rules to enable all collections:</p>
         <pre className="text-[11px] bg-ink text-cream-50 rounded-lg p-4 overflow-x-auto leading-relaxed">{`rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Config: public read, any authenticated user can write
     match /config/{docId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
-    // Users collection
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null;
+    }
+    match /institutions/{id} {
+      allow read, write: if request.auth != null;
+    }
+    match /students/{id} {
+      allow read, write: if request.auth != null;
+    }
+    match /teacherPerms/{id} {
+      allow read, write: if request.auth != null;
+    }
+    match /remarks/{id} {
+      allow read, write: if request.auth != null;
     }
   }
 }`}</pre>
-        <p className="text-[11px] text-ink-mute">After deploying rules, saving from God Mode will work immediately.</p>
       </Card>
 
       {/* Save button + status */}
@@ -930,14 +1028,37 @@ service cloud.firestore {
 }
 
 function CreateUserForm() {
-  const [form, setForm] = useState({ institutionId: '', email: '', fullName: '', password: '', role: 'ADMIN' });
+  const [form, setForm] = useState({ institutionId: '', email: '', fullName: '', role: 'ADMIN' });
   const [status, setStatus] = useState('');
+  const [saving, setSaving] = useState(false);
   const set = (k: keyof typeof form) => (v: string) => setForm((c) => ({ ...c, [k]: v }));
+
+  const create = async () => {
+    if (!form.email || !form.fullName) return;
+    setSaving(true);
+    try {
+      const { createPendingUser } = require('@/lib/firestore-db');
+      await createPendingUser({
+        email: form.email, displayName: form.fullName,
+        role: form.role.toLowerCase() as import('@/lib/firestore-db').UserRole,
+        institutionId: form.institutionId || undefined,
+      });
+      setForm({ institutionId: '', email: '', fullName: '', role: 'ADMIN' });
+      setStatus('Pending user created. They get this role on next sign-in.');
+    } catch (e: unknown) {
+      setStatus('Error: ' + (e instanceof Error ? e.message : String(e)));
+    }
+    setSaving(false);
+    setTimeout(() => setStatus(''), 6000);
+  };
 
   return (
     <div className="space-y-3">
+      <p className="text-[12px] text-ink-mute">
+        Creates a pending record — the user gets this role the next time they sign in with this email address.
+      </p>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Institution ID" value={form.institutionId} onChange={set('institutionId')} placeholder="cuid…" />
+        <Field label="Institution ID (blank = global)" value={form.institutionId} onChange={set('institutionId')} placeholder="Firestore doc ID" />
         <div>
           <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Role</label>
           <select value={form.role} onChange={(e) => set('role')(e.target.value)}
@@ -947,37 +1068,53 @@ function CreateUserForm() {
         </div>
         <Field label="Email" value={form.email} onChange={set('email')} type="email" />
         <Field label="Full name" value={form.fullName} onChange={set('fullName')} />
-        <Field label="Password" value={form.password} onChange={set('password')} type="password" />
       </div>
-      <button onClick={() => setStatus('Wire to POST /v1/users')}
-        className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all">
-        Create user
+      <button onClick={create} disabled={saving || !form.email || !form.fullName}
+        className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all disabled:opacity-50">
+        {saving ? 'Creating…' : 'Create pending user'}
       </button>
-      {status && <p className="text-[11px] text-ink-mute">{status}</p>}
+      {status && <p className="text-[11px] text-ink-mute font-mono">{status}</p>}
     </div>
   );
 }
 
 function CreateInstitutionForm() {
-  const [form, setForm] = useState({ code: '', name: '', slug: '', ownerEmail: '', ownerName: '', ownerPassword: '' });
+  const [form, setForm] = useState({ code: '', name: '', slug: '' });
   const [status, setStatus] = useState('');
+  const [saving, setSaving] = useState(false);
   const set = (k: keyof typeof form) => (v: string) => setForm((c) => ({ ...c, [k]: v }));
+
+  const create = async () => {
+    if (!form.name || !form.code) return;
+    setSaving(true);
+    try {
+      const { createInstitution } = require('@/lib/firestore-db');
+      const id = await createInstitution({
+        name: form.name,
+        code: form.code,
+        slug: form.slug || form.code.toLowerCase().replace(/_/g, '-'),
+      });
+      setForm({ code: '', name: '', slug: '' });
+      setStatus(`Institution created! Firestore ID: ${id}`);
+    } catch (e: unknown) {
+      setStatus('Error: ' + (e instanceof Error ? e.message : String(e)));
+    }
+    setSaving(false);
+    setTimeout(() => setStatus(''), 10000);
+  };
 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Code (e.g. MIT_ENG)" value={form.code} onChange={set('code')} placeholder="INST_CODE" />
-        <Field label="Slug (e.g. mit-engineering)" value={form.slug} onChange={set('slug')} />
-        <Field label="Institution name" value={form.name} onChange={set('name')} />
-        <Field label="Owner email" value={form.ownerEmail} onChange={set('ownerEmail')} type="email" />
-        <Field label="Owner full name" value={form.ownerName} onChange={set('ownerName')} />
-        <Field label="Owner password" value={form.ownerPassword} onChange={set('ownerPassword')} type="password" />
+        <Field label="Code (e.g. DTU_CS)" value={form.code} onChange={set('code')} placeholder="INST_CODE" />
+        <Field label="Slug (auto if blank)" value={form.slug} onChange={set('slug')} placeholder="dtu-cs" />
+        <Field label="Institution name" value={form.name} onChange={set('name')} className="col-span-2" />
       </div>
-      <button onClick={() => setStatus('Wire to POST /v1/institutions')}
-        className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all">
-        Create institution
+      <button onClick={create} disabled={saving || !form.name || !form.code}
+        className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all disabled:opacity-50">
+        {saving ? 'Creating…' : 'Create institution'}
       </button>
-      {status && <p className="text-[11px] text-ink-mute">{status}</p>}
+      {status && <p className="text-[11px] text-ink-mute font-mono">{status}</p>}
     </div>
   );
 }

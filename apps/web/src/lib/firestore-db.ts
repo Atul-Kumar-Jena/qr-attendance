@@ -1,0 +1,172 @@
+import { db } from './firebase';
+
+export type UserRole = 'developer' | 'institution' | 'admin' | 'teacher' | 'student';
+
+export interface FSUser {
+  uid: string;
+  email: string;
+  displayName?: string;
+  photoURL?: string;
+  role: UserRole;
+  institutionId?: string;
+  suspended?: boolean;
+  createdById?: string;
+  createdAt?: unknown;
+}
+
+export interface FSStudent {
+  id: string;
+  rollNo: string;
+  fullName: string;
+  email?: string;
+  klassName?: string;
+  suspended: boolean;
+  institutionId: string;
+  createdAt?: unknown;
+}
+
+export interface FSTeacherPerm {
+  teacherId: string;
+  institutionId: string;
+  canCreateSessions: boolean;
+  canEndSessions: boolean;
+  canViewAllAttendance: boolean;
+  canManageStudents: boolean;
+  canExportReports: boolean;
+  canViewAuditLog: boolean;
+  canManageClasses: boolean;
+  canAddRemarks: boolean;
+}
+
+export interface FSRemark {
+  id: string;
+  teacherId: string;
+  teacherName?: string;
+  studentId: string;
+  content: string;
+  isPrivate: boolean;
+  institutionId: string;
+  createdAt?: unknown;
+}
+
+export interface FSInstitution {
+  id: string;
+  name: string;
+  code?: string;
+  slug?: string;
+  createdAt?: unknown;
+}
+
+type Unsub = () => void;
+
+const DEFAULT_PERMS: Omit<FSTeacherPerm, 'teacherId' | 'institutionId'> = {
+  canCreateSessions: true, canEndSessions: true, canViewAllAttendance: true,
+  canManageStudents: false, canExportReports: false, canViewAuditLog: false,
+  canManageClasses: false, canAddRemarks: true,
+};
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+
+export function onUsers(institutionId: string | null | undefined, cb: (u: FSUser[]) => void): Unsub {
+  if (!db) { cb([]); return () => {}; }
+  const { collection, query, where, onSnapshot } = require('firebase/firestore');
+  const ref = collection(db, 'users');
+  const q = institutionId ? query(ref, where('institutionId', '==', institutionId)) : ref;
+  return onSnapshot(q, (snap: any) => {
+    cb(snap.docs.map((d: any) => ({ uid: d.id, ...d.data() } as FSUser)));
+  }, () => cb([]));
+}
+
+export async function patchUser(uid: string, patch: Partial<FSUser>): Promise<void> {
+  if (!db) return;
+  const { doc, updateDoc, serverTimestamp } = require('firebase/firestore');
+  await updateDoc(doc(db, 'users', uid), { ...patch, updatedAt: serverTimestamp() });
+}
+
+export async function createPendingUser(data: Omit<FSUser, 'uid'>): Promise<void> {
+  if (!db) return;
+  const { doc, setDoc, serverTimestamp } = require('firebase/firestore');
+  const id = `pending_${data.email?.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}`;
+  await setDoc(doc(db, 'users', id), { ...data, pending: true, createdAt: serverTimestamp() });
+}
+
+// ── Students ──────────────────────────────────────────────────────────────────
+
+export function onStudents(institutionId: string, cb: (s: FSStudent[]) => void): Unsub {
+  if (!db || !institutionId) { cb([]); return () => {}; }
+  const { collection, query, where, onSnapshot } = require('firebase/firestore');
+  const q = query(collection(db, 'students'), where('institutionId', '==', institutionId));
+  return onSnapshot(q, (snap: any) => {
+    cb(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as FSStudent)));
+  }, () => cb([]));
+}
+
+export async function createStudent(data: Omit<FSStudent, 'id'>): Promise<void> {
+  if (!db) return;
+  const { collection, addDoc, serverTimestamp } = require('firebase/firestore');
+  await addDoc(collection(db, 'students'), { ...data, createdAt: serverTimestamp() });
+}
+
+export async function patchStudent(id: string, patch: Partial<FSStudent>): Promise<void> {
+  if (!db) return;
+  const { doc, updateDoc, serverTimestamp } = require('firebase/firestore');
+  await updateDoc(doc(db, 'students', id), { ...patch, updatedAt: serverTimestamp() });
+}
+
+// ── Remarks ───────────────────────────────────────────────────────────────────
+
+export function onRemarks(studentId: string, showPrivate: boolean, cb: (r: FSRemark[]) => void): Unsub {
+  if (!db || !studentId) { cb([]); return () => {}; }
+  const { collection, query, where, onSnapshot } = require('firebase/firestore');
+  const constraints: any[] = [where('studentId', '==', studentId)];
+  if (!showPrivate) constraints.push(where('isPrivate', '==', false));
+  const q = query(collection(db, 'remarks'), ...constraints);
+  return onSnapshot(q, (snap: any) => {
+    cb(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as FSRemark)));
+  }, () => cb([]));
+}
+
+export async function addRemark(data: Omit<FSRemark, 'id'>): Promise<void> {
+  if (!db) return;
+  const { collection, addDoc, serverTimestamp } = require('firebase/firestore');
+  await addDoc(collection(db, 'remarks'), { ...data, createdAt: serverTimestamp() });
+}
+
+// ── Teacher perms ─────────────────────────────────────────────────────────────
+
+export function onTeacherPerm(teacherId: string, institutionId: string, cb: (p: FSTeacherPerm) => void): Unsub {
+  if (!db || !teacherId) { cb({ teacherId, institutionId, ...DEFAULT_PERMS }); return () => {}; }
+  const { doc, onSnapshot } = require('firebase/firestore');
+  return onSnapshot(doc(db, 'teacherPerms', teacherId), (snap: any) => {
+    cb(snap.exists() ? { teacherId: snap.id, ...snap.data() } as FSTeacherPerm : { teacherId, institutionId, ...DEFAULT_PERMS });
+  }, () => cb({ teacherId, institutionId, ...DEFAULT_PERMS }));
+}
+
+export async function saveTeacherPerm(teacherId: string, perms: Partial<FSTeacherPerm>): Promise<void> {
+  if (!db) return;
+  const { doc, setDoc, serverTimestamp } = require('firebase/firestore');
+  await setDoc(doc(db, 'teacherPerms', teacherId), { ...perms, teacherId, updatedAt: serverTimestamp() }, { merge: true });
+}
+
+// ── Institution ───────────────────────────────────────────────────────────────
+
+export function onInstitution(institutionId: string, cb: (i: FSInstitution | null) => void): Unsub {
+  if (!db || !institutionId) { cb(null); return () => {}; }
+  const { doc, onSnapshot } = require('firebase/firestore');
+  return onSnapshot(doc(db, 'institutions', institutionId), (snap: any) => {
+    cb(snap.exists() ? { id: snap.id, ...snap.data() } as FSInstitution : null);
+  }, () => cb(null));
+}
+
+export async function saveInstitution(institutionId: string, data: Partial<FSInstitution>): Promise<void> {
+  if (!db) return;
+  const { doc, setDoc, serverTimestamp } = require('firebase/firestore');
+  await setDoc(doc(db, 'institutions', institutionId), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+}
+
+export async function createInstitution(data: Omit<FSInstitution, 'id'>): Promise<string> {
+  if (!db) throw new Error('Firebase not configured');
+  const { collection, addDoc, serverTimestamp } = require('firebase/firestore');
+  const ref = await addDoc(collection(db, 'institutions'), { ...data, createdAt: serverTimestamp() });
+  return ref.id;
+}
