@@ -10,18 +10,15 @@ import gsap from 'gsap';
  */
 export default function QrDisplay() {
   const [tick, setTick] = useState(0);
-  const [remaining, setRemaining] = useState(7);
   const qr = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const i = setInterval(() => {
       setTick((t) => t + 1);
-      setRemaining(7);
       gsap.fromTo(qr.current, { rotateY: 90, opacity: 0 },
-        { rotateY: 0, opacity: 1, duration: 0.6, ease: 'expo.out' });
-    }, 7000);
-    const c = setInterval(() => setRemaining((r) => Math.max(0, r - 1)), 1000);
-    return () => { clearInterval(i); clearInterval(c); };
+        { rotateY: 0, opacity: 1, duration: 0.35, ease: 'expo.out' });
+    }, 1000);
+    return () => clearInterval(i);
   }, []);
 
   return (
@@ -34,7 +31,7 @@ export default function QrDisplay() {
       </div>
 
       <div className="font-display text-[2rem] mb-3">Scan to mark attendance</div>
-      <div className="text-[12px] text-cream-50/50 mb-8">Open the Attendly app. Token rotates every 7 seconds.</div>
+      <div className="text-[12px] text-cream-50/50 mb-8">Open the Attendly app. Token rotates every second.</div>
 
       <div style={{ perspective: '1200px' }}>
         <div ref={qr} className="bg-cream-50 p-6 rounded-3xl" style={{ transformStyle: 'preserve-3d' }}>
@@ -43,13 +40,10 @@ export default function QrDisplay() {
       </div>
 
       <div className="mt-8 flex items-center gap-3">
-        <div className="h-1.5 w-40 rounded-full bg-cream-50/15 overflow-hidden">
-          <div
-            className="h-full bg-accent transition-all duration-1000 linear"
-            style={{ width: `${(remaining / 7) * 100}%` }}
-          />
+        <div className="h-1 w-40 rounded-full bg-cream-50/15 overflow-hidden">
+          <div className="h-full w-full bg-accent animate-[shrink_1s_linear_infinite]" />
         </div>
-        <span className="font-mono text-[12px] text-cream-50/70">{remaining}s</span>
+        <span className="font-mono text-[12px] text-cream-50/50">1s</span>
       </div>
 
       <button className="absolute bottom-6 right-6 rounded-full bg-cream-50/10 hover:bg-cream-50/20 px-4 py-2 text-[12px]">

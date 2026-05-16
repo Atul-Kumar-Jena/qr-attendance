@@ -17,10 +17,10 @@ export function Cursor() {
     const _ring = ring.current!;
     gsap.set([_dot, _ring], { xPercent: -50, yPercent: -50 });
 
-    const xToDot = gsap.quickTo(_dot, 'x', { duration: 0.15, ease: 'power3' });
-    const yToDot = gsap.quickTo(_dot, 'y', { duration: 0.15, ease: 'power3' });
-    const xToRing = gsap.quickTo(_ring, 'x', { duration: 0.55, ease: 'power3' });
-    const yToRing = gsap.quickTo(_ring, 'y', { duration: 0.55, ease: 'power3' });
+    const xToDot = gsap.quickTo(_dot, 'x', { duration: 0.08, ease: 'power3' });
+    const yToDot = gsap.quickTo(_dot, 'y', { duration: 0.08, ease: 'power3' });
+    const xToRing = gsap.quickTo(_ring, 'x', { duration: 0.9, ease: 'power3' });
+    const yToRing = gsap.quickTo(_ring, 'y', { duration: 0.9, ease: 'power3' });
 
     const onMove = (e: PointerEvent) => {
       xToDot(e.clientX); yToDot(e.clientY);
@@ -54,7 +54,7 @@ export function Cursor() {
       />
       <div
         ref={dot}
-        className="pointer-events-none fixed left-0 top-0 z-[100] h-1.5 w-1.5 rounded-full bg-ink dark:bg-[#F0EDE6] hidden md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[100] h-2 w-2 rounded-full bg-ink dark:bg-[#F0EDE6] hidden md:block"
       />
     </>
   );

@@ -16,6 +16,12 @@
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────── */
+
+/* Hide system cursor on desktop so custom cursor dot is visible */
+@media (pointer: fine) {
+  * { cursor: none !important; }
+}
+
 html, body {
   background: var(--bg);
   color: var(--ink);
@@ -330,4 +336,9 @@ html.dark body::before {
 .theme-toggle:hover {
   color: var(--ink);
   background: var(--bg-2);
+}
+
+@keyframes shrink {
+  from { width: 100%; }
+  to   { width: 0%; }
 }
