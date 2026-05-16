@@ -294,6 +294,18 @@ html.dark .bg-cream-50\/10  { background-color: rgba(13, 15, 20, 0.1) !important
 
 /* Hover opacity-variant backgrounds */
 html.dark .hover\:bg-cream-100\/70:hover { background-color: rgba(19, 22, 29, 0.7) !important; }
+html.dark .hover\:bg-cream-100\/50:hover { background-color: rgba(19, 22, 29, 0.5) !important; }
+
+/* bg-ink opacity variants used as 1-px card-gap dividers */
+html.dark .bg-ink\/6  { background-color: rgba(240, 237, 230, 0.06) !important; }
+html.dark .bg-ink\/8  { background-color: rgba(240, 237, 230, 0.08) !important; }
+html.dark .bg-ink\/10 { background-color: rgba(240, 237, 230, 0.10) !important; }
+
+/* bg-ink buttons in dark mode — add subtle border so button shape is visible */
+html.dark button.bg-ink,
+html.dark a.bg-ink {
+  border: 1px solid rgba(240, 237, 230, 0.12);
+}
 
 /* Grain overlay — screen blend mode creates white scroll artifacts on dark bg */
 html.dark body::before {

@@ -198,10 +198,13 @@ export function Nav() {
         </div>
       </header>
 
-      {/* Mobile menu */}
+      {/* Mobile menu — top adjusts with header height */}
       <div
         ref={menuRef}
-        className="fixed inset-x-4 top-20 z-40 rounded-2xl border border-ink/8 bg-cream-50/95 backdrop-blur-xl p-6 shadow-lg md:hidden opacity-0 pointer-events-none"
+        className={cn(
+          'fixed inset-x-4 z-40 rounded-2xl border border-ink/8 bg-cream-50/95 backdrop-blur-xl p-6 shadow-lg md:hidden opacity-0 pointer-events-none',
+          scrolled ? 'top-[72px]' : 'top-[80px]',
+        )}
       >
         <nav className="flex flex-col gap-5">
           {links.map((l) => (
@@ -226,7 +229,7 @@ function Logo() {
       <rect x="0" y="0" width="9" height="9" rx="2" fill="currentColor" />
       <rect x="13" y="0" width="9" height="9" rx="2" fill="currentColor" />
       <rect x="0" y="13" width="9" height="9" rx="2" fill="currentColor" />
-      <rect x="15" y="15" width="7" height="7" rx="2" fill="#FF6B3D" />
+      <rect x="15" y="15" width="7" height="7" rx="2" fill="var(--accent)" />
     </svg>
   );
 }

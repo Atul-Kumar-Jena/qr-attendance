@@ -128,10 +128,10 @@ export default function AdminHome() {
               <button key={t} onClick={() => allowed && setTab(t)} disabled={!allowed}
                 className={`block w-full text-left px-3 py-2 rounded-md text-[13px] transition-colors ${
                   isGod && allowed
-                    ? currentTab === t ? 'bg-red-600 text-white font-semibold' : 'text-red-600 hover:bg-red-50 font-medium'
-                    : currentTab === t ? 'bg-ink text-cream-50'
+                    ? currentTab === t ? 'bg-red-600 text-white font-semibold' : 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium'
+                    : currentTab === t ? 'bg-ink text-cream-50 dark:bg-white/10 dark:border dark:border-white/10'
                     : allowed ? 'text-ink-mute hover:text-ink hover:bg-cream-100'
-                    : 'text-ink/20 cursor-not-allowed'
+                    : 'text-ink/20 dark:text-white/20 cursor-not-allowed'
                 }`}
               >
                 {TAB_LABELS[t]}
@@ -200,7 +200,7 @@ function Toggle({ label, checked, onChange, description, danger }: {
     <label className="flex items-start gap-3 cursor-pointer">
       <div className="relative mt-0.5 flex-shrink-0">
         <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        <div className={`w-9 h-5 rounded-full transition-colors ${checked ? (danger ? 'bg-red-500' : 'bg-accent') : 'bg-ink/20'}`} />
+        <div className={`w-9 h-5 rounded-full transition-colors ${checked ? (danger ? 'bg-red-500' : 'bg-accent') : 'bg-ink/20 dark:bg-white/20'}`} />
         <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-4' : ''}`} />
       </div>
       <div>
@@ -255,9 +255,9 @@ function OverviewPanel({ role }: { role: Role }) {
           <SectionTitle>Global (Developer view)</SectionTitle>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {['Total institutions', 'Total users', 'Active sessions', 'Site config'].map((l) => (
-              <Card key={l} className="p-4 border-red-200 bg-red-50/40">
-                <div className="text-[10px] tracking-[0.16em] text-red-500 uppercase">{l}</div>
-                <div className="font-mono text-[1.4rem] mt-1 text-red-700">—</div>
+              <Card key={l} className="p-4 border-red-200 dark:border-red-900/40 bg-red-50/40 dark:bg-red-900/10">
+                <div className="text-[10px] tracking-[0.16em] text-red-500 dark:text-red-400 uppercase">{l}</div>
+                <div className="font-mono text-[1.4rem] mt-1 text-red-700 dark:text-red-400">—</div>
               </Card>
             ))}
           </div>
@@ -320,7 +320,7 @@ function StudentsPanel({ role }: { role: Role }) {
           {filtered.map((s) => (
             <button key={s.id} onClick={() => setSelected(s)}
               className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${
-                selected?.id === s.id ? 'bg-ink text-cream-50' : 'hover:bg-cream-100'
+                selected?.id === s.id ? 'bg-ink dark:bg-white/10 dark:border dark:border-white/10 text-cream-50' : 'hover:bg-cream-100'
               }`}
             >
               <div className="text-[13px] font-medium flex items-center gap-2">
@@ -373,7 +373,7 @@ function StudentsPanel({ role }: { role: Role }) {
                 <p className="text-[12px] text-ink-mute">No remarks yet for this student.</p>
               )}
               {remarks.map((r) => (
-                <div key={r.id} className={`rounded-lg p-3 text-[13px] ${r.isPrivate ? 'bg-amber-50 border border-amber-200' : 'bg-cream-100'}`}>
+                <div key={r.id} className={`rounded-lg p-3 text-[13px] ${r.isPrivate ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/30' : 'bg-cream-100'}`}>
                   <div className="text-ink leading-relaxed">{r.content}</div>
                   <div className="flex items-center gap-2 mt-1.5 text-[10.5px] text-ink-mute">
                     <span>{r.teacher}</span>
@@ -483,7 +483,7 @@ function ManageUsersPanel({ role }: { role: Role }) {
       </div>
 
       {status && (
-        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-2 text-[12.5px] text-green-700">{status}</div>
+        <div className="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 px-4 py-2 text-[12.5px] text-green-700 dark:text-green-400">{status}</div>
       )}
 
       {/* Create form */}
@@ -729,7 +729,7 @@ function GodModePanel() {
   return (
     <div className="space-y-8 max-w-3xl">
       {/* Warning banner */}
-      <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-[12.5px] text-red-700 flex items-start gap-3">
+      <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40 px-4 py-3 text-[12.5px] text-red-700 dark:text-red-400 flex items-start gap-3">
         <span className="text-red-500 text-lg leading-none flex-shrink-0">⚡</span>
         <span>
           <strong>God Mode</strong> — changes here affect the entire platform globally. Config persists to
@@ -738,7 +738,7 @@ function GodModePanel() {
       </div>
 
       {/* Pricing mode toggle — prominent */}
-      <Card className="p-6 space-y-4 border-amber-200 bg-amber-50/30">
+      <Card className="p-6 space-y-4 border-amber-200 dark:border-amber-700/30 bg-amber-50/30 dark:bg-amber-900/10">
         <SectionTitle>Pricing mode</SectionTitle>
         <div className="flex items-center gap-4">
           <button
@@ -779,7 +779,7 @@ function GodModePanel() {
       {/* Pricing confirm modal */}
       {showPricingConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm">
-          <div className="bg-cream-50 rounded-2xl border border-ink/10 p-8 max-w-md w-full mx-4 shadow-2xl">
+          <div className="bg-cream-50 dark:bg-[#13161D] rounded-2xl border border-ink/10 p-8 max-w-md w-full mx-4 shadow-2xl">
             <h2 className="font-display text-[1.6rem] mb-2">End limited offer?</h2>
             <p className="text-[13px] text-ink-mute mb-4">
               Switching to <strong>Full Pricing</strong> will:
@@ -862,7 +862,7 @@ function GodModePanel() {
       {/* System config */}
       <Card className="p-6 space-y-4">
         <SectionTitle>System config</SectionTitle>
-        <p className="text-[11px] text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+        <p className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
           Rate limit changes require API restart. QR rotation default applies to new sessions.
         </p>
         <div className="grid grid-cols-3 gap-4">
@@ -918,8 +918,8 @@ service cloud.firestore {
         {saveError && (
           <div className={`flex-1 rounded-lg px-4 py-2 text-[12px] whitespace-pre-wrap ${
             saveError.startsWith('Saved locally')
-              ? 'bg-amber-50 border border-amber-200 text-amber-800'
-              : 'bg-red-50 border border-red-200 text-red-700'
+              ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/30 text-amber-800 dark:text-amber-300'
+              : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40 text-red-700 dark:text-red-400'
           }`}>
             {saveError}
           </div>
