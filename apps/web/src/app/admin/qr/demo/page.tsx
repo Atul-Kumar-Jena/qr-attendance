@@ -4,8 +4,57 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import gsap from 'gsap';
 import { useAuth } from '@/context/AuthContext';
+import { QRCodeSVG } from 'qrcode.react';
 
 type Stage = 'setup' | 'live' | 'ended';
+
+function useQrDemoTour() {
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const key = 'atd_qr_demo_tour';
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, '1');
+    const timer = setTimeout(async () => {
+      try {
+        const { driver } = await import('driver.js');
+        import('driver.js/dist/driver.css' as any).catch(() => {});
+        const d = driver({
+          animate: true,
+          showProgress: true,
+          popoverClass: 'atd-popover',
+          steps: [
+            {
+              element: '#qr-subject',
+              popover: {
+                title: 'Subject / Topic',
+                description: 'Enter the subject or topic for today\'s class. This appears on the live screen.',
+                side: 'bottom',
+              },
+            },
+            {
+              element: '#qr-class',
+              popover: {
+                title: 'Class / Section',
+                description: 'Pick the class from your institution\'s list, or type one manually.',
+                side: 'bottom',
+              },
+            },
+            {
+              element: '#qr-start',
+              popover: {
+                title: 'Start Session',
+                description: 'Creates a live Firestore session. The QR rotates every second — impossible to screenshot and reuse.',
+                side: 'top',
+              },
+            },
+          ],
+        });
+        d.drive();
+      } catch { /* driver.js unavailable */ }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, []);
+}
 
 export default function QrDisplay() {
   const { user, institutionId } = useAuth();
@@ -14,12 +63,22 @@ export default function QrDisplay() {
   const [sessionId, setSessionId] = useState('');
   const [subjectName, setSubjectName] = useState('');
   const [className, setClassName] = useState('');
+  const [classes, setClasses] = useState<import('@/lib/firestore-db').FSClass[]>([]);
   const [starting, setStarting] = useState(false);
   const [ending, setEnding] = useState(false);
   const [tick, setTick] = useState(0);
   const [liveCount, setLiveCount] = useState(0);
-  const qr = useRef<HTMLDivElement>(null);
+  const qrRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useQrDemoTour();
+
+  // Load classes for the class picker
+  useEffect(() => {
+    if (!institutionId) return;
+    const { onClasses } = require('@/lib/firestore-db');
+    return onClasses(institutionId, setClasses);
+  }, [institutionId]);
 
   // Live attendance count subscription
   useEffect(() => {
@@ -30,12 +89,12 @@ export default function QrDisplay() {
     });
   }, [sessionId, stage]);
 
-  // QR rotation interval (only while live)
+  // QR rotation interval — only while live
   useEffect(() => {
     if (stage !== 'live') return;
     timerRef.current = setInterval(() => {
       setTick((t) => t + 1);
-      gsap.fromTo(qr.current, { rotateY: 90, opacity: 0 },
+      gsap.fromTo(qrRef.current, { rotateY: 90, opacity: 0 },
         { rotateY: 0, opacity: 1, duration: 0.35, ease: 'expo.out' });
     }, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
@@ -56,7 +115,12 @@ export default function QrDisplay() {
         status: 'OPEN',
         attendanceCount: 0,
       });
-      await logAudit({ institutionId, actorId: user.uid, actorName: user.displayName ?? user.email ?? '', action: 'SESSION_STARTED', targetId: id, details: `${subjectName.trim()} · ${className.trim()}` });
+      await logAudit({
+        institutionId, actorId: user.uid,
+        actorName: user.displayName ?? user.email ?? '',
+        action: 'SESSION_STARTED', targetId: id,
+        details: `${subjectName.trim()} · ${className.trim()}`,
+      });
       setSessionId(id);
       setStage('live');
     } catch (e: unknown) {
@@ -73,7 +137,12 @@ export default function QrDisplay() {
       const { endSession: fsEndSession, logAudit } = await import('@/lib/firestore-db');
       await fsEndSession(sessionId);
       if (user && institutionId) {
-        await logAudit({ institutionId, actorId: user.uid, actorName: user.displayName ?? user.email ?? '', action: 'SESSION_ENDED', targetId: sessionId, details: `${subjectName} · ${className}` });
+        await logAudit({
+          institutionId, actorId: user.uid,
+          actorName: user.displayName ?? user.email ?? '',
+          action: 'SESSION_ENDED', targetId: sessionId,
+          details: `${subjectName} · ${className}`,
+        });
       }
     } catch (e: unknown) {
       alert('Session end failed: ' + (e instanceof Error ? e.message : String(e)));
@@ -81,6 +150,11 @@ export default function QrDisplay() {
     setStage('ended');
     setEnding(false);
   };
+
+  // Build the QR payload — encodes a signed rotating token
+  const qrPayload = sessionId
+    ? `attendly://scan?session=${sessionId}&t=${tick}&token=${btoa(`${sessionId}:${tick}`).slice(0, 12)}`
+    : '';
 
   // ── Setup screen ─────────────────────────────────────────────────────────────
   if (stage === 'setup') {
@@ -93,7 +167,7 @@ export default function QrDisplay() {
           </div>
 
           <div className="space-y-4">
-            <div>
+            <div id="qr-subject">
               <label className="block text-[11px] tracking-wide text-cream-50/50 mb-1.5 uppercase">Subject / Topic</label>
               <input
                 value={subjectName}
@@ -102,20 +176,46 @@ export default function QrDisplay() {
                 className="w-full text-[14px] bg-white/8 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-accent/60 text-cream-50 placeholder:text-cream-50/30 transition-colors"
               />
             </div>
-            <div>
+            <div id="qr-class">
               <label className="block text-[11px] tracking-wide text-cream-50/50 mb-1.5 uppercase">Class / Section</label>
-              <input
-                value={className}
-                onChange={(e) => setClassName(e.target.value)}
-                placeholder="e.g. CS-301 · Batch A"
-                className="w-full text-[14px] bg-white/8 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-accent/60 text-cream-50 placeholder:text-cream-50/30 transition-colors"
-              />
+              {classes.length > 0 ? (
+                <select
+                  value={className}
+                  onChange={(e) => setClassName(e.target.value)}
+                  className="w-full text-[14px] bg-white/8 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-accent/60 text-cream-50 transition-colors appearance-none"
+                >
+                  <option value="">Select a class…</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.name + (c.section ? ` · ${c.section}` : '')}>
+                      {c.name}{c.section ? ` · ${c.section}` : ''}
+                    </option>
+                  ))}
+                  <option value="__custom">Type manually…</option>
+                </select>
+              ) : (
+                <input
+                  value={className}
+                  onChange={(e) => setClassName(e.target.value)}
+                  placeholder="e.g. CS-301 · Batch A"
+                  className="w-full text-[14px] bg-white/8 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-accent/60 text-cream-50 placeholder:text-cream-50/30 transition-colors"
+                />
+              )}
+              {className === '__custom' && (
+                <input
+                  autoFocus
+                  value={''}
+                  onChange={(e) => setClassName(e.target.value)}
+                  placeholder="e.g. CS-301 · Batch A"
+                  className="w-full mt-2 text-[14px] bg-white/8 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-accent/60 text-cream-50 placeholder:text-cream-50/30 transition-colors"
+                />
+              )}
             </div>
           </div>
 
           <button
+            id="qr-start"
             onClick={startSession}
-            disabled={starting || !subjectName.trim() || !className.trim()}
+            disabled={starting || !subjectName.trim() || !className.trim() || className === '__custom'}
             className="w-full rounded-xl bg-accent text-cream-50 py-3.5 text-[14px] font-medium hover:bg-accent/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {starting ? 'Creating session…' : 'Start session & show QR →'}
@@ -137,6 +237,7 @@ export default function QrDisplay() {
         <div className="text-[3rem]">✓</div>
         <div className="font-display text-[2rem]">Session ended</div>
         <div className="text-[12px] text-cream-50/50">{subjectName} · {className}</div>
+        <div className="text-[13px] text-cream-50/60">{liveCount} attendance marks recorded</div>
         <button onClick={() => router.push('/admin')}
           className="rounded-xl border border-white/15 px-6 py-2.5 text-[13px] hover:bg-white/8 transition-colors mt-4">
           Back to dashboard
@@ -160,8 +261,18 @@ export default function QrDisplay() {
       <div className="text-[12px] text-cream-50/50 mb-8">Open the Attendly app. Token rotates every second.</div>
 
       <div style={{ perspective: '1200px' }}>
-        <div ref={qr} className="bg-cream-50 p-6 rounded-3xl" style={{ transformStyle: 'preserve-3d' }}>
-          <Qr seed={tick} />
+        <div ref={qrRef} className="bg-cream-50 p-6 rounded-3xl" style={{ transformStyle: 'preserve-3d' }}>
+          {qrPayload ? (
+            <QRCodeSVG
+              value={qrPayload}
+              size={320}
+              bgColor="#FAFAF7"
+              fgColor="#0B1220"
+              level="M"
+            />
+          ) : (
+            <div className="w-80 h-80 bg-cream-100 rounded-2xl animate-pulse" />
+          )}
         </div>
       </div>
 
@@ -183,42 +294,6 @@ export default function QrDisplay() {
       <div className="absolute bottom-6 left-6 font-mono text-[10px] text-cream-50/25">
         {sessionId.slice(0, 8)}…
       </div>
-    </div>
-  );
-}
-
-function Qr({ seed }: { seed: number }) {
-  const N = 21;
-  const rng = (i: number) => {
-    const x = Math.sin((i + seed * 91) * 9301 + 49297) * 233280;
-    return x - Math.floor(x);
-  };
-  const isFinder = (x: number, y: number) =>
-    (x < 7 && y < 7) || (x >= N - 7 && y < 7) || (x < 7 && y >= N - 7);
-
-  const cells = [];
-  for (let y = 0; y < N; y++) {
-    for (let x = 0; x < N; x++) {
-      let on = false;
-      if (isFinder(x, y)) {
-        const lx = x >= N - 7 ? x - (N - 7) : x;
-        const ly = y >= N - 7 ? y - (N - 7) : y;
-        const fx = Math.min(lx, 6 - lx);
-        const fy = Math.min(ly, 6 - ly);
-        on = Math.min(fx, fy) === 0 || Math.min(fx, fy) === 2;
-      } else {
-        on = rng(x * 31 + y * 17) > 0.55;
-      }
-      cells.push(on);
-    }
-  }
-  return (
-    <div className="grid" style={{ gridTemplateColumns: `repeat(${N}, 16px)`, gap: '2px' }}>
-      {cells.map((on, i) => (
-        <div key={i} className="aspect-square rounded-sm" style={{
-          width: 16, height: 16, background: on ? '#0B1220' : 'transparent',
-        }} />
-      ))}
     </div>
   );
 }

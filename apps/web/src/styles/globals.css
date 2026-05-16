@@ -448,3 +448,12 @@ html.dark .hover\:bg-ink-soft:hover  { background-color: #222c3e !important; }
 /* select element styling */
 html.dark select { background-color: var(--bg-2) !important; color: var(--ink) !important; border-color: var(--line) !important; }
 html.dark select option { background-color: var(--bg-2); color: var(--ink); }
+
+/* ─── Dark mode color transition ─────────────────────────────────────────── */
+/* Applied only during the theme switch via JS — avoids interfering with hover transitions */
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 0.3s ease, color 0.2s ease, border-color 0.25s ease !important;
+  transition-delay: 0s !important;
+}

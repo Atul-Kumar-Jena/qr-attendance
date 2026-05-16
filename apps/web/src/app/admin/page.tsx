@@ -2,9 +2,12 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth, roleAtLeast, ROLE_WEIGHT, type Role } from '@/context/AuthContext';
 import { useSiteConfig, type SiteConfig, type PricingMode } from '@/context/SiteConfigContext';
 import { AuthModal } from '@/components/AuthModal';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { SkeletonTable } from '@/components/Skeleton';
 
 function useTourGuide(role: Role | null) {
   useEffect(() => {
@@ -88,9 +91,23 @@ const TAB_LABELS: Record<Tab, string> = {
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
 
+function useLiveSessionCount() {
+  const { institutionId } = useAuth();
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!institutionId) return;
+    const { onSessions } = require('@/lib/firestore-db');
+    return onSessions(institutionId, (list: import('@/lib/firestore-db').FSSession[]) => {
+      setCount(list.filter((s) => s.status === 'OPEN').length);
+    });
+  }, [institutionId]);
+  return count;
+}
+
 export default function AdminHome() {
   const { user, role, loading } = useAuth();
   const [tab, setTab] = useState<Tab>('overview');
+  const liveCount = useLiveSessionCount();
   useTourGuide(role);
 
   if (loading) {
@@ -179,8 +196,16 @@ export default function AdminHome() {
       </aside>
 
       <main className="flex-1 p-10 overflow-auto">
-        <div className="flex items-baseline justify-between mb-8">
-          <h1 className="font-display text-[2.4rem]">{TAB_LABELS[currentTab]}</h1>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <h1 className="font-display text-[2.4rem]">{TAB_LABELS[currentTab]}</h1>
+            {liveCount > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[11px] font-medium px-2.5 py-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                {liveCount} live
+              </span>
+            )}
+          </div>
           {roleAtLeast(role, 'teacher') && (
             <Link id="tour-qr-btn" href="/admin/qr/demo"
               className="rounded-full bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all">
@@ -189,17 +214,29 @@ export default function AdminHome() {
           )}
         </div>
 
-        {currentTab === 'overview'      && <OverviewPanel role={role!} />}
-        {currentTab === 'sessions'      && <SessionsPanel />}
-        {currentTab === 'students'      && <StudentsPanel role={role!} />}
-        {currentTab === 'classes'       && <ClassesPanel />}
-        {currentTab === 'reports'       && <ReportsPanel />}
-        {currentTab === 'audit'         && <AuditPanel role={role!} />}
-        {currentTab === 'manage-users'  && <ManageUsersPanel role={role!} />}
-        {currentTab === 'teacher-perms' && <TeacherPermsPanel />}
-        {currentTab === 'institution'   && <InstitutionPanel />}
-        {currentTab === 'institutions'  && <InstitutionsPanel />}
-        {currentTab === 'god-mode'      && <GodModePanel />}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentTab}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+          >
+            <ErrorBoundary name={TAB_LABELS[currentTab]}>
+              {currentTab === 'overview'      && <OverviewPanel role={role!} />}
+              {currentTab === 'sessions'      && <SessionsPanel />}
+              {currentTab === 'students'      && <StudentsPanel role={role!} />}
+              {currentTab === 'classes'       && <ClassesPanel />}
+              {currentTab === 'reports'       && <ReportsPanel />}
+              {currentTab === 'audit'         && <AuditPanel role={role!} />}
+              {currentTab === 'manage-users'  && <ManageUsersPanel role={role!} />}
+              {currentTab === 'teacher-perms' && <TeacherPermsPanel />}
+              {currentTab === 'institution'   && <InstitutionPanel />}
+              {currentTab === 'institutions'  && <InstitutionsPanel />}
+              {currentTab === 'god-mode'      && <GodModePanel />}
+            </ErrorBoundary>
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );
@@ -259,6 +296,39 @@ function Badge({ role }: { role: string }) {
   );
 }
 
+// ─── Animated stat card ───────────────────────────────────────────────────────
+
+function StatCard({ label, value }: { label: string; value: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const prev = useRef(0);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const from = prev.current;
+    const to = value;
+    prev.current = to;
+    if (from === to) return;
+    let start: number | null = null;
+    const duration = 600;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(from + (to - from) * ease);
+      if (ref.current) ref.current.textContent = current.toLocaleString();
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [value]);
+
+  return (
+    <Card className="p-5">
+      <div className="text-[10.5px] tracking-[0.18em] text-ink-mute uppercase">{label}</div>
+      <div ref={ref} className="font-display text-[2.4rem] leading-none mt-2">{value.toLocaleString()}</div>
+    </Card>
+  );
+}
+
 // ─── Overview ─────────────────────────────────────────────────────────────────
 
 function OverviewPanel({ role }: { role: Role }) {
@@ -299,22 +369,19 @@ function OverviewPanel({ role }: { role: Role }) {
   const totalAttendance = sessions.reduce((sum, s) => sum + (s.attendanceCount ?? 0), 0);
 
   const stats = [
-    { l: 'Students', v: students.length.toLocaleString() },
-    { l: 'Teachers', v: teachers.length.toLocaleString() },
-    { l: 'Active sessions', v: activeSessions.length.toLocaleString() },
-    { l: "Today's sessions", v: todaySessions.length.toLocaleString() },
-    { l: 'Total sessions', v: sessions.length.toLocaleString() },
-    { l: 'Total attendance marked', v: totalAttendance.toLocaleString() },
+    { l: 'Students', v: students.length },
+    { l: 'Teachers', v: teachers.length },
+    { l: 'Active sessions', v: activeSessions.length },
+    { l: "Today's sessions", v: todaySessions.length },
+    { l: 'Total sessions', v: sessions.length },
+    { l: 'Total attendance marked', v: totalAttendance },
   ];
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {stats.map((s) => (
-          <Card key={s.l} className="p-5">
-            <div className="text-[10.5px] tracking-[0.18em] text-ink-mute uppercase">{s.l}</div>
-            <div className="font-display text-[2.4rem] leading-none mt-2">{s.v || '0'}</div>
-          </Card>
+          <StatCard key={s.l} label={s.l} value={s.v} />
         ))}
       </div>
       {roleAtLeast(role, 'developer') && (
@@ -449,9 +516,7 @@ function SessionsPanel() {
         </div>
       )}
 
-      {loading && (
-        <div className="text-center text-ink-mute text-[13px] py-8">Loading sessions…</div>
-      )}
+      {loading && <SkeletonTable rows={4} cols={5} />}
     </div>
   );
 }
@@ -801,7 +866,7 @@ function ClassesPanel() {
       )}
 
       {loading ? (
-        <div className="text-center text-ink-mute text-[13px] py-8">Loading classes…</div>
+        <SkeletonTable rows={3} cols={4} />
       ) : classes.length === 0 ? (
         <Card className="p-8 text-center space-y-2">
           <div className="text-ink-mute text-[13px]">No classes yet.</div>
@@ -976,7 +1041,7 @@ function ReportsPanel() {
 
       {/* Table */}
       {loading ? (
-        <div className="text-center text-ink-mute text-[13px] py-8">Loading…</div>
+        <SkeletonTable rows={5} cols={5} />
       ) : filtered.length === 0 ? (
         <Card className="p-8 text-center text-ink-mute text-[13px]">No sessions in this period yet.</Card>
       ) : (
@@ -1079,7 +1144,7 @@ function AuditPanel({ role }: { role: Role }) {
       )}
 
       {loading ? (
-        <div className="text-center text-ink-mute text-[13px] py-8">Loading audit log…</div>
+        <SkeletonTable rows={6} cols={4} />
       ) : logs.length === 0 ? (
         <Card className="p-8 text-center space-y-2">
           <div className="text-ink-mute text-[13px]">No audit entries yet.</div>
@@ -1231,7 +1296,7 @@ function ManageUsersPanel({ role }: { role: Role }) {
 
       <Card className="overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-ink-mute text-[13px]">Loading users…</div>
+          <SkeletonTable rows={5} cols={4} />
         ) : (
           <table className="w-full text-[13px]">
             <thead>
@@ -1514,7 +1579,7 @@ function InstitutionsPanel() {
 
       <Card className="overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-ink-mute text-[13px]">Loading institutions…</div>
+          <SkeletonTable rows={4} cols={5} />
         ) : institutions.length === 0 ? (
           <div className="p-8 text-center text-ink-mute text-[13px]">No institutions yet.</div>
         ) : (

@@ -80,11 +80,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
+  // Briefly add transition class so colors animate on switch
+  root.classList.add('theme-transitioning');
   if (theme === 'dark') {
     root.classList.add('dark');
   } else {
     root.classList.remove('dark');
   }
+  const timer = setTimeout(() => root.classList.remove('theme-transitioning'), 400);
+  return timer;
 }
 
 export function useTheme() {

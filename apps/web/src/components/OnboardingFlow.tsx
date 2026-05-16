@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { User } from 'firebase/auth';
+import { QRCodeSVG } from 'qrcode.react';
 
 type Step = 'choose' | 'institution' | 'student' | 'done-inst' | 'done-student';
 
@@ -76,6 +77,28 @@ export function OnboardingFlow({ user, onComplete }: Props) {
 
         {/* Header */}
         <div className="px-8 pt-8 pb-4">
+          {/* Step progress dots */}
+          {step !== 'done-inst' && step !== 'done-student' && (
+            <div className="flex items-center gap-1.5 mb-5">
+              {['choose', 'institution', 'student', 'done'].map((s, i) => {
+                const active =
+                  (s === 'choose' && step === 'choose') ||
+                  (s === 'institution' && step === 'institution') ||
+                  (s === 'student' && step === 'student');
+                // Inside this block step is already narrowed away from done-* states
+                const done = s === 'choose' && step !== 'choose';
+                if (s === 'done') return null;
+                return (
+                  <span
+                    key={i}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      active ? 'w-6 bg-accent' : done ? 'w-3 bg-accent/40' : 'w-3 bg-ink/10'
+                    }`}
+                  />
+                );
+              })}
+            </div>
+          )}
           <div className="font-display text-[2rem] leading-none mb-1">Welcome to Attendly</div>
           <div className="text-[13px] text-ink-mute">
             {step === 'choose' && "Let's get you set up. Who are you?"}
@@ -200,24 +223,39 @@ export function OnboardingFlow({ user, onComplete }: Props) {
           {/* Done: institution created */}
           {step === 'done-inst' && (
             <div className="space-y-5 pt-2">
-              <div className="rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 p-5 space-y-3">
+              <div className="rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 p-5 space-y-4">
                 <div className="text-[13px] font-medium text-green-800 dark:text-green-300">
                   🎉 Institution created!
                 </div>
                 <p className="text-[12.5px] text-green-700 dark:text-green-400">
-                  Share this code with your students and teachers so they can join:
+                  Share this QR or code with your students and teachers so they can join:
                 </p>
-                <div className="flex items-center gap-3">
-                  <div className="font-mono text-[2rem] font-bold tracking-[0.3em] text-ink dark:text-white">
-                    {createdCode}
+                {/* QR code of the join code */}
+                <div className="flex gap-4 items-center">
+                  <div className="bg-white p-2 rounded-xl flex-shrink-0">
+                    <QRCodeSVG value={`attendly://join?code=${createdCode}`} size={80} bgColor="#ffffff" fgColor="#0B1220" level="M" />
                   </div>
-                  <button onClick={() => navigator.clipboard.writeText(createdCode)}
-                    className="text-[11px] text-ink-mute hover:text-ink border border-ink/10 rounded px-2 py-1 transition-colors">
-                    Copy
-                  </button>
+                  <div className="space-y-2">
+                    <div className="font-mono text-[1.8rem] font-bold tracking-[0.3em] text-ink dark:text-white leading-none">
+                      {createdCode}
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => navigator.clipboard.writeText(createdCode)}
+                        className="text-[11px] text-ink-mute hover:text-ink border border-ink/10 rounded px-2 py-1 transition-colors">
+                        Copy code
+                      </button>
+                      <a
+                        href={`https://wa.me/?text=Join%20my%20institution%20on%20Attendly%20using%20code%3A%20${createdCode}`}
+                        target="_blank" rel="noreferrer"
+                        className="text-[11px] text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700 rounded px-2 py-1 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                      >
+                        Share via WhatsApp
+                      </a>
+                    </div>
+                  </div>
                 </div>
                 <p className="text-[11px] text-ink-mute">
-                  You can always find this code in your Institution settings.
+                  Find this code anytime in Institution settings.
                 </p>
               </div>
               <button onClick={() => { onComplete(); window.location.reload(); }}

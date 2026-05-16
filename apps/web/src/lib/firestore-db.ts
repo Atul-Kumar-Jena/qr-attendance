@@ -366,3 +366,52 @@ export function onSession(id: string, cb: (s: FSSession | null) => void): Unsub 
     cb(snap.exists() ? { id: snap.id, ...snap.data() } as FSSession : null);
   }, () => cb(null));
 }
+
+// ── Attendance Records ────────────────────────────────────────────────────────
+
+export interface FSAttendanceRecord {
+  id: string;
+  sessionId: string;
+  institutionId: string;
+  studentId?: string;
+  studentName?: string;
+  rollNo?: string;
+  scannedAt?: unknown;
+}
+
+export async function recordAttendance(data: Omit<FSAttendanceRecord, 'id'>): Promise<string> {
+  if (!db) throw new Error('Firebase not configured');
+  const { collection, addDoc, doc, updateDoc, increment, serverTimestamp } = require('firebase/firestore');
+  const ref = await addDoc(collection(db, 'attendanceRecords'), { ...data, scannedAt: serverTimestamp() });
+  // Increment the session count atomically
+  await updateDoc(doc(db, 'sessions', data.sessionId), { attendanceCount: increment(1) });
+  return ref.id;
+}
+
+export function onAttendanceRecords(sessionId: string, cb: (r: FSAttendanceRecord[]) => void): Unsub {
+  if (!db || !sessionId) { cb([]); return () => {}; }
+  const { collection, query, where, orderBy, onSnapshot } = require('firebase/firestore');
+  const q = query(
+    collection(db, 'attendanceRecords'),
+    where('sessionId', '==', sessionId),
+    orderBy('scannedAt', 'desc'),
+  );
+  return onSnapshot(q, (snap: any) => {
+    cb(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as FSAttendanceRecord)));
+  }, () => cb([]));
+}
+
+export function onStudentAttendance(studentId: string, institutionId: string, cb: (r: FSAttendanceRecord[]) => void): Unsub {
+  if (!db || !studentId) { cb([]); return () => {}; }
+  const { collection, query, where, orderBy, limit, onSnapshot } = require('firebase/firestore');
+  const q = query(
+    collection(db, 'attendanceRecords'),
+    where('studentId', '==', studentId),
+    where('institutionId', '==', institutionId),
+    orderBy('scannedAt', 'desc'),
+    limit(100),
+  );
+  return onSnapshot(q, (snap: any) => {
+    cb(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as FSAttendanceRecord)));
+  }, () => cb([]));
+}
