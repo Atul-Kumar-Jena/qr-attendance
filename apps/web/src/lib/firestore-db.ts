@@ -12,6 +12,7 @@ export interface FSUser {
   suspended?: boolean;
   createdById?: string;
   createdAt?: unknown;
+  onboardingDone?: boolean;
 }
 
 export interface FSStudent {
@@ -54,6 +55,8 @@ export interface FSInstitution {
   name: string;
   code?: string;
   slug?: string;
+  type?: string;
+  ownerId?: string;
   createdAt?: unknown;
 }
 
@@ -64,6 +67,11 @@ const DEFAULT_PERMS: Omit<FSTeacherPerm, 'teacherId' | 'institutionId'> = {
   canManageStudents: false, canExportReports: false, canViewAuditLog: false,
   canManageClasses: false, canAddRemarks: true,
 };
+
+function generateCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 
@@ -164,9 +172,59 @@ export async function saveInstitution(institutionId: string, data: Partial<FSIns
   await setDoc(doc(db, 'institutions', institutionId), { ...data, updatedAt: serverTimestamp() }, { merge: true });
 }
 
-export async function createInstitution(data: Omit<FSInstitution, 'id'>): Promise<string> {
+export async function createInstitution(
+  data: Omit<FSInstitution, 'id'>,
+  creatorUid?: string,
+): Promise<string> {
   if (!db) throw new Error('Firebase not configured');
-  const { collection, addDoc, serverTimestamp } = require('firebase/firestore');
-  const ref = await addDoc(collection(db, 'institutions'), { ...data, createdAt: serverTimestamp() });
+  const { collection, addDoc, doc, updateDoc, serverTimestamp } = require('firebase/firestore');
+  const code = generateCode();
+  const ref = await addDoc(collection(db, 'institutions'), {
+    ...data, code, ownerId: creatorUid ?? null, createdAt: serverTimestamp(),
+  });
+  if (creatorUid) {
+    await updateDoc(doc(db, 'users', creatorUid), {
+      role: 'institution', institutionId: ref.id, onboardingDone: true, updatedAt: serverTimestamp(),
+    });
+  }
   return ref.id;
+}
+
+// ── All institutions (developer) ──────────────────────────────────────────────
+
+export function onAllInstitutions(cb: (i: FSInstitution[]) => void): Unsub {
+  if (!db) { cb([]); return () => {}; }
+  const { collection, onSnapshot } = require('firebase/firestore');
+  return onSnapshot(collection(db, 'institutions'), (snap: any) => {
+    cb(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as FSInstitution)));
+  }, () => cb([]));
+}
+
+// ── Join institution by code ──────────────────────────────────────────────────
+
+export async function joinInstitutionByCode(
+  userId: string,
+  code: string,
+): Promise<FSInstitution | null> {
+  if (!db) throw new Error('Firebase not configured');
+  const { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } = require('firebase/firestore');
+  const q = query(collection(db, 'institutions'), where('code', '==', code.toUpperCase().trim()));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const inst = { id: snap.docs[0].id, ...snap.docs[0].data() } as FSInstitution;
+  await updateDoc(doc(db, 'users', userId), {
+    institutionId: inst.id, role: 'student', onboardingDone: true, updatedAt: serverTimestamp(),
+  });
+  return inst;
+}
+
+// ── Check if user already owns an institution ─────────────────────────────────
+
+export async function getOwnedInstitution(ownerId: string): Promise<FSInstitution | null> {
+  if (!db) return null;
+  const { collection, query, where, getDocs } = require('firebase/firestore');
+  const q = query(collection(db, 'institutions'), where('ownerId', '==', ownerId));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  return { id: snap.docs[0].id, ...snap.docs[0].data() } as FSInstitution;
 }

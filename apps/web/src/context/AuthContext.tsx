@@ -21,12 +21,15 @@ interface AuthState {
   role: Role | null;
   institutionId: string | null;
   loading: boolean;
+  needsOnboarding: boolean;
+  markOnboardingDone: () => void;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState>({
   user: null, role: null, institutionId: null, loading: false,
+  needsOnboarding: false, markOnboardingDone: () => {},
   signIn: async () => {}, signOut: async () => {},
 });
 
@@ -39,6 +42,7 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
   const [role, setRole] = useState<Role | null>(null);
   const [institutionId, setInstitutionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(isConfigured);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
     if (!isConfigured || !auth) { setLoading(false); return; }
@@ -51,6 +55,8 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
       if (u) {
         let resolvedRole: Role = 'student';
         let resolvedInstId: string | null = null;
+        let resolvedOnboarding = false;
+
         if (u.email && DEVELOPER_EMAILS.includes(u.email)) {
           resolvedRole = 'developer';
         } else if (db) {
@@ -65,19 +71,24 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
               };
               resolvedRole = mapped[data?.role as string] ?? 'student';
               resolvedInstId = data?.institutionId ?? null;
+              // Show onboarding if not done and user has no institution assigned
+              resolvedOnboarding = !data?.onboardingDone && !data?.institutionId;
             } else {
               await setDoc(ref, {
                 uid: u.uid, email: u.email, displayName: u.displayName,
                 photoURL: u.photoURL, role: 'student', createdAt: serverTimestamp(),
               });
+              resolvedOnboarding = true;
             }
           } catch { resolvedRole = 'student'; }
         }
         setRole(resolvedRole);
         setInstitutionId(resolvedInstId);
+        setNeedsOnboarding(resolvedOnboarding);
       } else {
         setRole(null);
         setInstitutionId(null);
+        setNeedsOnboarding(false);
       }
       setLoading(false);
     });
@@ -97,8 +108,10 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
 
   const signOut = async () => { await signOutUser(); onSignOut?.(); };
 
+  const markOnboardingDone = () => setNeedsOnboarding(false);
+
   return (
-    <AuthContext.Provider value={{ user, role, institutionId, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, role, institutionId, loading, needsOnboarding, markOnboardingDone, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

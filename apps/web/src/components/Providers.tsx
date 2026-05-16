@@ -6,6 +6,9 @@ import { AuthProvider } from '@/context/AuthContext';
 import { SiteConfigProvider } from '@/context/SiteConfigContext';
 import { ToastContainer } from '@/components/Toast';
 import { useToast } from '@/context/ToastContext';
+import { useAuth } from '@/context/AuthContext';
+import { OnboardingFlow } from '@/components/OnboardingFlow';
+import { CookieConsent } from '@/components/CookieConsent';
 import type { User } from 'firebase/auth';
 
 function AuthWithToasts({ children }: { children: ReactNode }) {
@@ -25,8 +28,22 @@ function AuthWithToasts({ children }: { children: ReactNode }) {
 
   return (
     <AuthProvider onSignIn={handleSignIn} onSignOut={handleSignOut}>
-      {children}
+      <OnboardingGate>{children}</OnboardingGate>
     </AuthProvider>
+  );
+}
+
+function OnboardingGate({ children }: { children: ReactNode }) {
+  const { user, role, needsOnboarding, markOnboardingDone } = useAuth();
+  const showOnboarding = user && role !== 'developer' && needsOnboarding;
+
+  return (
+    <>
+      {children}
+      {showOnboarding && (
+        <OnboardingFlow user={user} onComplete={markOnboardingDone} />
+      )}
+    </>
   );
 }
 
@@ -38,6 +55,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <AuthWithToasts>
             {children}
             <ToastContainer />
+            <CookieConsent />
           </AuthWithToasts>
         </SiteConfigProvider>
       </ToastProvider>

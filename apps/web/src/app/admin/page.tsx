@@ -6,6 +6,29 @@ import { useAuth, roleAtLeast, ROLE_WEIGHT, type Role } from '@/context/AuthCont
 import { useSiteConfig, type SiteConfig, type PricingMode } from '@/context/SiteConfigContext';
 import { AuthModal } from '@/components/AuthModal';
 
+function useTourGuide(role: Role | null) {
+  useEffect(() => {
+    if (typeof window === 'undefined' || !role) return;
+    const key = `atd_tour_${role}`;
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, '1');
+    import('driver.js').then(({ driver }) => {
+      import('driver.js/dist/driver.css' as any).catch(() => {});
+      const d = driver({
+        animate: true, smoothScroll: true, showProgress: true,
+        steps: [
+          { element: '#tour-overview', popover: { title: 'Overview', description: 'Your dashboard at a glance — sessions, students, attendance stats.' } },
+          { element: '#tour-students', popover: { title: 'Students', description: 'Add, search and manage students. Click a student to add remarks.' } },
+          { element: '#tour-manage-users', popover: { title: 'Manage Users', description: 'Invite admins and teachers, change roles, suspend accounts.' } },
+          { element: '#tour-institution', popover: { title: 'Institution', description: 'Your institution code lives here — share it so others can join.' } },
+          { element: '#tour-qr-btn', popover: { title: 'Start QR Session', description: 'Launch a live QR session. The code rotates every second — impossible to fake.' } },
+        ],
+      });
+      setTimeout(() => d.drive(), 800);
+    }).catch(() => {});
+  }, [role]);
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Tab =
@@ -17,13 +40,14 @@ type Tab =
   | 'manage-users'
   | 'teacher-perms'
   | 'institution'
+  | 'institutions'
   | 'god-mode';
 
 const ROLE_META: Record<Role, { label: string; dot: string; access: Tab[] }> = {
   developer: {
     label: 'Developer',
     dot: 'bg-red-500',
-    access: ['overview', 'sessions', 'students', 'reports', 'audit', 'manage-users', 'teacher-perms', 'institution', 'god-mode'],
+    access: ['overview', 'sessions', 'students', 'reports', 'audit', 'manage-users', 'teacher-perms', 'institution', 'institutions', 'god-mode'],
   },
   institution: {
     label: 'Institution',
@@ -48,23 +72,24 @@ const ROLE_META: Record<Role, { label: string; dot: string; access: Tab[] }> = {
 };
 
 const TAB_LABELS: Record<Tab, string> = {
-  'overview':     'Overview',
-  'sessions':     'Sessions',
-  'students':     'Students',
-  'reports':      'Reports',
-  'audit':        'Audit Logs',
-  'manage-users': 'Manage Users',
-  'teacher-perms':'Teacher Perms',
-  'institution':  'Institution',
-  'god-mode':     '⚡ God Mode',
+  'overview':      'Overview',
+  'sessions':      'Sessions',
+  'students':      'Students',
+  'reports':       'Reports',
+  'audit':         'Audit Logs',
+  'manage-users':  'Manage Users',
+  'teacher-perms': 'Teacher Perms',
+  'institution':   'Institution',
+  'institutions':  '🌐 All Institutions',
+  'god-mode':      '⚡ God Mode',
 };
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
 
 export default function AdminHome() {
   const { user, role, loading } = useAuth();
-  // institutionId is consumed by child panels via useAuth()
   const [tab, setTab] = useState<Tab>('overview');
+  useTourGuide(role);
 
   if (loading) {
     return (
@@ -125,8 +150,13 @@ export default function AdminHome() {
           {(Object.keys(TAB_LABELS) as Tab[]).map((t) => {
             const allowed = allowedTabs.includes(t);
             const isGod = t === 'god-mode';
+            const tourMap: Partial<Record<Tab, string>> = {
+              overview: 'tour-overview', students: 'tour-students',
+              'manage-users': 'tour-manage-users', institution: 'tour-institution',
+            };
+            const tourId = tourMap[t];
             return (
-              <button key={t} onClick={() => allowed && setTab(t)} disabled={!allowed}
+              <button key={t} id={tourId} onClick={() => allowed && setTab(t)} disabled={!allowed}
                 className={`block w-full text-left px-3 py-2 rounded-md text-[13px] transition-colors ${
                   isGod && allowed
                     ? currentTab === t ? 'bg-red-600 text-white font-semibold' : 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium'
@@ -150,7 +180,7 @@ export default function AdminHome() {
         <div className="flex items-baseline justify-between mb-8">
           <h1 className="font-display text-[2.4rem]">{TAB_LABELS[currentTab]}</h1>
           {roleAtLeast(role, 'teacher') && (
-            <Link href="/admin/qr/demo"
+            <Link id="tour-qr-btn" href="/admin/qr/demo"
               className="rounded-full bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all">
               Start QR session
             </Link>
@@ -165,6 +195,7 @@ export default function AdminHome() {
         {currentTab === 'manage-users'  && <ManageUsersPanel role={role!} />}
         {currentTab === 'teacher-perms' && <TeacherPermsPanel />}
         {currentTab === 'institution'   && <InstitutionPanel />}
+        {currentTab === 'institutions'  && <InstitutionsPanel />}
         {currentTab === 'god-mode'      && <GodModePanel />}
       </main>
     </div>
@@ -735,36 +766,158 @@ function TeacherPermsPanel() {
 // ─── Institution Settings ─────────────────────────────────────────────────────
 
 function InstitutionPanel() {
-  const [form, setForm] = useState({
-    name: '', qrRotationSec: '7', qrWindowMin: '15',
-    lateAfterMin: '10', minAttendancePct: '75', geofenceM: '100',
-  });
+  const { institutionId } = useAuth();
+  const [inst, setInst] = useState<import('@/lib/firestore-db').FSInstitution | null>(null);
+  const [name, setName] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const set = (k: keyof typeof form) => (v: string) => setForm((c) => ({ ...c, [k]: v }));
+
+  useEffect(() => {
+    if (!institutionId) return;
+    const { onInstitution } = require('@/lib/firestore-db');
+    return onInstitution(institutionId, (i: import('@/lib/firestore-db').FSInstitution | null) => {
+      setInst(i);
+      if (i && !name) setName(i.name);
+    });
+  }, [institutionId]);
+
+  const copyCode = () => {
+    if (!inst?.code) return;
+    navigator.clipboard.writeText(inst.code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const saveSettings = async () => {
+    if (!institutionId) return;
+    setSaving(true);
+    const { saveInstitution } = require('@/lib/firestore-db');
+    await saveInstitution(institutionId, { name });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  if (!institutionId) {
+    return (
+      <Card className="p-8 text-center space-y-3">
+        <div className="text-ink-mute text-[13px]">You are not linked to any institution yet.</div>
+        <p className="text-[12px] text-ink-mute">Create one in God Mode or ask your admin to assign you.</p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-2xl">
+      {/* Institution join code — most prominent */}
+      <Card className="p-6 space-y-3 border-accent/30 bg-accent/5">
+        <SectionTitle>Your institution code</SectionTitle>
+        <p className="text-[12.5px] text-ink-mute -mt-2">
+          Share this code with students and teachers so they can join your institution.
+        </p>
+        <div className="flex items-center gap-4">
+          <div className="font-mono text-[2.8rem] font-bold tracking-[0.3em] text-ink leading-none">
+            {inst?.code ?? '——'}
+          </div>
+          <button onClick={copyCode}
+            className="rounded-lg border border-ink/15 px-3 py-1.5 text-[12px] text-ink-mute hover:text-ink transition-colors">
+            {copied ? '✓ Copied!' : 'Copy'}
+          </button>
+        </div>
+        <p className="text-[11px] text-ink-mute">
+          Students enter this on first sign-in. Teachers use Manage Users → Invite.
+        </p>
+      </Card>
+
       <Card className="p-6 space-y-4">
         <SectionTitle>Organisation details</SectionTitle>
-        <Field label="Institution name" value={form.name} onChange={set('name')} />
+        <Field label="Institution name" value={name} onChange={setName} />
       </Card>
-      <Card className="p-6 space-y-4">
-        <SectionTitle>Attendance rules</SectionTitle>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="QR rotation (sec)" value={form.qrRotationSec} onChange={set('qrRotationSec')} type="number" />
-          <Field label="Window (min)" value={form.qrWindowMin} onChange={set('qrWindowMin')} type="number" />
-          <Field label="Late after (min)" value={form.lateAfterMin} onChange={set('lateAfterMin')} type="number" />
-          <Field label="Min. attendance %" value={form.minAttendancePct} onChange={set('minAttendancePct')} type="number" />
-        </div>
-      </Card>
-      <Card className="p-6 space-y-4">
-        <SectionTitle>Geofence defaults</SectionTitle>
-        <Field label="Default radius (m)" value={form.geofenceM} onChange={set('geofenceM')} type="number" />
-      </Card>
-      <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000); }}
-        className="rounded-xl bg-accent text-cream-50 px-6 py-2.5 text-[13.5px] font-medium hover:bg-accent/90 transition-all">
-        {saved ? 'Saved!' : 'Save institution settings'}
+
+      <button onClick={saveSettings} disabled={saving}
+        className="rounded-xl bg-accent text-cream-50 px-6 py-2.5 text-[13.5px] font-medium hover:bg-accent/90 transition-all disabled:opacity-60">
+        {saving ? 'Saving…' : saved ? 'Saved!' : 'Save settings'}
       </button>
+    </div>
+  );
+}
+
+// ─── All Institutions (Developer) ─────────────────────────────────────────────
+
+function InstitutionsPanel() {
+  const [institutions, setInstitutions] = useState<import('@/lib/firestore-db').FSInstitution[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const { onAllInstitutions } = require('@/lib/firestore-db');
+    return onAllInstitutions((list: import('@/lib/firestore-db').FSInstitution[]) => {
+      setInstitutions(list);
+      setLoading(false);
+    });
+  }, []);
+
+  const contactHref = (inst: import('@/lib/firestore-db').FSInstitution) => {
+    const subject = encodeURIComponent(`Additional institution request — ${inst.name}`);
+    const body = encodeURIComponent(
+      `Hi Attendly team,\n\nI'd like to add another institution to my account.\n\nCurrent institution: ${inst.name} (ID: ${inst.id})\n\nPlease let me know the next steps.\n\nThank you!`
+    );
+    return `mailto:hello@attendly.app?subject=${subject}&body=${body}`;
+  };
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <div className="flex items-center justify-between">
+        <p className="text-[13px] text-ink-mute">
+          All institutions on the platform. Click <strong>Contact</strong> to open a pre-filled email for their owner.
+        </p>
+        <span className="text-[12px] text-ink-mute bg-ink/6 rounded-full px-3 py-1">
+          {institutions.length} total
+        </span>
+      </div>
+
+      <Card className="overflow-hidden">
+        {loading ? (
+          <div className="p-8 text-center text-ink-mute text-[13px]">Loading institutions…</div>
+        ) : institutions.length === 0 ? (
+          <div className="p-8 text-center text-ink-mute text-[13px]">No institutions yet.</div>
+        ) : (
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="border-b border-ink/8 text-[10.5px] tracking-[0.15em] text-ink-mute uppercase">
+                <th className="text-left px-5 py-3">Institution</th>
+                <th className="text-left px-5 py-3">Code</th>
+                <th className="text-left px-5 py-3">Type</th>
+                <th className="text-left px-5 py-3">Owner ID</th>
+                <th className="text-left px-5 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {institutions.map((inst) => (
+                <tr key={inst.id} className="border-b border-ink/6 last:border-0 hover:bg-cream-100/50 transition-colors">
+                  <td className="px-5 py-3">
+                    <div className="font-medium">{inst.name}</div>
+                    <div className="text-[11px] text-ink-mute font-mono">{inst.id}</div>
+                  </td>
+                  <td className="px-5 py-3">
+                    <span className="font-mono font-bold tracking-widest text-accent">{inst.code ?? '—'}</span>
+                  </td>
+                  <td className="px-5 py-3 text-ink-mute capitalize">{inst.type ?? '—'}</td>
+                  <td className="px-5 py-3">
+                    <span className="font-mono text-[11px] text-ink-mute truncate max-w-[120px] block">{inst.ownerId ?? '—'}</span>
+                  </td>
+                  <td className="px-5 py-3">
+                    <a href={contactHref(inst)}
+                      className="text-[11px] border border-ink/15 rounded px-2 py-1 hover:border-accent hover:text-accent transition-colors">
+                      Contact owner
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
     </div>
   );
 }
@@ -1079,25 +1232,36 @@ function CreateUserForm() {
 }
 
 function CreateInstitutionForm() {
-  const [form, setForm] = useState({ code: '', name: '', slug: '' });
+  const { user } = useAuth();
+  const [name, setName] = useState('');
+  const [type, setType] = useState('school');
   const [status, setStatus] = useState('');
+  const [statusKind, setStatusKind] = useState<'ok' | 'err' | 'limit'>('ok');
   const [saving, setSaving] = useState(false);
-  const set = (k: keyof typeof form) => (v: string) => setForm((c) => ({ ...c, [k]: v }));
 
   const create = async () => {
-    if (!form.name || !form.code) return;
+    if (!name.trim()) return;
     setSaving(true);
     try {
-      const { createInstitution } = require('@/lib/firestore-db');
-      const id = await createInstitution({
-        name: form.name,
-        code: form.code,
-        slug: form.slug || form.code.toLowerCase().replace(/_/g, '-'),
-      });
-      setForm({ code: '', name: '', slug: '' });
-      setStatus(`Institution created! Firestore ID: ${id}`);
+      const { createInstitution, getOwnedInstitution } = require('@/lib/firestore-db');
+      if (user) {
+        const existing = await getOwnedInstitution(user.uid);
+        if (existing) {
+          const subject = encodeURIComponent('Additional institution request');
+          const body = encodeURIComponent(`Hi,\n\nI'd like to add another institution.\n\nCurrent: ${existing.name} (${existing.id})\n\nThanks!`);
+          setStatus(`Free plan allows 1 institution. <a href="mailto:hello@attendly.app?subject=${subject}&body=${body}" class="underline text-accent">Contact us</a> to add more.`);
+          setStatusKind('limit');
+          setSaving(false);
+          return;
+        }
+      }
+      const id = await createInstitution({ name: name.trim(), type }, user?.uid);
+      setName('');
+      setStatus(`Institution created! ID: ${id}`);
+      setStatusKind('ok');
     } catch (e: unknown) {
       setStatus('Error: ' + (e instanceof Error ? e.message : String(e)));
+      setStatusKind('err');
     }
     setSaving(false);
     setTimeout(() => setStatus(''), 10000);
@@ -1106,15 +1270,24 @@ function CreateInstitutionForm() {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Code (e.g. DTU_CS)" value={form.code} onChange={set('code')} placeholder="INST_CODE" />
-        <Field label="Slug (auto if blank)" value={form.slug} onChange={set('slug')} placeholder="dtu-cs" />
-        <Field label="Institution name" value={form.name} onChange={set('name')} className="col-span-2" />
+        <Field label="Institution name" value={name} onChange={setName} className="col-span-2" />
+        <div>
+          <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Type</label>
+          <select value={type} onChange={(e) => setType(e.target.value)}
+            className="w-full text-[13px] text-ink bg-cream-100 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none">
+            {['school','college','coaching','corporate','other'].map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
       </div>
-      <button onClick={create} disabled={saving || !form.name || !form.code}
+      <p className="text-[11.5px] text-ink-mute">A unique join code is generated automatically.</p>
+      <button onClick={create} disabled={saving || !name.trim()}
         className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all disabled:opacity-50">
         {saving ? 'Creating…' : 'Create institution'}
       </button>
-      {status && <p className="text-[11px] text-ink-mute font-mono">{status}</p>}
+      {status && (
+        <p className={`text-[11px] font-mono ${statusKind === 'err' ? 'text-red-500' : statusKind === 'limit' ? 'text-amber-600 dark:text-amber-400' : 'text-ink-mute'}`}
+          dangerouslySetInnerHTML={{ __html: status }} />
+      )}
     </div>
   );
 }
