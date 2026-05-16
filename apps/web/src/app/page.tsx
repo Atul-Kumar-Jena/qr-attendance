@@ -15,6 +15,7 @@ import { Cursor } from '@/components/Cursor';
 import { ScrollProgress } from '@/components/ScrollProgress';
 import { SmoothScroll } from '@/components/SmoothScroll';
 import { GridBackground } from '@/components/GridBackground';
+import { DarkModeNudge } from '@/components/DarkModeNudge';
 
 export default function Page() {
   return (
@@ -23,6 +24,7 @@ export default function Page() {
       <SmoothScroll />
       <ScrollProgress />
       <Cursor />
+      <DarkModeNudge />
       <Nav />
       <Hero />
       <Marquee />

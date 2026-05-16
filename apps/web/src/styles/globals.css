@@ -215,10 +215,7 @@ html.dark .glass {
   border-color: rgba(240, 237, 230, 0.08);
 }
 
-html.dark body::before {
-  mix-blend-mode: screen;
-  opacity: 0.15;
-}
+/* grain overlay handled below in the fixes section */
 
 html.dark .bg-cream-50 { background: var(--bg) !important; }
 html.dark .bg-cream-100 { background: var(--bg-2) !important; }
@@ -343,3 +340,106 @@ html.dark body::before {
   from { width: 100%; }
   to   { width: 0%; }
 }
+
+/* ─── Driver.js custom theme ────────────────────────────────────────────────── */
+
+/* Overlay tint */
+.driver-overlay { background: rgba(11, 18, 32, 0.55) !important; }
+
+/* Popover card */
+.atd-popover.driver-popover {
+  background: var(--bg) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 24px 60px -12px rgba(11, 18, 32, 0.25) !important;
+  padding: 20px 22px 18px !important;
+  max-width: 300px !important;
+  font-family: var(--font-sans), system-ui, sans-serif !important;
+}
+
+.atd-popover .driver-popover-title {
+  color: var(--ink) !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  margin-bottom: 6px !important;
+}
+
+.atd-popover .driver-popover-description {
+  color: var(--ink-mute) !important;
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+}
+
+.atd-popover .driver-popover-progress-text {
+  color: var(--ink-mute) !important;
+  font-size: 11px !important;
+}
+
+.atd-popover .driver-popover-prev-btn,
+.atd-popover .driver-popover-next-btn {
+  border-radius: 10px !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  padding: 7px 14px !important;
+  border: 1px solid var(--line) !important;
+  background: transparent !important;
+  color: var(--ink-mute) !important;
+  transition: background 0.2s, color 0.2s !important;
+}
+
+.atd-popover .driver-popover-next-btn {
+  background: #FF6B3D !important;
+  color: #FAFAF7 !important;
+  border-color: #FF6B3D !important;
+}
+
+.atd-popover .driver-popover-next-btn:hover {
+  background: #e55c30 !important;
+}
+
+.atd-popover .driver-popover-prev-btn:hover {
+  background: var(--bg-2) !important;
+  color: var(--ink) !important;
+}
+
+.atd-popover .driver-popover-close-btn {
+  color: var(--ink-mute) !important;
+  opacity: 0.6 !important;
+}
+.atd-popover .driver-popover-close-btn:hover { opacity: 1 !important; }
+
+/* Popover arrow */
+.atd-popover .driver-popover-arrow-side-top { border-bottom-color: var(--bg) !important; }
+.atd-popover .driver-popover-arrow-side-bottom { border-top-color: var(--bg) !important; }
+.atd-popover .driver-popover-arrow-side-left { border-right-color: var(--bg) !important; }
+.atd-popover .driver-popover-arrow-side-right { border-left-color: var(--bg) !important; }
+
+/* ─── Dark mode comprehensive text-color fixes ──────────────────────────────── */
+/* Root cause: Tailwind compiles text-ink to hardcoded #0B1220 (invisible on dark bg) */
+
+/* All hover:text-* states */
+html.dark .hover\:text-ink:hover,
+html.dark .hover\:text-ink-soft:hover { color: var(--ink) !important; }
+
+html.dark .hover\:text-ink-mute:hover { color: var(--ink-mute) !important; }
+
+/* Focus states */
+html.dark .focus\:text-ink:focus { color: var(--ink) !important; }
+
+/* Placeholder text */
+html.dark input::placeholder,
+html.dark textarea::placeholder { color: var(--ink-mute) !important; opacity: 0.7; }
+
+/* border-ink variants */
+html.dark .border-ink\/15 { border-color: rgba(240, 237, 230, 0.15) !important; }
+html.dark .border-ink\/6  { border-color: rgba(240, 237, 230, 0.06) !important; }
+html.dark .border-ink\/20 { border-color: rgba(240, 237, 230, 0.20) !important; }
+
+/* Hover backgrounds for nav + interactive elements */
+html.dark .hover\:bg-cream-50:hover  { background-color: var(--bg)  !important; }
+html.dark .hover\:bg-cream-100:hover { background-color: var(--bg-2) !important; }
+html.dark .hover\:bg-ink-soft:hover  { background-color: rgba(240, 237, 230, 0.08) !important; }
+
+/* select element styling */
+html.dark select { background-color: var(--bg-2) !important; color: var(--ink) !important; border-color: var(--line) !important; }
+html.dark select option { background-color: var(--bg-2); color: var(--ink); }

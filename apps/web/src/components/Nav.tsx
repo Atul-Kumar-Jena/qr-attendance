@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
@@ -50,20 +51,32 @@ function AutoIcon() {
 }
 
 function ThemeToggle() {
-  const { mode, cycleMode } = useTheme();
-  const label = mode === 'light' ? 'Switch to dark mode' : mode === 'dark' ? 'Switch to auto mode' : 'Switch to light mode';
+  const { mode, setMode } = useTheme();
+  const options: { m: 'light' | 'auto' | 'dark'; icon: React.ReactNode; label: string }[] = [
+    { m: 'light', icon: <SunIcon />,  label: 'Light mode' },
+    { m: 'auto',  icon: <AutoIcon />, label: 'Auto (time of day)' },
+    { m: 'dark',  icon: <MoonIcon />, label: 'Dark mode' },
+  ];
 
   return (
-    <button
-      onClick={cycleMode}
-      className="theme-toggle"
-      aria-label={label}
-      title={label}
-    >
-      {mode === 'light' && <SunIcon />}
-      {mode === 'dark' && <MoonIcon />}
-      {mode === 'auto' && <AutoIcon />}
-    </button>
+    <div className="flex items-center rounded-lg border border-ink/10 dark:border-white/10 overflow-hidden" role="group" aria-label="Theme">
+      {options.map(({ m, icon, label }) => (
+        <button
+          key={m}
+          onClick={() => setMode(m)}
+          data-tip={label}
+          aria-label={label}
+          aria-pressed={mode === m}
+          className={`w-7 h-7 flex items-center justify-center transition-all duration-200 ${
+            mode === m
+              ? 'bg-ink dark:bg-white/15 text-cream-50 dark:text-white'
+              : 'text-ink-mute hover:text-ink dark:hover:text-white hover:bg-cream-100 dark:hover:bg-white/5'
+          }`}
+        >
+          {icon}
+        </button>
+      ))}
+    </div>
   );
 }
 
