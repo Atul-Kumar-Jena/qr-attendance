@@ -272,6 +272,40 @@ export async function endSession(id: string): Promise<void> {
   await updateDoc(doc(db, 'sessions', id), { status: 'CLOSED', endedAt: serverTimestamp() });
 }
 
+// ── Audit logs ────────────────────────────────────────────────────────────────
+
+export interface FSAuditLog {
+  id: string;
+  institutionId: string;
+  actorId: string;
+  actorName?: string;
+  action: string;
+  targetId?: string;
+  targetName?: string;
+  details?: string;
+  createdAt?: unknown;
+}
+
+export async function logAudit(entry: Omit<FSAuditLog, 'id'>): Promise<void> {
+  if (!db) return;
+  const { collection, addDoc, serverTimestamp } = require('firebase/firestore');
+  await addDoc(collection(db, 'auditLogs'), { ...entry, createdAt: serverTimestamp() }).catch(() => {});
+}
+
+export function onAuditLogs(institutionId: string, cb: (logs: FSAuditLog[]) => void): Unsub {
+  if (!db || !institutionId) { cb([]); return () => {}; }
+  const { collection, query, where, orderBy, limit, onSnapshot } = require('firebase/firestore');
+  const q = query(
+    collection(db, 'auditLogs'),
+    where('institutionId', '==', institutionId),
+    orderBy('createdAt', 'desc'),
+    limit(200),
+  );
+  return onSnapshot(q, (snap: any) => {
+    cb(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as FSAuditLog)));
+  }, () => cb([]));
+}
+
 export async function getSession(id: string): Promise<FSSession | null> {
   if (!db || !id) return null;
   const { doc, getDoc } = require('firebase/firestore');

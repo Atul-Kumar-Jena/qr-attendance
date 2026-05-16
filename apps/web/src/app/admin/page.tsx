@@ -190,8 +190,8 @@ export default function AdminHome() {
         {currentTab === 'overview'      && <OverviewPanel role={role!} />}
         {currentTab === 'sessions'      && <SessionsPanel />}
         {currentTab === 'students'      && <StudentsPanel role={role!} />}
-        {currentTab === 'reports'       && <Placeholder name="Reports" />}
-        {currentTab === 'audit'         && <Placeholder name="Audit Logs" />}
+        {currentTab === 'reports'       && <ReportsPanel />}
+        {currentTab === 'audit'         && <AuditPanel role={role!} />}
         {currentTab === 'manage-users'  && <ManageUsersPanel role={role!} />}
         {currentTab === 'teacher-perms' && <TeacherPermsPanel />}
         {currentTab === 'institution'   && <InstitutionPanel />}
@@ -342,7 +342,7 @@ function OverviewPanel({ role }: { role: Role }) {
 // ─── Sessions ─────────────────────────────────────────────────────────────────
 
 function SessionsPanel() {
-  const { institutionId } = useAuth();
+  const { institutionId, user: me } = useAuth();
   const [sessions, setSessions] = useState<import('@/lib/firestore-db').FSSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [ending, setEnding] = useState<string | null>(null);
@@ -357,10 +357,11 @@ function SessionsPanel() {
     return () => unsub();
   }, [institutionId]);
 
-  const endSess = async (id: string) => {
+  const endSess = async (id: string, s: import('@/lib/firestore-db').FSSession) => {
     setEnding(id);
-    const { endSession } = require('@/lib/firestore-db');
+    const { endSession, logAudit } = require('@/lib/firestore-db');
     await endSession(id);
+    await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'SESSION_ENDED', targetId: id, details: `${s.subjectName} · ${s.className}` });
     setEnding(null);
   };
 
@@ -397,7 +398,7 @@ function SessionsPanel() {
                   <Link href="/admin/qr/demo" className="text-[12px] border border-accent/40 text-accent rounded-lg px-3 py-1.5 hover:bg-accent/5 transition-colors">
                     View QR
                   </Link>
-                  <button onClick={() => endSess(s.id)} disabled={ending === s.id}
+                  <button onClick={() => endSess(s.id, s)} disabled={ending === s.id}
                     className="text-[12px] border border-red-300 text-red-500 rounded-lg px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50">
                     {ending === s.id ? 'Ending…' : 'End session'}
                   </button>
@@ -581,8 +582,9 @@ function StudentsPanel({ role }: { role: Role }) {
                   )}
                   {canAdmin && (
                     <button onClick={async () => {
-                      const { patchStudent } = require('@/lib/firestore-db');
+                      const { patchStudent, logAudit } = require('@/lib/firestore-db');
                       await patchStudent(selected.id, { suspended: !selected.suspended });
+                      await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: selected.suspended ? 'STUDENT_UNSUSPENDED' : 'STUDENT_SUSPENDED', targetId: selected.id, targetName: selected.fullName });
                       setSelected((s) => s ? { ...s, suspended: !s.suspended } : null);
                     }} className={`text-[11px] px-2 py-1 rounded border transition-colors ${
                       selected.suspended ? 'border-green-300 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20' : 'border-red-300 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
@@ -641,6 +643,250 @@ function StudentsPanel({ role }: { role: Role }) {
   );
 }
 
+// ─── Reports ─────────────────────────────────────────────────────────────────
+
+function ReportsPanel() {
+  const { institutionId } = useAuth();
+  const [sessions, setSessions] = useState<import('@/lib/firestore-db').FSSession[]>([]);
+  const [students, setStudents] = useState<import('@/lib/firestore-db').FSStudent[]>([]);
+  const [filter, setFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!institutionId) { setLoading(false); return; }
+    const { onSessions, onStudents } = require('@/lib/firestore-db');
+    const u1 = onSessions(institutionId, (list: import('@/lib/firestore-db').FSSession[]) => { setSessions(list); setLoading(false); });
+    const u2 = onStudents(institutionId, setStudents);
+    return () => { u1(); u2(); };
+  }, [institutionId]);
+
+  const now = Date.now();
+  const cutoffs: Record<string, number> = {
+    today: new Date().setHours(0, 0, 0, 0),
+    week:  now - 7  * 86400_000,
+    month: now - 30 * 86400_000,
+  };
+
+  const filtered = sessions.filter((s) => {
+    if (filter === 'all') return true;
+    if (!s.startedAt) return false;
+    try { return (s.startedAt as any).seconds * 1000 >= cutoffs[filter]; } catch { return false; }
+  });
+
+  const totalStudents = students.length;
+  const totalAttendance = filtered.reduce((sum, s) => sum + (s.attendanceCount ?? 0), 0);
+  const avgRate = totalStudents > 0 && filtered.length > 0
+    ? ((totalAttendance / (filtered.length * totalStudents)) * 100).toFixed(1)
+    : '—';
+
+  const fmtTime = (ts: unknown) => {
+    if (!ts) return '—';
+    try { return new Date((ts as any).seconds * 1000).toLocaleString(); } catch { return '—'; }
+  };
+
+  const exportCsv = () => {
+    const rows = [
+      ['Date', 'Subject', 'Class', 'Teacher', 'Marked', 'Total Students', 'Rate %'],
+      ...filtered.map((s) => [
+        fmtTime(s.startedAt),
+        s.subjectName,
+        s.className,
+        s.teacherName ?? s.teacherId,
+        s.attendanceCount,
+        totalStudents,
+        totalStudents > 0 ? ((s.attendanceCount / totalStudents) * 100).toFixed(1) : '—',
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((v) => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `attendance-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="space-y-6 max-w-5xl">
+      {/* Summary strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { l: 'Sessions shown', v: filtered.length },
+          { l: 'Total students', v: totalStudents },
+          { l: 'Attendance marked', v: totalAttendance.toLocaleString() },
+          { l: 'Avg. rate', v: `${avgRate}%` },
+        ].map((s) => (
+          <Card key={s.l} className="p-4">
+            <div className="text-[10px] tracking-[0.18em] text-ink-mute uppercase">{s.l}</div>
+            <div className="font-display text-[2rem] leading-none mt-1">{s.v}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex gap-1 rounded-lg border border-ink/10 overflow-hidden p-0.5">
+          {(['all', 'today', 'week', 'month'] as const).map((f) => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={`px-3 py-1.5 text-[12px] rounded-md transition-colors capitalize ${filter === f ? 'bg-ink dark:bg-white/15 text-cream-50' : 'text-ink-mute hover:text-ink'}`}>
+              {f === 'all' ? 'All time' : f === 'today' ? 'Today' : f === 'week' ? 'Last 7 days' : 'Last 30 days'}
+            </button>
+          ))}
+        </div>
+        <button onClick={exportCsv} disabled={filtered.length === 0}
+          className="rounded-xl border border-ink/15 px-4 py-2 text-[12.5px] text-ink-mute hover:text-ink hover:border-ink/30 transition-colors flex items-center gap-2 disabled:opacity-40">
+          ↓ Export CSV
+        </button>
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div className="text-center text-ink-mute text-[13px] py-8">Loading…</div>
+      ) : filtered.length === 0 ? (
+        <Card className="p-8 text-center text-ink-mute text-[13px]">No sessions in this period yet.</Card>
+      ) : (
+        <Card className="overflow-hidden">
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="border-b border-ink/8 text-[10.5px] tracking-[0.15em] text-ink-mute uppercase">
+                <th className="text-left px-5 py-3">Subject</th>
+                <th className="text-left px-5 py-3">Class</th>
+                <th className="text-left px-5 py-3">Teacher</th>
+                <th className="text-left px-5 py-3">Date</th>
+                <th className="text-right px-5 py-3">Marked</th>
+                <th className="text-right px-5 py-3">Rate</th>
+                <th className="text-left px-5 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((s) => {
+                const rate = totalStudents > 0
+                  ? ((s.attendanceCount / totalStudents) * 100).toFixed(0)
+                  : null;
+                return (
+                  <tr key={s.id} className="border-b border-ink/6 last:border-0 hover:bg-cream-100/50 transition-colors">
+                    <td className="px-5 py-3 font-medium">{s.subjectName}</td>
+                    <td className="px-5 py-3 text-ink-mute">{s.className}</td>
+                    <td className="px-5 py-3 text-ink-mute">{s.teacherName ?? s.teacherId}</td>
+                    <td className="px-5 py-3 text-ink-mute font-mono text-[11px]">{fmtTime(s.startedAt)}</td>
+                    <td className="px-5 py-3 text-right font-mono">{s.attendanceCount}</td>
+                    <td className="px-5 py-3 text-right">
+                      {rate !== null ? (
+                        <span className={`font-mono text-[12px] ${Number(rate) >= 75 ? 'text-green-600 dark:text-green-400' : Number(rate) >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500'}`}>
+                          {rate}%
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className={`text-[10px] uppercase tracking-wider font-medium ${s.status === 'OPEN' ? 'text-green-600 dark:text-green-400' : 'text-ink-mute'}`}>
+                        {s.status}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ─── Audit Logs ───────────────────────────────────────────────────────────────
+
+const ACTION_META: Record<string, { label: string; color: string }> = {
+  SESSION_STARTED:     { label: 'Session started',     color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20' },
+  SESSION_ENDED:       { label: 'Session ended',        color: 'text-ink-mute bg-cream-100 dark:bg-white/5' },
+  ROLE_CHANGED:        { label: 'Role changed',         color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' },
+  USER_SUSPENDED:      { label: 'User suspended',       color: 'text-red-500 bg-red-50 dark:bg-red-900/20' },
+  USER_UNSUSPENDED:    { label: 'User unsuspended',     color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20' },
+  STUDENT_SUSPENDED:   { label: 'Student suspended',    color: 'text-red-500 bg-red-50 dark:bg-red-900/20' },
+  STUDENT_UNSUSPENDED: { label: 'Student unsuspended',  color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20' },
+  PERMS_UPDATED:       { label: 'Permissions updated',  color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20' },
+};
+
+function AuditPanel({ role }: { role: Role }) {
+  const { institutionId } = useAuth();
+  const [logs, setLogs] = useState<import('@/lib/firestore-db').FSAuditLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [indexError, setIndexError] = useState(false);
+
+  useEffect(() => {
+    if (!institutionId) { setLoading(false); return; }
+    const { onAuditLogs } = require('@/lib/firestore-db');
+    const unsub = onAuditLogs(institutionId, (list: import('@/lib/firestore-db').FSAuditLog[]) => {
+      setLogs(list);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [institutionId]);
+
+  const fmtTime = (ts: unknown) => {
+    if (!ts) return 'just now';
+    try { return new Date((ts as any).seconds * 1000).toLocaleString(); } catch { return '—'; }
+  };
+
+  return (
+    <div className="space-y-4 max-w-4xl">
+      <div className="flex items-center justify-between">
+        <p className="text-[13px] text-ink-mute">
+          Append-only log of all sensitive actions. {logs.length > 0 && `${logs.length} entries.`}
+        </p>
+      </div>
+
+      {indexError && (
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/30 px-4 py-3 text-[12.5px] text-amber-800 dark:text-amber-300">
+          Firestore needs a composite index for this query. Check the browser console for a link to create it — it takes ~1 minute.
+        </div>
+      )}
+
+      {loading ? (
+        <div className="text-center text-ink-mute text-[13px] py-8">Loading audit log…</div>
+      ) : logs.length === 0 ? (
+        <Card className="p-8 text-center space-y-2">
+          <div className="text-ink-mute text-[13px]">No audit entries yet.</div>
+          <div className="text-[11.5px] text-ink-mute">Entries appear when roles are changed, sessions start/end, or students are suspended.</div>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden">
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="border-b border-ink/8 text-[10.5px] tracking-[0.15em] text-ink-mute uppercase">
+                <th className="text-left px-5 py-3">When</th>
+                <th className="text-left px-5 py-3">Action</th>
+                <th className="text-left px-5 py-3">By</th>
+                <th className="text-left px-5 py-3">Target / Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log) => {
+                const meta = ACTION_META[log.action] ?? { label: log.action, color: 'text-ink-mute bg-cream-100 dark:bg-white/5' };
+                return (
+                  <tr key={log.id} className="border-b border-ink/6 last:border-0 hover:bg-cream-100/50 transition-colors">
+                    <td className="px-5 py-3 font-mono text-[11px] text-ink-mute whitespace-nowrap">{fmtTime(log.createdAt)}</td>
+                    <td className="px-5 py-3">
+                      <span className={`inline-block text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full ${meta.color}`}>
+                        {meta.label}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-ink-mute">{log.actorName || log.actorId}</td>
+                    <td className="px-5 py-3">
+                      {log.targetName && <span className="font-medium">{log.targetName}</span>}
+                      {log.details && <span className="text-ink-mute text-[11.5px]">{log.targetName ? ' · ' : ''}{log.details}</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 // ─── Manage Users ─────────────────────────────────────────────────────────────
 
 function ManageUsersPanel({ role }: { role: Role }) {
@@ -673,15 +919,17 @@ function ManageUsersPanel({ role }: { role: Role }) {
     return () => unsub();
   }, [institutionId, role]);
 
-  const changeRole = async (uid: string, newRole: string) => {
-    const { patchUser } = require('@/lib/firestore-db');
+  const changeRole = async (uid: string, newRole: string, targetName?: string) => {
+    const { patchUser, logAudit } = require('@/lib/firestore-db');
     await patchUser(uid, { role: newRole.toLowerCase() as import('@/lib/firestore-db').UserRole });
+    await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'ROLE_CHANGED', targetId: uid, targetName, details: `→ ${newRole}` });
     setEditingId(null);
   };
 
   const toggleSuspend = async (u: import('@/lib/firestore-db').FSUser) => {
-    const { patchUser } = require('@/lib/firestore-db');
+    const { patchUser, logAudit } = require('@/lib/firestore-db');
     await patchUser(u.uid, { suspended: !u.suspended });
+    await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: u.suspended ? 'USER_UNSUSPENDED' : 'USER_SUSPENDED', targetId: u.uid, targetName: u.displayName ?? u.email ?? '' });
   };
 
   const createUser = async () => {
@@ -769,7 +1017,7 @@ function ManageUsersPanel({ role }: { role: Role }) {
                     </td>
                     <td className="px-5 py-3">
                       {editable && editingId === u.uid ? (
-                        <select value={u.role} onChange={(e) => changeRole(u.uid, e.target.value)}
+                        <select value={u.role} onChange={(e) => changeRole(u.uid, e.target.value, u.displayName ?? u.email ?? '')}
                           autoFocus onBlur={() => setEditingId(null)}
                           className="text-[12px] bg-cream-100 border border-accent/30 rounded px-2 py-1 focus:outline-none">
                           {assignableRoles.map((r) => <option key={r} value={r.toLowerCase()}>{r}</option>)}
@@ -831,7 +1079,7 @@ const PERM_CONFIG = [
 ];
 
 function TeacherPermsPanel() {
-  const { institutionId } = useAuth();
+  const { institutionId, user: me } = useAuth();
   const [teachers, setTeachers] = useState<import('@/lib/firestore-db').FSUser[]>([]);
   const [selectedTeacher, setSelectedTeacher] = useState<string>('');
   const [perms, setPerms] = useState<Record<string, boolean>>(
@@ -866,8 +1114,10 @@ function TeacherPermsPanel() {
   const savePerms = async () => {
     if (!selectedTeacher || !institutionId) return;
     setSaving(true);
-    const { saveTeacherPerm } = require('@/lib/firestore-db');
+    const { saveTeacherPerm, logAudit } = require('@/lib/firestore-db');
     await saveTeacherPerm(selectedTeacher, { ...perms, institutionId });
+    const enabledPerms = Object.entries(perms).filter(([, v]) => v).map(([k]) => k).join(', ');
+    await logAudit({ institutionId, actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'PERMS_UPDATED', targetId: selectedTeacher, details: enabledPerms });
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -1306,6 +1556,9 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     match /sessions/{id} {
+      allow read, write: if request.auth != null;
+    }
+    match /auditLogs/{id} {
       allow read, write: if request.auth != null;
     }
   }

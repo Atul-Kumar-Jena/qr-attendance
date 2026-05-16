@@ -36,7 +36,7 @@ export default function QrDisplay() {
     if (!institutionId || !user) return;
     setStarting(true);
     try {
-      const { createSession } = await import('@/lib/firestore-db');
+      const { createSession, logAudit } = await import('@/lib/firestore-db');
       const id = await createSession({
         institutionId,
         teacherId: user.uid,
@@ -46,6 +46,7 @@ export default function QrDisplay() {
         status: 'OPEN',
         attendanceCount: 0,
       });
+      await logAudit({ institutionId, actorId: user.uid, actorName: user.displayName ?? user.email ?? '', action: 'SESSION_STARTED', targetId: id, details: `${subjectName.trim()} · ${className.trim()}` });
       setSessionId(id);
       setStage('live');
     } catch (e: unknown) {
@@ -59,8 +60,11 @@ export default function QrDisplay() {
     if (!sessionId) { router.push('/admin'); return; }
     setEnding(true);
     try {
-      const { endSession: fsEndSession } = await import('@/lib/firestore-db');
+      const { endSession: fsEndSession, logAudit } = await import('@/lib/firestore-db');
       await fsEndSession(sessionId);
+      if (user && institutionId) {
+        await logAudit({ institutionId, actorId: user.uid, actorName: user.displayName ?? user.email ?? '', action: 'SESSION_ENDED', targetId: sessionId, details: `${subjectName} · ${className}` });
+      }
     } catch {/* ignore */}
     setStage('ended');
     setEnding(false);
