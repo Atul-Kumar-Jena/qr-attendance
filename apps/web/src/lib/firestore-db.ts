@@ -228,3 +228,61 @@ export async function getOwnedInstitution(ownerId: string): Promise<FSInstitutio
   if (snap.empty) return null;
   return { id: snap.docs[0].id, ...snap.docs[0].data() } as FSInstitution;
 }
+
+// ── Sessions ──────────────────────────────────────────────────────────────────
+
+export interface FSSession {
+  id: string;
+  institutionId: string;
+  teacherId: string;
+  teacherName?: string;
+  subjectName: string;
+  className: string;
+  status: 'OPEN' | 'CLOSED';
+  startedAt?: unknown;
+  endedAt?: unknown;
+  attendanceCount: number;
+}
+
+export function onSessions(institutionId: string, cb: (s: FSSession[]) => void): Unsub {
+  if (!db || !institutionId) { cb([]); return () => {}; }
+  const { collection, query, where, orderBy, onSnapshot } = require('firebase/firestore');
+  const q = query(
+    collection(db, 'sessions'),
+    where('institutionId', '==', institutionId),
+    orderBy('startedAt', 'desc'),
+  );
+  return onSnapshot(q, (snap: any) => {
+    cb(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as FSSession)));
+  }, () => cb([]));
+}
+
+export async function createSession(data: Omit<FSSession, 'id' | 'startedAt'>): Promise<string> {
+  if (!db) throw new Error('Firebase not configured');
+  const { collection, addDoc, serverTimestamp } = require('firebase/firestore');
+  const ref = await addDoc(collection(db, 'sessions'), {
+    ...data, status: 'OPEN', startedAt: serverTimestamp(),
+  });
+  return ref.id;
+}
+
+export async function endSession(id: string): Promise<void> {
+  if (!db) return;
+  const { doc, updateDoc, serverTimestamp } = require('firebase/firestore');
+  await updateDoc(doc(db, 'sessions', id), { status: 'CLOSED', endedAt: serverTimestamp() });
+}
+
+export async function getSession(id: string): Promise<FSSession | null> {
+  if (!db || !id) return null;
+  const { doc, getDoc } = require('firebase/firestore');
+  const snap = await getDoc(doc(db, 'sessions', id));
+  return snap.exists() ? { id: snap.id, ...snap.data() } as FSSession : null;
+}
+
+export function onSession(id: string, cb: (s: FSSession | null) => void): Unsub {
+  if (!db || !id) { cb(null); return () => {}; }
+  const { doc, onSnapshot } = require('firebase/firestore');
+  return onSnapshot(doc(db, 'sessions', id), (snap: any) => {
+    cb(snap.exists() ? { id: snap.id, ...snap.data() } as FSSession : null);
+  }, () => cb(null));
+}

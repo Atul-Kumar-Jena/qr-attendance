@@ -267,18 +267,53 @@ function Placeholder({ name }: { name: string }) {
 // ─── Overview ─────────────────────────────────────────────────────────────────
 
 function OverviewPanel({ role }: { role: Role }) {
+  const { institutionId } = useAuth();
+  const [students, setStudents] = useState<import('@/lib/firestore-db').FSStudent[]>([]);
+  const [users, setUsers] = useState<import('@/lib/firestore-db').FSUser[]>([]);
+  const [sessions, setSessions] = useState<import('@/lib/firestore-db').FSSession[]>([]);
+  const [allInstitutions, setAllInstitutions] = useState<import('@/lib/firestore-db').FSInstitution[]>([]);
+
+  useEffect(() => {
+    if (!institutionId) return;
+    const { onStudents, onUsers, onSessions } = require('@/lib/firestore-db');
+    const u1 = onStudents(institutionId, setStudents);
+    const u2 = onUsers(institutionId, setUsers);
+    const u3 = onSessions(institutionId, setSessions);
+    return () => { u1(); u2(); u3(); };
+  }, [institutionId]);
+
+  useEffect(() => {
+    if (!roleAtLeast(role, 'developer')) return;
+    const { onAllInstitutions } = require('@/lib/firestore-db');
+    return onAllInstitutions(setAllInstitutions);
+  }, [role]);
+
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const todaySessions = sessions.filter((s) => {
+    if (!s.startedAt) return false;
+    try { return (s.startedAt as any).seconds * 1000 >= todayStart.getTime(); } catch { return false; }
+  });
+  const activeSessions = sessions.filter((s) => s.status === 'OPEN');
+  const teachers = users.filter((u) => u.role === 'teacher');
+  const admins   = users.filter((u) => u.role === 'admin');
+  const totalAttendance = sessions.reduce((sum, s) => sum + (s.attendanceCount ?? 0), 0);
+
   const stats = [
-    { l: 'Students', v: '4,182' }, { l: 'Classes', v: '64' },
-    { l: "Today's sessions", v: '37' }, { l: 'Avg. attendance', v: '88.3%' },
-    { l: 'Absent today', v: '486' }, { l: 'Suspicious scans', v: '12' },
+    { l: 'Students', v: students.length.toLocaleString() },
+    { l: 'Teachers', v: teachers.length.toLocaleString() },
+    { l: 'Active sessions', v: activeSessions.length.toLocaleString() },
+    { l: "Today's sessions", v: todaySessions.length.toLocaleString() },
+    { l: 'Total sessions', v: sessions.length.toLocaleString() },
+    { l: 'Total attendance marked', v: totalAttendance.toLocaleString() },
   ];
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {stats.map((s) => (
           <Card key={s.l} className="p-5">
             <div className="text-[10.5px] tracking-[0.18em] text-ink-mute uppercase">{s.l}</div>
-            <div className="font-display text-[2.4rem] leading-none mt-2">{s.v}</div>
+            <div className="font-display text-[2.4rem] leading-none mt-2">{s.v || '0'}</div>
           </Card>
         ))}
       </div>
@@ -286,10 +321,15 @@ function OverviewPanel({ role }: { role: Role }) {
         <div>
           <SectionTitle>Global (Developer view)</SectionTitle>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {['Total institutions', 'Total users', 'Active sessions', 'Site config'].map((l) => (
+            {[
+              { l: 'Total institutions', v: allInstitutions.length },
+              { l: 'Total users', v: users.length },
+              { l: 'Active sessions', v: activeSessions.length },
+              { l: 'Sub-admins', v: admins.length },
+            ].map(({ l, v }) => (
               <Card key={l} className="p-4 border-red-200 dark:border-red-900/40 bg-red-50/40 dark:bg-red-900/10">
                 <div className="text-[10px] tracking-[0.16em] text-red-500 dark:text-red-400 uppercase">{l}</div>
-                <div className="font-mono text-[1.4rem] mt-1 text-red-700 dark:text-red-400">—</div>
+                <div className="font-mono text-[1.4rem] mt-1 text-red-700 dark:text-red-400">{v}</div>
               </Card>
             ))}
           </div>
@@ -302,7 +342,117 @@ function OverviewPanel({ role }: { role: Role }) {
 // ─── Sessions ─────────────────────────────────────────────────────────────────
 
 function SessionsPanel() {
-  return <Placeholder name="Sessions" />;
+  const { institutionId } = useAuth();
+  const [sessions, setSessions] = useState<import('@/lib/firestore-db').FSSession[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [ending, setEnding] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!institutionId) { setLoading(false); return; }
+    const { onSessions } = require('@/lib/firestore-db');
+    const unsub = onSessions(institutionId, (list: import('@/lib/firestore-db').FSSession[]) => {
+      setSessions(list);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [institutionId]);
+
+  const endSess = async (id: string) => {
+    setEnding(id);
+    const { endSession } = require('@/lib/firestore-db');
+    await endSession(id);
+    setEnding(null);
+  };
+
+  const active = sessions.filter((s) => s.status === 'OPEN');
+  const past   = sessions.filter((s) => s.status === 'CLOSED');
+
+  const fmtTime = (ts: unknown) => {
+    if (!ts) return '—';
+    try { return new Date((ts as any).seconds * 1000).toLocaleString(); } catch { return '—'; }
+  };
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      {active.length > 0 && (
+        <div className="space-y-3">
+          <SectionTitle>Live sessions ({active.length})</SectionTitle>
+          {active.map((s) => (
+            <Card key={s.id} className="p-5 border-green-300 dark:border-green-800/40 bg-green-50/30 dark:bg-green-900/10">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
+                    <span className="font-medium text-[14px]">{s.subjectName}</span>
+                    <span className="text-[11px] text-ink-mute">· {s.className}</span>
+                  </div>
+                  <div className="text-[11.5px] text-ink-mute mt-1">
+                    Started: {fmtTime(s.startedAt)} · By: {s.teacherName ?? s.teacherId}
+                  </div>
+                  <div className="text-[11.5px] text-ink-mute">
+                    Attendance marked: <strong>{s.attendanceCount}</strong>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Link href="/admin/qr/demo" className="text-[12px] border border-accent/40 text-accent rounded-lg px-3 py-1.5 hover:bg-accent/5 transition-colors">
+                    View QR
+                  </Link>
+                  <button onClick={() => endSess(s.id)} disabled={ending === s.id}
+                    className="text-[12px] border border-red-300 text-red-500 rounded-lg px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50">
+                    {ending === s.id ? 'Ending…' : 'End session'}
+                  </button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {active.length === 0 && !loading && (
+        <div className="rounded-xl border-2 border-dashed border-ink/10 p-8 text-center space-y-3">
+          <div className="text-ink-mute text-[13px]">No active sessions right now.</div>
+          <Link href="/admin/qr/demo"
+            className="inline-flex items-center gap-2 rounded-xl bg-accent text-cream-50 px-5 py-2.5 text-[13px] font-medium hover:bg-accent/90 transition-all">
+            Start a QR session
+          </Link>
+        </div>
+      )}
+
+      {past.length > 0 && (
+        <div>
+          <SectionTitle>Past sessions ({past.length})</SectionTitle>
+          <Card className="overflow-hidden">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-ink/8 text-[10.5px] tracking-[0.15em] text-ink-mute uppercase">
+                  <th className="text-left px-5 py-3">Subject</th>
+                  <th className="text-left px-5 py-3">Class</th>
+                  <th className="text-left px-5 py-3">Teacher</th>
+                  <th className="text-left px-5 py-3">Started</th>
+                  <th className="text-left px-5 py-3">Marked</th>
+                </tr>
+              </thead>
+              <tbody>
+                {past.slice(0, 50).map((s) => (
+                  <tr key={s.id} className="border-b border-ink/6 last:border-0 hover:bg-cream-100/50 transition-colors">
+                    <td className="px-5 py-3 font-medium">{s.subjectName}</td>
+                    <td className="px-5 py-3 text-ink-mute">{s.className}</td>
+                    <td className="px-5 py-3 text-ink-mute">{s.teacherName ?? s.teacherId}</td>
+                    <td className="px-5 py-3 text-ink-mute font-mono text-[11px]">{fmtTime(s.startedAt)}</td>
+                    <td className="px-5 py-3">{s.attendanceCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </div>
+      )}
+
+      {loading && (
+        <div className="text-center text-ink-mute text-[13px] py-8">Loading sessions…</div>
+      )}
+    </div>
+  );
 }
 
 // ─── Students + Remarks ───────────────────────────────────────────────────────
@@ -1153,6 +1303,9 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     match /remarks/{id} {
+      allow read, write: if request.auth != null;
+    }
+    match /sessions/{id} {
       allow read, write: if request.auth != null;
     }
   }
