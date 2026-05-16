@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../config/db.js';
-import { requireAuth, requireRole } from '../../middleware/auth.js';
+import { requireAuth, requireMinRole } from '../../middleware/auth.js';
 import { writeLimiter } from '../../middleware/rateLimit.js';
 import { recordAudit } from '../audit/audit.service.js';
 
@@ -20,7 +20,7 @@ const createSchema = z.object({
 });
 
 sessionsRouter.post('/',
-  requireAuth, requireRole('SUDO_ADMIN', 'ADMIN', 'TEACHER'), writeLimiter,
+  requireAuth, requireMinRole('TEACHER'), writeLimiter,
   async (req, res, next) => {
     try {
       const b = createSchema.parse(req.body);
@@ -51,7 +51,7 @@ sessionsRouter.post('/',
   });
 
 sessionsRouter.post('/:id/start',
-  requireAuth, requireRole('SUDO_ADMIN', 'ADMIN', 'TEACHER'),
+  requireAuth, requireMinRole('TEACHER'),
   async (req, res, next) => {
     try {
       const id = req.params.id!;
@@ -69,7 +69,7 @@ sessionsRouter.post('/:id/start',
   });
 
 sessionsRouter.post('/:id/end',
-  requireAuth, requireRole('SUDO_ADMIN', 'ADMIN', 'TEACHER'),
+  requireAuth, requireMinRole('TEACHER'),
   async (req, res, next) => {
     try {
       const id = req.params.id!;
@@ -87,7 +87,7 @@ sessionsRouter.post('/:id/end',
   });
 
 sessionsRouter.get('/:id/attendance',
-  requireAuth, requireRole('SUDO_ADMIN', 'ADMIN', 'TEACHER'),
+  requireAuth, requireMinRole('TEACHER'),
   async (req, res, next) => {
     try {
       const records = await prisma.attendanceRecord.findMany({

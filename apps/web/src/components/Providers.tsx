@@ -3,6 +3,7 @@ import { ReactNode } from 'react';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { SiteConfigProvider } from '@/context/SiteConfigContext';
 import { ToastContainer } from '@/components/Toast';
 import { useToast } from '@/context/ToastContext';
 import type { User } from 'firebase/auth';
@@ -33,10 +34,12 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <AuthWithToasts>
-          {children}
-          <ToastContainer />
-        </AuthWithToasts>
+        <SiteConfigProvider>
+          <AuthWithToasts>
+            {children}
+            <ToastContainer />
+          </AuthWithToasts>
+        </SiteConfigProvider>
       </ToastProvider>
     </ThemeProvider>
   );

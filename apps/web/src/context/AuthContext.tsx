@@ -3,9 +3,24 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import type { User } from 'firebase/auth';
 import { auth, db, isConfigured, signInWithGoogle, signOutUser } from '@/lib/firebase';
 
-export type Role = 'developer' | 'sudo_admin' | 'admin' | 'enterprise' | 'student';
+export type Role = 'developer' | 'institution' | 'admin' | 'teacher' | 'student';
 
-const DEVELOPER_EMAIL = 'jenaatul8@gmail.com';
+// Numeric weight for hierarchy checks — mirrors the API's roleLevel()
+export const ROLE_WEIGHT: Record<Role, number> = {
+  developer:   50,
+  institution: 40,
+  admin:       30,
+  teacher:     20,
+  student:     10,
+};
+
+export function roleAtLeast(userRole: Role | null, minRole: Role): boolean {
+  if (!userRole) return false;
+  return ROLE_WEIGHT[userRole] >= ROLE_WEIGHT[minRole];
+}
+
+// Developer email — gets the god-mode role automatically
+const DEVELOPER_EMAILS: string[] = ['jenaatul8@gmail.com'];
 
 interface AuthState {
   user: User | null;
@@ -45,14 +60,25 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
       setUser(u);
       if (u) {
         let resolvedRole: Role = 'student';
-        if (u.email === DEVELOPER_EMAIL) {
+        if (u.email && DEVELOPER_EMAILS.includes(u.email)) {
           resolvedRole = 'developer';
         } else if (db) {
           try {
             const ref = doc(db, 'users', u.uid);
             const snap = await getDoc(ref);
             if (snap.exists()) {
-              resolvedRole = (snap.data()?.role as Role) || 'student';
+              const stored = snap.data()?.role as string;
+              // Map old role names to new ones for backwards compat
+              const mapped: Record<string, Role> = {
+                developer: 'developer',
+                sudo_admin: 'institution',
+                institution: 'institution',
+                admin: 'admin',
+                enterprise: 'institution',
+                teacher: 'teacher',
+                student: 'student',
+              };
+              resolvedRole = mapped[stored] ?? 'student';
             } else {
               await setDoc(ref, {
                 uid: u.uid,

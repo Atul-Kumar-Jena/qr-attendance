@@ -9,6 +9,10 @@ import { authRouter } from './modules/auth/auth.controller.js';
 import { qrRouter } from './modules/qr/qr.controller.js';
 import { attendanceRouter } from './modules/attendance/attendance.controller.js';
 import { sessionsRouter } from './modules/sessions/sessions.controller.js';
+import { siteConfigRouter } from './modules/site-config/site-config.controller.js';
+import { institutionsRouter } from './modules/institutions/institutions.controller.js';
+import { teacherPermsRouter } from './modules/teacher-permissions/teacher-permissions.controller.js';
+import { usersRouter } from './modules/users/users.controller.js';
 import { mintToken } from './modules/qr/qr.service.js';
 import { prisma } from './config/db.js';
 
@@ -24,6 +28,10 @@ app.use('/v1/auth', authRouter);
 app.use('/v1/qr', qrRouter);
 app.use('/v1/attendance', attendanceRouter);
 app.use('/v1/sessions', sessionsRouter);
+app.use('/v1/site-config', siteConfigRouter);
+app.use('/v1/institutions', institutionsRouter);
+app.use('/v1/teacher-permissions', teacherPermsRouter);
+app.use('/v1/users', usersRouter);
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

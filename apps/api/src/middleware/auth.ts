@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { verifyAccess, type AccessClaims } from '../utils/jwt.js';
+import { verifyAccess, roleLevel, type AccessClaims, type UserRole } from '../utils/jwt.js';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -26,7 +26,8 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export function requireRole(...roles: AccessClaims['role'][]) {
+/** Require the caller to have one of the exact listed roles. */
+export function requireRole(...roles: UserRole[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) return res.status(401).json({ error: 'UNAUTHENTICATED' });
     if (!roles.includes(req.user.role)) {
@@ -34,4 +35,23 @@ export function requireRole(...roles: AccessClaims['role'][]) {
     }
     next();
   };
+}
+
+/** Require the caller's role to be at least as privileged as `minRole`. */
+export function requireMinRole(minRole: UserRole) {
+  const min = roleLevel(minRole);
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) return res.status(401).json({ error: 'UNAUTHENTICATED' });
+    if (roleLevel(req.user.role) < min) {
+      return res.status(403).json({ error: 'FORBIDDEN' });
+    }
+    next();
+  };
+}
+
+/** DEVELOPER-only guard. */
+export function requireDeveloper(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) return res.status(401).json({ error: 'UNAUTHENTICATED' });
+  if (req.user.role !== 'DEVELOPER') return res.status(403).json({ error: 'FORBIDDEN' });
+  next();
 }

@@ -5,11 +5,11 @@ import { useAuth } from '@/context/AuthContext';
 import { isConfigured } from '@/lib/firebase';
 
 const ROLE_BADGE: Record<string, { label: string; color: string }> = {
-  developer:  { label: 'Developer',  color: 'bg-red-500/20 text-red-400 border-red-500/30' },
-  sudo_admin: { label: 'Sudo Admin', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
-  admin:      { label: 'Admin',      color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
-  enterprise: { label: 'Enterprise', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
-  student:    { label: 'Student',    color: 'bg-ink/10 text-ink-mute border-ink/20' },
+  developer:   { label: 'Developer',   color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+  institution: { label: 'Institution', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+  admin:       { label: 'Admin',       color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+  teacher:     { label: 'Teacher',     color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  student:     { label: 'Student',     color: 'bg-ink/10 text-ink-mute border-ink/20' },
 };
 
 function GoogleIcon() {

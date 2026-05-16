@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../config/db.js';
-import { requireAuth, requireRole } from '../../middleware/auth.js';
+import { requireAuth, requireMinRole } from '../../middleware/auth.js';
 import { writeLimiter } from '../../middleware/rateLimit.js';
 import { mintToken } from './qr.service.js';
 import { recordAudit } from '../audit/audit.service.js';
@@ -15,7 +15,7 @@ const refreshSchema = z.object({ sessionId: z.string().cuid() });
 qrRouter.post(
   '/refresh',
   requireAuth,
-  requireRole('SUDO_ADMIN', 'ADMIN', 'TEACHER'),
+  requireMinRole('TEACHER'),
   writeLimiter,
   async (req, res, next) => {
     try {
