@@ -36,7 +36,8 @@ export function Hero() {
       );
 
       // 3) Char-by-char scramble for subtitle
-      const target = sub.current!;
+      const target = sub.current;
+      if (!target) return;
       const finalText = SUB;
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*';
       let frame = 0;
@@ -75,8 +76,9 @@ export function Hero() {
 
       // 6) Orb parallax cursor
       const onMove = (e: PointerEvent) => {
+        if (!orb.current) return;
         const { innerWidth: w, innerHeight: h } = window;
-        gsap.to(orb.current!, {
+        gsap.to(orb.current, {
           x: (e.clientX - w / 2) * 0.05,
           y: (e.clientY - h / 2) * 0.05,
           duration: 1.1, ease: 'power3.out',
@@ -207,7 +209,8 @@ function Stat({
 }: { label: string; value: number; suffix?: string; decimals?: number; format?: boolean }) {
   const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
-    const el = ref.current!;
+    const el = ref.current;
+    if (!el) return;
     const obj = { v: 0 };
     gsap.to(obj, {
       v: value, duration: 2.4, ease: 'expo.out', delay: 0.7,
@@ -358,7 +361,8 @@ function QrMosaic() {
 function DrawUnderline() {
   const ref = useRef<SVGPathElement>(null);
   useEffect(() => {
-    const path = ref.current!;
+    const path = ref.current;
+    if (!path) return;
     const len = path.getTotalLength();
     gsap.set(path, { strokeDasharray: len, strokeDashoffset: len });
     gsap.to(path, { strokeDashoffset: 0, duration: 2.4, ease: 'power2.inOut', delay: 1.5 });

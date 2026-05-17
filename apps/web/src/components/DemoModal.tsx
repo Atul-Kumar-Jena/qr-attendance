@@ -3,10 +3,12 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { useEffect, useRef, useState, ReactNode } from 'react';
 
-const SCENES: { id: number; title: string; subtitle: string; duration: number; visual: ReactNode }[] = [
+type Scene = { id: number; title: string; subtitle: string; duration: number; visual: () => ReactNode };
+
+const SCENES: Scene[] = [
   {
     id: 1, title: 'Live Dashboard', subtitle: 'Real-time attendance at a glance', duration: 5000,
-    visual: (
+    visual: () => (
       <div className="w-full h-full flex flex-col gap-3 p-4">
         <div className="flex gap-3">
           {['Sessions', 'Students', 'Attendance'].map((label, i) => (
@@ -35,15 +37,14 @@ const SCENES: { id: number; title: string; subtitle: string; duration: number; v
   },
   {
     id: 2, title: 'QR Rotates Every Second', subtitle: 'Cryptographically signed — impossible to screenshot-reuse', duration: 4500,
-    visual: (
+    visual: () => (
       <div className="flex flex-col items-center justify-center h-full gap-5">
         <div className="relative w-32 h-32">
           <svg viewBox="0 0 128 128" className="w-full h-full">
-            {/* Simulated QR modules */}
             {Array.from({ length: 64 }, (_, i) => {
               const col = i % 8, row = Math.floor(i / 8);
               const isCorner = (col < 3 && row < 3) || (col > 4 && row < 3) || (col < 3 && row > 4);
-              const fill = isCorner || (Math.random() > 0.5);
+              const fill = isCorner || (Math.sin(i * 9301 + 49297) * 233280 % 1 > 0.5);
               return fill ? (
                 <rect key={i} x={col * 14 + 8} y={row * 14 + 8} width="12" height="12" rx="1.5"
                   className="fill-ink dark:fill-white"
@@ -58,7 +59,7 @@ const SCENES: { id: number; title: string; subtitle: string; duration: number; v
           </svg>
         </div>
         <div className="text-center">
-          <div className="text-[12px] font-mono text-ink-mute">Token expires in <span className="text-accent font-semibold tabular-nums" style={{ animation: 'countdown 1s steps(1) infinite' }}>1s</span></div>
+          <div className="text-[12px] font-mono text-ink-mute">Token expires in <span className="text-accent font-semibold tabular-nums">1s</span></div>
           <div className="text-[11px] text-ink-mute/60 mt-1">HMAC-signed · single-use nonce</div>
         </div>
       </div>
@@ -66,7 +67,7 @@ const SCENES: { id: number; title: string; subtitle: string; duration: number; v
   },
   {
     id: 3, title: 'Student Scans on Phone', subtitle: 'Native camera — no app install needed', duration: 5000,
-    visual: (
+    visual: () => (
       <div className="flex items-center justify-center h-full gap-8">
         <div className="relative">
           <div className="w-20 h-36 rounded-2xl border-2 border-ink/30 dark:border-white/20 bg-cream-100 dark:bg-white/5 flex items-center justify-center overflow-hidden">
@@ -98,7 +99,7 @@ const SCENES: { id: number; title: string; subtitle: string; duration: number; v
   },
   {
     id: 4, title: 'Spoof Attempt Blocked', subtitle: 'Mock location & VPN detection built-in', duration: 4500,
-    visual: (
+    visual: () => (
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <div className="w-16 h-16 rounded-full bg-red-500/15 border-2 border-red-500/30 flex items-center justify-center"
           style={{ animation: 'shakeBounce 0.4s 0.3s ease-in-out' }}>
@@ -124,7 +125,7 @@ const SCENES: { id: number; title: string; subtitle: string; duration: number; v
   },
   {
     id: 5, title: 'Report Generated', subtitle: 'Export CSV, PDF, or view live in dashboard', duration: 5000,
-    visual: (
+    visual: () => (
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <div className="w-14 h-14 rounded-full bg-green-500/15 border-2 border-green-500/30 flex items-center justify-center"
           style={{ animation: 'bounceIn 0.5s 0.2s both' }}>
@@ -276,7 +277,7 @@ export function DemoModal({ trigger }: DemoModalProps) {
 
           {/* Scene visual */}
           <div className="h-56 relative overflow-hidden bg-cream-50 dark:bg-[#0D0F14]">
-            {currentScene.visual}
+            {currentScene.visual()}
           </div>
 
           {/* Dot navigator */}
@@ -300,17 +301,6 @@ export function DemoModal({ trigger }: DemoModalProps) {
         </Dialog.Content>
       </Dialog.Portal>
 
-      <style>{`
-        @keyframes fadeSlideIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
-        @keyframes scanBeam { 0%,100% { top:0; } 50% { top:calc(100% - 2px); } }
-        @keyframes pulseGreen { 0%,100% { transform:scale(1); } 50% { transform:scale(1.15); } }
-        @keyframes arrowPulse { from { transform:translateX(0); } to { transform:translateX(4px); } }
-        @keyframes qrGlow { from { box-shadow:0 0 0 rgba(255,107,61,0); } to { box-shadow:0 0 12px rgba(255,107,61,0.3); } }
-        @keyframes qrPulse { from { opacity:0.7; } to { opacity:1; } }
-        @keyframes shakeBounce { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-6px); } 75% { transform:translateX(6px); } }
-        @keyframes bounceIn { from { transform:scale(0.5); opacity:0; } 80% { transform:scale(1.1); } to { transform:scale(1); opacity:1; } }
-        @keyframes countdown { from { content:'1s'; } to { content:'0s'; } }
-      `}</style>
     </Dialog.Root>
   );
 }
