@@ -76,15 +76,27 @@ function writeLocalStorage(cfg: SiteConfig) {
 }
 
 export function SiteConfigProvider({ children }: { children: ReactNode }) {
-  // Use ref so save() closure always reads latest config without stale state
-  const configRef = useRef<SiteConfig>({ ...DEFAULT_CONFIG, ...readLocalStorage() });
-  const [config, setConfigState] = useState<SiteConfig>(configRef.current);
+  // Always start with DEFAULT_CONFIG so the server-rendered HTML matches the
+  // first client render — reading localStorage at initial state would cause a
+  // React 18 hydration mismatch on any consumer (e.g. <Pricing/>) that renders
+  // conditionally based on config.
+  const configRef = useRef<SiteConfig>(DEFAULT_CONFIG);
+  const [config, setConfigState] = useState<SiteConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(!!db);
 
   const setConfig = (next: SiteConfig) => {
     configRef.current = next;
     setConfigState(next);
   };
+
+  // Hydrate from localStorage after mount (client only)
+  useEffect(() => {
+    const stored = readLocalStorage();
+    if (Object.keys(stored).length > 0) {
+      const next = { ...DEFAULT_CONFIG, ...stored };
+      setConfig(next);
+    }
+  }, []);
 
   useEffect(() => {
     if (!db) {
