@@ -457,3 +457,47 @@ html.theme-transitioning *::after {
   transition: background-color 0.3s ease, color 0.2s ease, border-color 0.25s ease !important;
   transition-delay: 0s !important;
 }
+
+/* ─── Mobile layout & performance ───────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Hero headline: ensure readable on small screens */
+  .hero-headline { font-size: 2.8rem !important; }
+
+  /* Stats: allow wrapping on very small screens */
+  .hero-stat { min-width: 80px; }
+
+  /* Section headings: clamp to screen width */
+  .section-heading-xl {
+    font-size: clamp(1.8rem, 8vw, 3rem) !important;
+    line-height: 1.08 !important;
+  }
+
+  /* Performance: skip heavy glass blur on mobile */
+  .glass {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(250, 250, 247, 0.97) !important;
+  }
+  html.dark .glass {
+    background: rgba(13, 15, 20, 0.97) !important;
+  }
+
+  /* Disable GPU-heavy will-change on small screens */
+  * { will-change: auto !important; }
+
+  /* Ensure animated sections are always readable (GSAP fallback) */
+  .reveal-line  { transform: none !important; }
+  .section-fade { opacity: 1 !important; transform: none !important; }
+}
+
+/* ─── Admin sidebar mobile ───────────────────────────────────────────────── */
+@media (max-width: 1023px) {
+  .admin-sidebar-mobile-hidden {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  .admin-sidebar-mobile-visible {
+    transform: translateX(0);
+    transition: transform 0.3s ease;
+  }
+}

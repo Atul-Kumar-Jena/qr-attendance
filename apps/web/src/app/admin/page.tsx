@@ -107,6 +107,7 @@ function useLiveSessionCount() {
 export default function AdminHome() {
   const { user, role, loading } = useAuth();
   const [tab, setTab] = useState<Tab>('overview');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const liveCount = useLiveSessionCount();
   useTourGuide(role);
 
@@ -153,54 +154,88 @@ export default function AdminHome() {
   const allowedTabs = meta.access;
   const currentTab: Tab = allowedTabs.includes(tab) ? tab : allowedTabs[0] as Tab;
 
+  const SidebarContent = () => (
+    <>
+      <div className="font-display text-[1.4rem] mb-2">Attendly</div>
+      <div className="flex items-center gap-2 mb-8 text-[11px] text-ink-mute">
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${meta.dot}`} />
+        {meta.label}
+        {user.displayName && (
+          <span className="truncate text-ink/60 dark:text-white/40 ml-1">· {user.displayName.split(' ')[0]}</span>
+        )}
+      </div>
+      <nav className="flex-1 space-y-0.5">
+        {(Object.keys(TAB_LABELS) as Tab[]).map((t) => {
+          const allowed = allowedTabs.includes(t);
+          const isGod = t === 'god-mode';
+          const tourMap: Partial<Record<Tab, string>> = {
+            overview: 'tour-overview', students: 'tour-students',
+            'manage-users': 'tour-manage-users', institution: 'tour-institution',
+          };
+          const tourId = tourMap[t];
+          return (
+            <button key={t} id={tourId}
+              onClick={() => { if (allowed) { setTab(t); setSidebarOpen(false); } }}
+              disabled={!allowed}
+              className={`block w-full text-left px-3 py-2 rounded-md text-[13px] transition-colors ${
+                isGod && allowed
+                  ? currentTab === t ? 'bg-red-600 text-white font-semibold' : 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium'
+                  : currentTab === t ? 'bg-ink text-cream-50 dark:bg-white/10 dark:border dark:border-white/10'
+                  : allowed ? 'text-ink-mute hover:text-ink dark:hover:text-white hover:bg-cream-100 dark:hover:bg-white/5'
+                  : 'text-ink/20 dark:text-white/20 cursor-not-allowed'
+              }`}
+            >
+              {TAB_LABELS[t]}
+            </button>
+          );
+        })}
+      </nav>
+      <div className="mt-6 pt-6 border-t border-ink/8 dark:border-white/8 text-[11px] text-ink-mute space-y-2">
+        <Link href="/profile" className="link-line block hover:text-ink dark:hover:text-white transition-colors">
+          Profile
+        </Link>
+        <Link href="/" className="link-line block hover:text-ink dark:hover:text-white transition-colors">
+          ← back to site
+        </Link>
+      </div>
+    </>
+  );
+
   return (
-    <div className="min-h-screen flex bg-cream-100">
-      <aside className="w-64 border-r border-ink/10 dark:border-white/10 bg-cream-50 p-5 flex flex-col flex-shrink-0">
-        <div className="font-display text-[1.4rem] mb-2">Attendly</div>
-        <div className="flex items-center gap-2 mb-8 text-[11px] text-ink-mute">
-          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${meta.dot}`} />
-          {meta.label}
-          {user.displayName && (
-            <span className="truncate text-ink/60 ml-1">· {user.displayName.split(' ')[0]}</span>
-          )}
-        </div>
+    <div className="min-h-screen flex bg-cream-100 dark:bg-[#0D0F14] relative">
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-ink/40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-        <nav className="flex-1 space-y-0.5">
-          {(Object.keys(TAB_LABELS) as Tab[]).map((t) => {
-            const allowed = allowedTabs.includes(t);
-            const isGod = t === 'god-mode';
-            const tourMap: Partial<Record<Tab, string>> = {
-              overview: 'tour-overview', students: 'tour-students',
-              'manage-users': 'tour-manage-users', institution: 'tour-institution',
-            };
-            const tourId = tourMap[t];
-            return (
-              <button key={t} id={tourId} onClick={() => allowed && setTab(t)} disabled={!allowed}
-                className={`block w-full text-left px-3 py-2 rounded-md text-[13px] transition-colors ${
-                  isGod && allowed
-                    ? currentTab === t ? 'bg-red-600 text-white font-semibold' : 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium'
-                    : currentTab === t ? 'bg-ink text-cream-50 dark:bg-white/10 dark:border dark:border-white/10'
-                    : allowed ? 'text-ink-mute hover:text-ink hover:bg-cream-100'
-                    : 'text-ink/20 dark:text-white/20 cursor-not-allowed'
-                }`}
-              >
-                {TAB_LABELS[t]}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="mt-6 pt-6 border-t border-ink/8 text-[11px] text-ink-mute">
-          <Link href="/" className="link-line block">← back to site</Link>
-        </div>
+      {/* Sidebar */}
+      <aside
+        className={`fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto w-64 border-r border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#13161D] p-5 flex flex-col flex-shrink-0 transition-transform duration-300 lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <SidebarContent />
       </aside>
 
-      <main className="flex-1 p-10 overflow-auto">
-        <div className="flex items-center justify-between mb-8">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 overflow-auto min-w-0">
+        <div className="flex items-center justify-between mb-6 lg:mb-8 gap-3">
           <div className="flex items-center gap-3">
-            <h1 className="font-display text-[2.4rem]">{TAB_LABELS[currentTab]}</h1>
+            {/* Mobile sidebar toggle */}
+            <button
+              className="lg:hidden flex flex-col gap-1 p-1.5 rounded-lg border border-ink/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5 transition-colors flex-shrink-0"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation"
+            >
+              <span className="block h-px w-4 bg-ink dark:bg-white" />
+              <span className="block h-px w-4 bg-ink dark:bg-white" />
+              <span className="block h-px w-3 bg-ink dark:bg-white" />
+            </button>
+            <h1 className="font-display text-[1.6rem] sm:text-[2.4rem] truncate">{TAB_LABELS[currentTab]}</h1>
             {liveCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[11px] font-medium px-2.5 py-1">
+              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[11px] font-medium px-2.5 py-1 flex-shrink-0">
                 <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
                 {liveCount} live
               </span>
@@ -208,8 +243,8 @@ export default function AdminHome() {
           </div>
           {roleAtLeast(role, 'teacher') && (
             <Link id="tour-qr-btn" href="/admin/qr/demo"
-              className="rounded-full bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all">
-              Start QR session
+              className="rounded-full bg-accent text-cream-50 px-3 py-1.5 sm:px-4 sm:py-2 text-[12px] sm:text-[12.5px] font-medium hover:bg-accent/90 transition-all flex-shrink-0 whitespace-nowrap">
+              Start QR
             </Link>
           )}
         </div>

@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Magnetic } from './Magnetic';
 import { initGSAP } from '@/lib/gsap-init';
+import { DemoModal } from './DemoModal';
 
 if (typeof window !== 'undefined') {
   initGSAP();
@@ -139,7 +140,7 @@ export function Hero() {
             </div>
 
             {/* Headline */}
-            <h1 className="font-display text-[3.8rem] sm:text-[5rem] lg:text-[6rem] leading-[0.95] tracking-tightish text-ink">
+            <h1 className="hero-headline font-display text-[2.8rem] sm:text-[5rem] lg:text-[6rem] leading-[0.95] tracking-tightish text-ink">
               {HEADLINE.map((line, i) => (
                 <span key={i} className="hero-line block reveal-mask">
                   <span className="reveal-line">
@@ -169,12 +170,11 @@ export function Hero() {
                 </a>
               </Magnetic>
               <Magnetic strength={0.18}>
-                <a
-                  href="#features"
-                  className="hero-cta inline-flex items-center gap-2 rounded-xl border border-ink/12 bg-cream-50/50 px-7 py-3.5 text-[13px] tracking-wide text-ink hover:bg-cream-100 transition-all"
-                >
-                  Watch 90-sec demo
-                </a>
+                <DemoModal trigger={
+                  <button className="hero-cta inline-flex items-center gap-2 rounded-xl border border-ink/12 bg-cream-50/50 dark:bg-white/5 dark:border-white/10 px-7 py-3.5 text-[13px] tracking-wide text-ink dark:text-white/80 hover:bg-cream-100 dark:hover:bg-white/10 transition-all">
+                    Watch demo
+                  </button>
+                } />
               </Magnetic>
             </div>
 
