@@ -1986,12 +1986,23 @@ service cloud.firestore {
       </Card>
 
       {/* Save button + status */}
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-4 flex-wrap">
         <button onClick={persist} disabled={saving}
           className="rounded-xl bg-red-600 text-white px-6 py-2.5 text-[13.5px] font-medium hover:bg-red-700 transition-all active:scale-[0.98] disabled:opacity-50">
           {saving ? 'Saving…' : 'Save all changes'}
         </button>
-        {savedMsg && <span className="text-[13px] text-green-600 mt-2">{savedMsg}</span>}
+        <button
+          onClick={() => {
+            if (confirm('Reset all site config to factory defaults? This will clear localStorage and cannot be undone.')) {
+              localStorage.removeItem('attendly_site_config');
+              window.location.reload();
+            }
+          }}
+          className="rounded-xl border border-ink/10 dark:border-white/10 px-4 py-2.5 text-[12px] text-ink-mute dark:text-white/50 hover:text-ink dark:hover:text-cream-50 hover:border-ink/20 dark:hover:border-white/20 transition-all"
+        >
+          Reset to defaults
+        </button>
+        {savedMsg && <span className="text-[13px] text-green-600 dark:text-green-400 mt-2">{savedMsg}</span>}
         {saveError && (
           <div className={`flex-1 rounded-lg px-4 py-2 text-[12px] whitespace-pre-wrap ${
             saveError.startsWith('Saved locally')

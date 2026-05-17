@@ -68,17 +68,36 @@ const SiteConfigContext = createContext<SiteConfigState>({
 
 const LS_KEY = 'attendly_site_config';
 
+const VALID_PRICING_MODES: PricingMode[] = ['LIMITED_OFFER', 'PAID', 'FREE'];
+
 function readLocalStorage(): Partial<SiteConfig> {
   if (typeof window === 'undefined') return {};
   try {
     const raw = localStorage.getItem(LS_KEY);
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    // Validate critical fields to avoid rendering crashes
+    if (parsed.pricingMode && !VALID_PRICING_MODES.includes(parsed.pricingMode)) {
+      parsed.pricingMode = DEFAULT_CONFIG.pricingMode;
+    }
+    if (parsed.limitedOfferDiscountPct != null && (typeof parsed.limitedOfferDiscountPct !== 'number' || isNaN(parsed.limitedOfferDiscountPct))) {
+      parsed.limitedOfferDiscountPct = DEFAULT_CONFIG.limitedOfferDiscountPct;
+    }
+    if (parsed.customPrice != null && typeof parsed.customPrice !== 'number') {
+      parsed.customPrice = null;
+    }
+    return parsed;
   } catch { return {}; }
 }
 
 function writeLocalStorage(cfg: SiteConfig) {
   if (typeof window === 'undefined') return;
   try { localStorage.setItem(LS_KEY, JSON.stringify(cfg)); } catch { /* quota full */ }
+}
+
+function clearLocalStorage() {
+  if (typeof window === 'undefined') return;
+  try { localStorage.removeItem(LS_KEY); } catch {}
 }
 
 export function SiteConfigProvider({ children }: { children: ReactNode }) {
@@ -94,7 +113,16 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
   };
 
   // Hydrate from localStorage after mount (safe — runs only client-side)
+  // Also handle ?reset URL param to clear corrupted config
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('reset')) {
+      clearLocalStorage();
+      // Remove ?reset from URL without reload
+      const url = new URL(window.location.href);
+      url.searchParams.delete('reset');
+      window.history.replaceState({}, '', url.toString());
+      return; // Keep DEFAULT_CONFIG
+    }
     const stored = readLocalStorage();
     if (Object.keys(stored).length > 0) {
       setConfig({ ...DEFAULT_CONFIG, ...stored } as SiteConfig);
