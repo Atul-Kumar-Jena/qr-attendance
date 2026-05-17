@@ -30,6 +30,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning className={`${sans.variable} ${display.variable}`}>
       <head>
+        {/* Pre-React safety: clear corrupted site config + handle ?reset before hydration */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{if(location.search.indexOf('reset')>=0){localStorage.removeItem('attendly_site_config');localStorage.removeItem('attendly-theme-mode');var u=new URL(location.href);u.searchParams.delete('reset');history.replaceState({},'',u.toString());}var raw=localStorage.getItem('attendly_site_config');if(raw){var c=JSON.parse(raw);var valid=['LIMITED_OFFER','PAID','FREE'];if(c&&c.pricingMode&&valid.indexOf(c.pricingMode)<0){localStorage.removeItem('attendly_site_config');}}}catch(e){try{localStorage.removeItem('attendly_site_config');}catch(_){}}})();` }} />
         {/* Apply saved theme before first paint to prevent flash */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var m=localStorage.getItem('attendly-theme-mode')||'auto';var h=new Date().getHours();var t=m==='dark'?'dark':m==='light'?'light':(h>=7&&h<19?'light':'dark');if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();` }} />
       </head>
