@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { db } from '@/lib/firebase';
 
-export type PricingMode = 'LIMITED_OFFER' | 'PAID';
+export type PricingMode = 'LIMITED_OFFER' | 'PAID' | 'FREE';
 
 export interface SiteConfig {
   siteTitle: string;
@@ -14,6 +14,9 @@ export interface SiteConfig {
   pricingMode: PricingMode;
   limitedOfferLabel: string;
   limitedOfferDiscountPct: number;
+  customPrice: number | null;
+  customPriceLabel: string;
+  paymentUrl: string;
   geofencingEnabled: boolean;
   deviceBindingEnabled: boolean;
   attestationEnabled: boolean;
@@ -35,6 +38,9 @@ export const DEFAULT_CONFIG: SiteConfig = {
   pricingMode: 'LIMITED_OFFER',
   limitedOfferLabel: 'Early access — 60% off',
   limitedOfferDiscountPct: 60,
+  customPrice: null,
+  customPriceLabel: 'per month',
+  paymentUrl: '',
   geofencingEnabled: true,
   deviceBindingEnabled: true,
   attestationEnabled: false,
@@ -76,15 +82,24 @@ function writeLocalStorage(cfg: SiteConfig) {
 }
 
 export function SiteConfigProvider({ children }: { children: ReactNode }) {
-  // Use ref so save() closure always reads latest config without stale state
-  const configRef = useRef<SiteConfig>({ ...DEFAULT_CONFIG, ...readLocalStorage() });
-  const [config, setConfigState] = useState<SiteConfig>(configRef.current);
+  // Initialize with DEFAULT_CONFIG on both server and client to prevent hydration mismatch.
+  // localStorage is read only after mount inside useEffect.
+  const configRef = useRef<SiteConfig>(DEFAULT_CONFIG);
+  const [config, setConfigState] = useState<SiteConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(!!db);
 
   const setConfig = (next: SiteConfig) => {
     configRef.current = next;
     setConfigState(next);
   };
+
+  // Hydrate from localStorage after mount (safe — runs only client-side)
+  useEffect(() => {
+    const stored = readLocalStorage();
+    if (Object.keys(stored).length > 0) {
+      setConfig({ ...DEFAULT_CONFIG, ...stored } as SiteConfig);
+    }
+  }, []);
 
   useEffect(() => {
     if (!db) {

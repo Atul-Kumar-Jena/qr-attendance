@@ -34,7 +34,11 @@ export function Pricing() {
   const root = useRef<HTMLDivElement>(null);
   const { config } = useSiteConfig();
   const isLimitedOffer = config.pricingMode === 'LIMITED_OFFER';
+  const isFree = config.pricingMode === 'FREE';
+  const isPaid = config.pricingMode === 'PAID';
   const discountMultiplier = 1 - config.limitedOfferDiscountPct / 100;
+
+  const paymentHref = config.paymentUrl || '#demo';  // placeholder until payment API is configured
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -73,13 +77,22 @@ export function Pricing() {
               <span className="text-[12px] text-accent font-medium">{config.limitedOfferLabel}</span>
             </div>
           )}
+          {isFree && (
+            <div className="mt-4 inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-4 py-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-[12px] text-green-600 dark:text-green-400 font-medium">All plans free — no credit card needed</span>
+            </div>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-5">
           {BASE_TIERS.map((t) => {
-            const displayPrice = (isLimitedOffer && t.fullPrice !== null && t.fullPrice > 0)
-              ? Math.round(t.fullPrice * discountMultiplier)
-              : t.fullPrice;
+            let displayPrice: number | null = t.fullPrice;
+            if (isFree) displayPrice = 0;
+            else if (isPaid && config.customPrice !== null && t.fullPrice !== null && t.fullPrice > 0)
+              displayPrice = config.customPrice;
+            else if (isLimitedOffer && t.fullPrice !== null && t.fullPrice > 0)
+              displayPrice = Math.round(t.fullPrice * discountMultiplier);
 
             return (
               <div
@@ -101,9 +114,14 @@ export function Pricing() {
                 <div className="mt-6 flex items-baseline gap-2">
                   {t.fullPrice === null ? (
                     <span className="font-display text-[3rem] leading-none">Custom</span>
+                  ) : isFree ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-display text-[3.4rem] leading-none text-green-500">Free</span>
+                      <span className={`text-[12px] ${t.highlight ? 'text-cream-50/60' : 'text-ink-mute'}`}>forever</span>
+                    </div>
                   ) : (
                     <div className="flex flex-col gap-0.5">
-                      {isLimitedOffer && t.fullPrice > 0 && (
+                      {(isLimitedOffer || (isPaid && config.customPrice !== null)) && t.fullPrice > 0 && (
                         <span className={`text-[13px] line-through ${t.highlight ? 'text-cream-50/40' : 'text-ink/30'}`}>
                           ${t.fullPrice}/mo
                         </span>
@@ -116,7 +134,9 @@ export function Pricing() {
                           ${displayPrice ?? 0}
                         </span>
                         <span className={`text-[12px] ${t.highlight ? 'text-cream-50/60' : 'text-ink-mute'}`}>
-                          {t.unit}
+                          {isPaid && config.customPrice !== null && t.fullPrice !== null && t.fullPrice > 0
+                            ? config.customPriceLabel
+                            : t.unit}
                         </span>
                       </div>
                     </div>
@@ -135,25 +155,45 @@ export function Pricing() {
                 <div className="mt-8">
                   <Magnetic strength={0.2}>
                     <a
-                      href="#demo"
-                      className={`inline-flex w-full justify-center items-center rounded-full px-5 py-3 text-[13px] font-medium ${
+                      href={
+                        isFree || t.fullPrice === 0 || t.fullPrice === null
+                          ? '#demo'
+                          : paymentHref
+                      }
+                      className={`inline-flex w-full justify-center items-center gap-1.5 rounded-full px-5 py-3 text-[13px] font-medium ${
                         t.highlight ? 'bg-accent text-cream-50' : 'bg-ink dark:bg-[#1A2236] dark:border dark:border-white/10 text-cream-50'
                       }`}
                     >
-                      {isLimitedOffer && t.fullPrice !== null && t.fullPrice > 0
-                        ? `${t.cta} — limited offer`
-                        : t.cta}
+                      {isFree
+                        ? t.fullPrice === 0 ? 'Start for free' : 'Get started free'
+                        : isPaid && t.fullPrice !== null && t.fullPrice > 0
+                          ? config.paymentUrl
+                            ? `${t.cta} →`
+                            : `${t.cta} — coming soon`
+                          : isLimitedOffer && t.fullPrice !== null && t.fullPrice > 0
+                            ? `${t.cta} — limited offer`
+                            : t.cta}
                     </a>
                   </Magnetic>
+                  {isPaid && t.fullPrice !== null && t.fullPrice > 0 && !config.paymentUrl && (
+                    <p className={`mt-2 text-center text-[10.5px] ${t.highlight ? 'text-cream-50/40' : 'text-ink/30'}`}>
+                      Payment setup in progress
+                    </p>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
 
-        {!isLimitedOffer && (
+        {isPaid && !config.paymentUrl && (
+          <div className="mt-8 text-center">
+            <p className="text-[12px] text-ink-mute">Payment gateway coming soon. <a href="#demo" className="text-accent hover:underline">Request early access</a> in the meantime.</p>
+          </div>
+        )}
+        {isPaid && config.paymentUrl && (
           <p className="mt-8 text-center text-[12px] text-ink-mute">
-            Early-access pricing has ended. All plans billed at full rate.
+            Secure payment powered by our payment partner. All plans billed monthly.
           </p>
         )}
       </div>

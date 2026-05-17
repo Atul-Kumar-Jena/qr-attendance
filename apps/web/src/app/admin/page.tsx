@@ -190,8 +190,14 @@ export default function AdminHome() {
           })}
         </nav>
 
-        <div className="mt-6 pt-6 border-t border-ink/8 text-[11px] text-ink-mute">
-          <Link href="/" className="link-line block">← back to site</Link>
+        <div className="mt-6 pt-6 border-t border-ink/10 dark:border-white/10">
+          <Link
+            href="/"
+            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl bg-ink/6 dark:bg-white/8 hover:bg-ink/12 dark:hover:bg-white/14 text-ink dark:text-cream-50 text-[13px] font-medium transition-all"
+          >
+            <span>←</span>
+            <span>Back to site</span>
+          </Link>
         </div>
       </aside>
 
@@ -1631,28 +1637,44 @@ function GodModePanel() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [savedMsg, setSavedMsg] = useState('');
-  const [showPricingConfirm, setShowPricingConfirm] = useState(false);
-  const pendingPricingMode = useRef<PricingMode | null>(null);
+  const [pricingDialog, setPricingDialog] = useState<'paid' | 'free' | null>(null);
+  const [draftPrice, setDraftPrice] = useState('');
+  const [draftPriceLabel, setDraftPriceLabel] = useState('per month');
+  const [draftPaymentUrl, setDraftPaymentUrl] = useState('');
 
   const set = useCallback(<K extends keyof SiteConfig>(k: K, v: SiteConfig[K]) => {
     setLocal((c) => ({ ...c, [k]: v }));
   }, []);
 
   const handlePricingToggle = (mode: PricingMode) => {
-    if (mode === 'PAID' && local.pricingMode === 'LIMITED_OFFER') {
-      pendingPricingMode.current = mode;
-      setShowPricingConfirm(true);
+    if (mode === local.pricingMode) return;
+    if (mode === 'PAID') {
+      setDraftPrice(String(local.customPrice ?? ''));
+      setDraftPriceLabel(local.customPriceLabel || 'per month');
+      setDraftPaymentUrl(local.paymentUrl || '');
+      setPricingDialog('paid');
+    } else if (mode === 'FREE') {
+      setPricingDialog('free');
     } else {
       set('pricingMode', mode);
     }
   };
 
-  const confirmPricingSwitch = () => {
-    if (pendingPricingMode.current) {
-      set('pricingMode', pendingPricingMode.current);
-      pendingPricingMode.current = null;
-    }
-    setShowPricingConfirm(false);
+  const confirmPaid = () => {
+    const price = parseFloat(draftPrice);
+    setLocal((c) => ({
+      ...c,
+      pricingMode: 'PAID',
+      customPrice: isNaN(price) ? null : price,
+      customPriceLabel: draftPriceLabel || 'per month',
+      paymentUrl: draftPaymentUrl,
+    }));
+    setPricingDialog(null);
+  };
+
+  const confirmFree = () => {
+    set('pricingMode', 'FREE');
+    setPricingDialog(null);
   };
 
   const persist = async () => {
@@ -1683,32 +1705,45 @@ function GodModePanel() {
       {/* Pricing mode toggle — prominent */}
       <Card className="p-6 space-y-4 border-amber-200 dark:border-amber-700/30 bg-amber-50/30 dark:bg-amber-900/10">
         <SectionTitle>Pricing mode</SectionTitle>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => handlePricingToggle('LIMITED_OFFER')}
-            className={`flex-1 rounded-xl border-2 py-4 text-[13px] font-medium transition-all ${
+            className={`flex-1 rounded-xl border-2 py-4 text-[13px] font-medium transition-all text-center ${
               local.pricingMode === 'LIMITED_OFFER'
-                ? 'border-accent bg-accent/10 text-accent'
-                : 'border-ink/10 text-ink-mute hover:border-ink/20'
+                ? 'border-accent bg-accent/10 text-accent dark:text-accent'
+                : 'border-ink/10 dark:border-white/10 text-ink-mute hover:border-ink/20 dark:hover:border-white/20'
             }`}
           >
             <div className="text-lg mb-1">🎟️</div>
             <div>Limited offer</div>
-            <div className="text-[11px] mt-0.5 opacity-70">Discounted prices shown to everyone</div>
+            <div className="text-[11px] mt-0.5 opacity-70">Discounted prices</div>
           </button>
           <button
             onClick={() => handlePricingToggle('PAID')}
-            className={`flex-1 rounded-xl border-2 py-4 text-[13px] font-medium transition-all ${
+            className={`flex-1 rounded-xl border-2 py-4 text-[13px] font-medium transition-all text-center ${
               local.pricingMode === 'PAID'
-                ? 'border-red-500 bg-red-50 text-red-700'
-                : 'border-ink/10 text-ink-mute hover:border-ink/20'
+                ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400'
+                : 'border-ink/10 dark:border-white/10 text-ink-mute hover:border-ink/20 dark:hover:border-white/20'
             }`}
           >
             <div className="text-lg mb-1">💳</div>
-            <div>Full pricing</div>
-            <div className="text-[11px] mt-0.5 opacity-70">All plans charged at full rate</div>
+            <div>Custom price</div>
+            <div className="text-[11px] mt-0.5 opacity-70">Set your own rate</div>
+          </button>
+          <button
+            onClick={() => handlePricingToggle('FREE')}
+            className={`flex-1 rounded-xl border-2 py-4 text-[13px] font-medium transition-all text-center ${
+              local.pricingMode === 'FREE'
+                ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                : 'border-ink/10 dark:border-white/10 text-ink-mute hover:border-ink/20 dark:hover:border-white/20'
+            }`}
+          >
+            <div className="text-lg mb-1">🎁</div>
+            <div>Free</div>
+            <div className="text-[11px] mt-0.5 opacity-70">All plans at no cost</div>
           </button>
         </div>
+
         {local.pricingMode === 'LIMITED_OFFER' && (
           <div className="grid grid-cols-2 gap-3">
             <Field label="Offer label" value={local.limitedOfferLabel}
@@ -1717,29 +1752,110 @@ function GodModePanel() {
               onChange={(v) => set('limitedOfferDiscountPct', Number(v))} type="number" />
           </div>
         )}
+
+        {local.pricingMode === 'PAID' && (
+          <div className="rounded-xl bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-700/30 p-4 space-y-3">
+            <p className="text-[12px] text-orange-700 dark:text-orange-400 font-medium">Custom pricing active</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Custom price ($)" value={local.customPrice !== null ? String(local.customPrice) : ''}
+                onChange={(v) => set('customPrice', v === '' ? null : parseFloat(v))} type="number" placeholder="e.g. 49" />
+              <Field label="Price label" value={local.customPriceLabel}
+                onChange={(v) => set('customPriceLabel', v)} placeholder="per month" />
+            </div>
+            <Field label="Payment URL (leave blank if not ready)" value={local.paymentUrl}
+              onChange={(v) => set('paymentUrl', v)} placeholder="https://buy.stripe.com/…" />
+            {!local.paymentUrl && (
+              <p className="text-[11px] text-orange-600 dark:text-orange-500">
+                No payment URL set — CTAs will show &quot;coming soon&quot; until you add one.
+              </p>
+            )}
+          </div>
+        )}
+
+        {local.pricingMode === 'FREE' && (
+          <div className="rounded-xl bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-700/30 p-4">
+            <p className="text-[12px] text-green-700 dark:text-green-400">
+              All plans show as <strong>Free</strong> across the site. No payment required.
+            </p>
+          </div>
+        )}
       </Card>
 
-      {/* Pricing confirm modal */}
-      {showPricingConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm">
-          <div className="bg-cream-50 dark:bg-[#13161D] rounded-2xl border border-ink/10 p-8 max-w-md w-full mx-4 shadow-2xl">
-            <h2 className="font-display text-[1.6rem] mb-2">End limited offer?</h2>
-            <p className="text-[13px] text-ink-mute mb-4">
-              Switching to <strong>Full Pricing</strong> will:
+      {/* PAID pricing dialog */}
+      {pricingDialog === 'paid' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 dark:bg-black/60 backdrop-blur-sm">
+          <div className="bg-cream-50 dark:bg-[#13161D] rounded-2xl border border-ink/10 dark:border-white/10 p-8 max-w-md w-full mx-4 shadow-2xl">
+            <h2 className="font-display text-[1.6rem] mb-1 dark:text-cream-50">Set custom pricing</h2>
+            <p className="text-[13px] text-ink-mute dark:text-white/50 mb-5">
+              Visitors will see this price on the Pro plan. Leave the payment URL blank if you haven&apos;t set up payments yet.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[11px] tracking-wide text-ink-mute dark:text-white/50 mb-1">Custom price ($)</label>
+                <input
+                  type="number" min="0" value={draftPrice}
+                  onChange={(e) => setDraftPrice(e.target.value)}
+                  placeholder="e.g. 49"
+                  className="w-full rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-2 text-[13px] dark:text-cream-50 focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] tracking-wide text-ink-mute dark:text-white/50 mb-1">Price label</label>
+                <input
+                  type="text" value={draftPriceLabel}
+                  onChange={(e) => setDraftPriceLabel(e.target.value)}
+                  placeholder="per month"
+                  className="w-full rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-2 text-[13px] dark:text-cream-50 focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] tracking-wide text-ink-mute dark:text-white/50 mb-1">Payment URL <span className="text-ink/30 dark:text-white/30">(optional — leave blank if not ready)</span></label>
+                <input
+                  type="url" value={draftPaymentUrl}
+                  onChange={(e) => setDraftPaymentUrl(e.target.value)}
+                  placeholder="https://buy.stripe.com/…"
+                  className="w-full rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-2 text-[13px] dark:text-cream-50 focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+                {!draftPaymentUrl && (
+                  <p className="mt-1 text-[11px] text-ink/40 dark:text-white/30">CTAs will show &quot;coming soon&quot; until you add a payment link.</p>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={confirmPaid}
+                className="flex-1 rounded-xl bg-orange-600 text-white py-2.5 text-[13px] font-medium hover:bg-orange-700 transition-all">
+                Apply custom pricing
+              </button>
+              <button onClick={() => setPricingDialog(null)}
+                className="flex-1 rounded-xl border border-ink/10 dark:border-white/10 py-2.5 text-[13px] text-ink-mute dark:text-white/50 hover:text-ink dark:hover:text-cream-50 transition-all">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FREE pricing confirmation dialog */}
+      {pricingDialog === 'free' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 dark:bg-black/60 backdrop-blur-sm">
+          <div className="bg-cream-50 dark:bg-[#13161D] rounded-2xl border border-ink/10 dark:border-white/10 p-8 max-w-md w-full mx-4 shadow-2xl">
+            <h2 className="font-display text-[1.6rem] mb-1 dark:text-cream-50">Make everything free?</h2>
+            <p className="text-[13px] text-ink-mute dark:text-white/50 mb-4">
+              All pricing plans will display as <strong className="text-green-600 dark:text-green-400">Free</strong> across the entire site. No payment required from visitors.
             </p>
             <ul className="text-[13px] space-y-1 mb-6 pl-4">
-              <li className="list-disc text-ink-mute">Show full prices to all new visitors</li>
-              <li className="list-disc text-ink-mute">Flag existing limited-offer subscribers for payment</li>
-              <li className="list-disc text-amber-600 font-medium">This cannot be undone without switching back manually</li>
+              <li className="list-disc text-ink-mute dark:text-white/50">Starter, Pro, and Enterprise all show as free</li>
+              <li className="list-disc text-ink-mute dark:text-white/50">CTAs change to &quot;Start for free&quot;</li>
+              <li className="list-disc text-green-600 dark:text-green-400 font-medium">You can switch back at any time</li>
             </ul>
             <div className="flex gap-3">
-              <button onClick={confirmPricingSwitch}
-                className="flex-1 rounded-xl bg-red-600 text-white py-2.5 text-[13px] font-medium hover:bg-red-700 transition-all">
-                Yes, switch to full pricing
+              <button onClick={confirmFree}
+                className="flex-1 rounded-xl bg-green-600 text-white py-2.5 text-[13px] font-medium hover:bg-green-700 transition-all">
+                Yes, make it free
               </button>
-              <button onClick={() => setShowPricingConfirm(false)}
-                className="flex-1 rounded-xl border border-ink/10 py-2.5 text-[13px] text-ink-mute hover:text-ink transition-all">
-                Keep limited offer
+              <button onClick={() => setPricingDialog(null)}
+                className="flex-1 rounded-xl border border-ink/10 dark:border-white/10 py-2.5 text-[13px] text-ink-mute dark:text-white/50 hover:text-ink dark:hover:text-cream-50 transition-all">
+                Cancel
               </button>
             </div>
           </div>
