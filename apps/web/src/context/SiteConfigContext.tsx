@@ -134,24 +134,48 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
-    const { doc, onSnapshot } = require('firebase/firestore');
-    const ref = doc(db, 'config', 'site');
-    const unsub = onSnapshot(
-      ref,
-      (snap: { exists: () => boolean; data: () => Record<string, unknown> }) => {
-        if (snap.exists()) {
-          const next = { ...DEFAULT_CONFIG, ...snap.data() } as SiteConfig;
-          setConfig(next);
-          writeLocalStorage(next);
-        }
-        setLoading(false);
-      },
-      (_err: unknown) => {
-        // Firestore read failed — use localStorage fallback silently
-        setLoading(false);
-      },
-    );
-    return () => unsub();
+    let unsub: (() => void) | undefined;
+    try {
+      const { doc, onSnapshot } = require('firebase/firestore');
+      const ref = doc(db, 'config', 'site');
+      unsub = onSnapshot(
+        ref,
+        (snap: { exists: () => boolean; data: () => Record<string, unknown> }) => {
+          try {
+            if (snap.exists()) {
+              const raw = snap.data() || {};
+              // Validate Firestore data the same way as localStorage — never trust remote data
+              const safe: Record<string, unknown> = {};
+              for (const [k, v] of Object.entries(raw)) {
+                if (k in DEFAULT_CONFIG) safe[k] = v;
+              }
+              if (safe.pricingMode && !VALID_PRICING_MODES.includes(safe.pricingMode as PricingMode)) {
+                delete safe.pricingMode;
+              }
+              if (safe.limitedOfferDiscountPct != null && (typeof safe.limitedOfferDiscountPct !== 'number' || isNaN(safe.limitedOfferDiscountPct as number))) {
+                delete safe.limitedOfferDiscountPct;
+              }
+              if (safe.customPrice != null && typeof safe.customPrice !== 'number') {
+                safe.customPrice = null;
+              }
+              const next = { ...DEFAULT_CONFIG, ...safe } as SiteConfig;
+              setConfig(next);
+              writeLocalStorage(next);
+            }
+          } catch {
+            // Firestore data corrupt — keep current state, do not crash render
+          }
+          setLoading(false);
+        },
+        (_err: unknown) => {
+          // Firestore read failed — use localStorage fallback silently
+          setLoading(false);
+        },
+      );
+    } catch {
+      setLoading(false);
+    }
+    return () => { try { unsub?.(); } catch {} };
   }, []);
 
   // Apply CSS custom properties whenever colors change
