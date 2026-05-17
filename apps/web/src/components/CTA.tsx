@@ -27,7 +27,8 @@ export function CTA() {
           scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'center center', scrub: 1 },
         });
 
-      const p = path.current!;
+      const p = path.current;
+      if (!p) return;
       const len = p.getTotalLength();
       gsap.set(p, { strokeDasharray: len, strokeDashoffset: len });
       gsap.to(p, {

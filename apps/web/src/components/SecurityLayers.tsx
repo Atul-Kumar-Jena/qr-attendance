@@ -30,7 +30,8 @@ export function SecurityLayers() {
   useEffect(() => {
     const ctx = gsap.context(() => {
       // Draw the connector path
-      const p = path.current!;
+      const p = path.current;
+      if (!p || !rings.current) return;
       const len = p.getTotalLength();
       gsap.set(p, { strokeDasharray: len, strokeDashoffset: len });
       gsap.to(p, {
@@ -40,7 +41,7 @@ export function SecurityLayers() {
       });
 
       // Stagger expand rings
-      gsap.from(rings.current!.querySelectorAll('circle'), {
+      gsap.from(rings.current.querySelectorAll('circle'), {
         scale: 0,
         opacity: 0,
         transformOrigin: '50% 50%',
