@@ -30,6 +30,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning className={`${sans.variable} ${display.variable}`}>
       <head>
+        {/* GitHub Pages SPA: restore deep-link after 404 redirect */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var r=sessionStorage.getItem('atd_redirect');if(r){sessionStorage.removeItem('atd_redirect');var base='/qr-attendance';var target=base+r;if(window.location.pathname!==target){window.history.replaceState({},'',target);}}}catch(e){}})();` }} />
         {/* Pre-React safety: validate site config only (preserves cookies, tour state, etc) */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var fullReset=function(){try{var ks=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('attendly')===0&&k!=='attendly-theme-mode')ks.push(k);}ks.forEach(function(k){localStorage.removeItem(k);});}catch(e){}};if(location.search.indexOf('reset')>=0){fullReset();try{localStorage.removeItem('attendly-theme-mode');localStorage.removeItem('atd_cookies');}catch(e){}var u=new URL(location.href);u.searchParams.delete('reset');history.replaceState({},'',u.toString());}var raw=localStorage.getItem('attendly_site_config');if(raw){try{var c=JSON.parse(raw);var valid=['LIMITED_OFFER','PAID','FREE'];if(!c||typeof c!=='object'||(c.pricingMode&&valid.indexOf(c.pricingMode)<0)){localStorage.removeItem('attendly_site_config');}}catch(e){localStorage.removeItem('attendly_site_config');}}}catch(e){}})();` }} />
         {/* Apply saved theme before first paint to prevent flash */}

@@ -2,29 +2,36 @@
 import { useEffect, useRef } from 'react';
 
 export function GridBackground() {
-  const glowRef = useRef<HTMLDivElement>(null);
+  const revealRef = useRef<HTMLDivElement>(null);
+  const spotRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const glow = glowRef.current!;
-    let mx = window.innerWidth / 2;
-    let my = window.innerHeight / 2;
+    if (window.matchMedia('(pointer: coarse)').matches) return;
+
+    const reveal = revealRef.current!;
+    const spot = spotRef.current!;
+
+    let mx = -9999, my = -9999;
     let cx = mx, cy = my;
     let raf = 0;
 
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
     const onMove = (e: MouseEvent) => { mx = e.clientX; my = e.clientY; };
 
     const tick = () => {
-      cx = lerp(cx, mx, 0.06);
-      cy = lerp(cy, my, 0.06);
+      cx = lerp(cx, mx, 0.09);
+      cy = lerp(cy, my, 0.09);
+
+      const mask = `radial-gradient(380px circle at ${cx}px ${cy}px, black 0%, black 25%, transparent 68%)`;
+      reveal.style.webkitMaskImage = mask;
+      reveal.style.maskImage = mask;
+
       const isDark = document.documentElement.classList.contains('dark');
-      if (isDark) {
-        glow.style.background = `radial-gradient(800px circle at ${cx}px ${cy}px, rgba(139,92,246,0.08) 0%, rgba(99,102,241,0.04) 35%, transparent 65%)`;
-      } else {
-        glow.style.background = `radial-gradient(800px circle at ${cx}px ${cy}py, rgba(139,92,246,0.05) 0%, rgba(99,102,241,0.025) 35%, transparent 65%)`;
-      }
+      spot.style.background = isDark
+        ? `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(139,92,246,0.13) 0%, rgba(99,102,241,0.05) 45%, transparent 70%)`
+        : `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(139,92,246,0.09) 0%, rgba(99,102,241,0.03) 45%, transparent 70%)`;
+
       raf = requestAnimationFrame(tick);
     };
 
@@ -36,39 +43,64 @@ export function GridBackground() {
     };
   }, []);
 
+  const G = '48px 48px';
+
   return (
     <div className="fixed inset-0 pointer-events-none z-0" aria-hidden>
-      {/* Primary grid lines — very subtle */}
+      {/* Dim base grid */}
+      <div className="absolute inset-0" style={{
+        backgroundImage: [
+          'linear-gradient(rgba(139,92,246,0.04) 1px, transparent 1px)',
+          'linear-gradient(90deg, rgba(139,92,246,0.04) 1px, transparent 1px)',
+        ].join(', '),
+        backgroundSize: G,
+      }} />
+
+      {/* Dim intersection dots */}
+      <div className="absolute inset-0" style={{
+        backgroundImage: 'radial-gradient(circle, rgba(139,92,246,0.14) 0.9px, transparent 0.9px)',
+        backgroundSize: G,
+      }} />
+
+      {/* Cursor-revealed bright layer (grid lines + dots in one masked div) */}
       <div
+        ref={revealRef}
         className="absolute inset-0"
         style={{
+          WebkitMaskImage: 'radial-gradient(380px circle at -9999px -9999px, black 0%, transparent 68%)',
+          maskImage: 'radial-gradient(380px circle at -9999px -9999px, black 0%, transparent 68%)',
+        }}
+      >
+        {/* Vivid lines */}
+        <div className="absolute inset-0" style={{
           backgroundImage: [
-            'linear-gradient(rgba(139,92,246,0.045) 1px, transparent 1px)',
-            'linear-gradient(90deg, rgba(139,92,246,0.045) 1px, transparent 1px)',
+            'linear-gradient(rgba(139,92,246,0.6) 1px, transparent 1px)',
+            'linear-gradient(90deg, rgba(139,92,246,0.6) 1px, transparent 1px)',
           ].join(', '),
-          backgroundSize: '48px 48px',
-        }}
-      />
-      {/* Intersection dots — barely visible accent */}
-      <div
-        className="absolute inset-0 hidden dark:block"
-        style={{
-          backgroundImage: 'radial-gradient(circle, rgba(139,92,246,0.18) 0.8px, transparent 0.8px)',
-          backgroundSize: '48px 48px',
-        }}
-      />
-      <div
-        className="absolute inset-0 block dark:hidden"
-        style={{
-          backgroundImage: 'radial-gradient(circle, rgba(139,92,246,0.12) 0.8px, transparent 0.8px)',
-          backgroundSize: '48px 48px',
-        }}
-      />
-      {/* Mouse-following glow */}
-      <div ref={glowRef} className="absolute inset-0 transition-none" />
-      {/* Fade edges */}
+          backgroundSize: G,
+        }} />
+        {/* Vivid dots */}
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'radial-gradient(circle, rgba(167,139,250,0.95) 1.1px, transparent 1.1px)',
+          backgroundSize: G,
+        }} />
+        {/* Glow bloom behind lines */}
+        <div className="absolute inset-0" style={{
+          backgroundImage: [
+            'linear-gradient(rgba(167,139,250,0.15) 3px, transparent 3px)',
+            'linear-gradient(90deg, rgba(167,139,250,0.15) 3px, transparent 3px)',
+          ].join(', '),
+          backgroundSize: G,
+          filter: 'blur(2px)',
+        }} />
+      </div>
+
+      {/* Ambient halo */}
+      <div ref={spotRef} className="absolute inset-0" />
+
+      {/* Edge vignette */}
       <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse 90% 60% at 50% 0%, transparent 50%, var(--bg, #FAFAF7) 100%)',
+        background: 'radial-gradient(ellipse 100% 55% at 50% 0%, transparent 40%, var(--bg, #FAFAF7) 100%)',
       }} />
     </div>
   );
