@@ -89,14 +89,28 @@ export default function QrDisplay() {
     return onClasses(institutionId, setClasses);
   }, [institutionId]);
 
-  // Live attendance count subscription
+  // Live attendance count subscription — also append qr_scan records to the local ledger
+  const lastCountRef = useRef(0);
   useEffect(() => {
     if (!sessionId || stage !== 'live') return;
     const { onSession } = require('@/lib/firestore-db');
     return onSession(sessionId, (s: import('@/lib/firestore-db').FSSession | null) => {
-      if (s) setLiveCount(s.attendanceCount);
+      if (!s) return;
+      const next = s.attendanceCount;
+      if (next > lastCountRef.current) {
+        const delta = next - lastCountRef.current;
+        for (let i = 0; i < delta; i++) {
+          appendRecord({
+            kind: 'qr_scan',
+            payload: { sessionId, tick, total: next - i, ts: Date.now() },
+            signerPub: instPubRef.current || undefined,
+          }).catch(() => {});
+        }
+        lastCountRef.current = next;
+      }
+      setLiveCount(next);
     });
-  }, [sessionId, stage]);
+  }, [sessionId, stage, tick]);
 
   // Load (or generate) the institution signing key when going live
   useEffect(() => {

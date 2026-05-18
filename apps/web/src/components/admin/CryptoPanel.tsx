@@ -245,6 +245,9 @@ export function CryptoPanel() {
         )}
       </div>
 
+      {/* Paste-a-token verifier */}
+      <PasteVerifier instPub={instKey?.publicKey} />
+
       {/* All keys */}
       <div data-anim className="rounded-2xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#13161D] p-5">
         <h3 className="text-[14px] font-medium text-ink dark:text-cream-50 mb-3">All keys in this browser ({allKeys.length})</h3>
@@ -317,6 +320,69 @@ function KV({ label, value, mono = false, truncate = false }: { label: string; v
     <div className={`flex justify-between gap-3 ${truncate ? 'min-w-0' : ''}`}>
       <span className="text-ink-mute flex-shrink-0">{label}</span>
       <span className={`text-ink dark:text-cream-50 ${mono ? 'font-mono' : ''} ${truncate ? 'truncate min-w-0' : ''}`}>{value}</span>
+    </div>
+  );
+}
+
+function PasteVerifier({ instPub }: { instPub?: string }) {
+  const [token, setToken] = useState('');
+  const [result, setResult] = useState<{ ok: boolean; reason?: string; claims?: QrClaims; ageMs?: number } | null>(null);
+
+  const onVerify = async () => {
+    if (!instPub) { setResult({ ok: false, reason: 'no institution key loaded' }); return; }
+    let raw = token.trim();
+    // Accept both raw token and the attendly://scan?...&p=<token> URL form
+    const m = raw.match(/[?&]p=([^&]+)/);
+    if (m) raw = decodeURIComponent(m[1]);
+    if (!raw.includes('.')) { setResult({ ok: false, reason: 'token missing signature separator' }); return; }
+    const r = await verifyQrToken(instPub, raw);
+    setResult({
+      ok: r.ok,
+      reason: r.reason,
+      claims: r.claims,
+      ageMs: r.claims ? Date.now() - r.claims.ts : undefined,
+    });
+  };
+
+  return (
+    <div data-anim className="rounded-2xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#13161D] p-5">
+      <h3 className="text-[14px] font-medium text-ink dark:text-cream-50 mb-1">Paste & verify a token</h3>
+      <p className="text-[11.5px] text-ink-mute mb-3">
+        Drop in either the raw <span className="font-mono">payload.sig</span> string or a full <span className="font-mono">attendly://scan?…</span> URL.
+      </p>
+      <textarea
+        value={token}
+        onChange={(e) => setToken(e.target.value)}
+        rows={3}
+        placeholder="eyJ2IjoxL... . MEUCI..."
+        className="w-full font-mono text-[11.5px] bg-ink/4 dark:bg-white/4 rounded-lg p-3 border border-ink/8 dark:border-white/8 focus:outline-none focus:border-accent/40 resize-none"
+      />
+      <div className="flex items-center justify-end mt-2 gap-2">
+        <button
+          onClick={() => { setToken(''); setResult(null); }}
+          className="text-[12px] rounded-lg border border-ink/15 dark:border-white/15 px-3 py-1.5 hover:bg-ink/4 dark:hover:bg-white/6 transition-colors"
+        >
+          Clear
+        </button>
+        <button
+          onClick={onVerify}
+          disabled={!token.trim() || !instPub}
+          className="text-[12px] rounded-lg bg-accent text-cream-50 px-3.5 py-1.5 font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
+        >
+          Verify
+        </button>
+      </div>
+      {result && (
+        <div className={`mt-3 rounded-lg border px-3.5 py-2.5 text-[12.5px] ${
+          result.ok
+            ? 'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400'
+            : 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400'
+        }`}>
+          {result.ok
+            ? `✓ Valid · token age ${(result.ageMs! / 1000).toFixed(2)}s · session "${result.claims?.sid}"`
+            : `✗ ${result.reason || 'invalid'}`}
+        </div>
+      )}
     </div>
   );
 }
