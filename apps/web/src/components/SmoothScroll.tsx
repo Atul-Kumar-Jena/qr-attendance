@@ -21,6 +21,9 @@ export function SmoothScroll() {
         touchMultiplier: 2,
       });
 
+      // Ensure page always starts at the very top
+      window.scrollTo(0, 0);
+
       lenis.on('scroll', ScrollTrigger.update);
 
       const ticker = gsap.ticker.add((time: number) => {

@@ -8,6 +8,7 @@ import gsap from 'gsap';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { AuthModal } from '@/components/AuthModal';
+import { UserMenu } from '@/components/UserMenu';
 
 const links = [
   { href: '#solution', label: 'Solution' },
@@ -67,6 +68,7 @@ function ThemeToggle() {
           data-tip={label}
           aria-label={label}
           aria-pressed={mode === m}
+          suppressHydrationWarning
           className={`w-7 h-7 flex items-center justify-center transition-all duration-200 ${
             mode === m
               ? 'bg-ink dark:bg-white/15 text-cream-50 dark:text-white'
@@ -163,7 +165,7 @@ export function Nav() {
       >
         <div
           className={cn(
-            'container relative flex items-center justify-between transition-all duration-500',
+            'container relative flex items-center justify-between gap-4 transition-all duration-500',
             scrolled ? 'max-w-3xl px-5 py-3' : '',
           )}
         >
@@ -205,9 +207,9 @@ export function Nav() {
             <ThemeToggle />
 
             {user ? (
-              <Link href="/admin" className="hidden sm:flex items-center gap-2 text-[12.5px] tracking-wide text-ink-mute hover:text-ink dark:hover:text-white/90 transition-colors">
-                <UserAvatar />
-              </Link>
+              <div className="hidden sm:flex">
+                <UserMenu />
+              </div>
             ) : (
               <AuthModal trigger={
                 <button className="hidden sm:block text-[12.5px] tracking-wide text-ink-mute hover:text-ink dark:hover:text-white/90 transition-colors">
