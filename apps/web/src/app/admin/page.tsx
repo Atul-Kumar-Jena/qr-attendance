@@ -33,6 +33,7 @@ function runTour() {
         showProgress: true,
         allowClose: true,
         overlayClickBehavior: 'close',
+        popoverClass: 'atd-popover',
         steps,
         onDestroyStarted: () => { try { d.destroy(); } catch {} },
       });

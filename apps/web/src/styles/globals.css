@@ -312,17 +312,30 @@ html.dark [class*="border-ink"] {
   border-color: var(--line) !important;
 }
 
-/* Nav scrolled "pill" — defined once so light/dark never race. */
+/* Nav pill — always present in DOM with transparent bg/border so the .scrolled
+   state only animates COLOURS (no border-width flash). */
 .nav-pill {
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: 0 0 0 0 transparent;
+  /* Explicit property list — never use `all` here or border-width interpolates
+     and produces a white outline flash on dark backgrounds. */
+  transition:
+    background-color 380ms cubic-bezier(.4, 0, .2, 1),
+    border-color    380ms cubic-bezier(.4, 0, .2, 1),
+    box-shadow      380ms cubic-bezier(.4, 0, .2, 1),
+    padding         380ms cubic-bezier(.4, 0, .2, 1),
+    max-width       380ms cubic-bezier(.4, 0, .2, 1);
+}
+.nav-pill-scrolled {
   background: rgba(250, 250, 247, 0.82);
-  border: 1px solid rgba(11, 18, 32, 0.08);
+  border-color: rgba(11, 18, 32, 0.08);
   box-shadow: 0 4px 32px -4px rgba(11, 18, 32, 0.12);
 }
-html.dark .nav-pill {
+html.dark .nav-pill-scrolled {
   background: rgba(13, 15, 20, 0.85);
   border-color: rgba(240, 237, 230, 0.08);
-  box-shadow: 0 4px 40px -4px rgba(0, 0, 0, 0.6),
-              0 0 0 1px rgba(240, 237, 230, 0.06);
+  box-shadow: 0 4px 40px -4px rgba(0, 0, 0, 0.55);
 }
 
 /* divide-* borders (divide-ink/X uses a different class than border-ink/X) */
@@ -483,6 +496,37 @@ html.dark body::before {
 .atd-popover .driver-popover-arrow-side-bottom { border-top-color: var(--bg) !important; }
 .atd-popover .driver-popover-arrow-side-left { border-right-color: var(--bg) !important; }
 .atd-popover .driver-popover-arrow-side-right { border-left-color: var(--bg) !important; }
+
+/* Dark-mode driver.js: pop card uses site bg (no white card flashing on dark) */
+html.dark .atd-popover.driver-popover {
+  background: var(--bg-2) !important;
+  border: 1px solid rgba(240, 237, 230, 0.10) !important;
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.5),
+              0 0 0 1px rgba(240, 237, 230, 0.04) !important;
+}
+html.dark .atd-popover .driver-popover-title { color: var(--ink) !important; }
+html.dark .atd-popover .driver-popover-description { color: var(--ink-mute) !important; }
+html.dark .atd-popover .driver-popover-progress-text { color: var(--ink-mute) !important; }
+html.dark .atd-popover .driver-popover-prev-btn {
+  background: transparent !important;
+  color: var(--ink-mute) !important;
+  border-color: rgba(240, 237, 230, 0.12) !important;
+}
+html.dark .atd-popover .driver-popover-prev-btn:hover {
+  background: rgba(240, 237, 230, 0.06) !important;
+  color: var(--ink) !important;
+}
+html.dark .atd-popover .driver-popover-close-btn { color: var(--ink-mute) !important; }
+html.dark .driver-overlay { background: rgba(0, 0, 0, 0.65) !important; }
+html.dark .atd-popover .driver-popover-arrow-side-top    { border-bottom-color: var(--bg-2) !important; }
+html.dark .atd-popover .driver-popover-arrow-side-bottom { border-top-color:    var(--bg-2) !important; }
+html.dark .atd-popover .driver-popover-arrow-side-left   { border-right-color:  var(--bg-2) !important; }
+html.dark .atd-popover .driver-popover-arrow-side-right  { border-left-color:   var(--bg-2) !important; }
+
+/* Driver.js own children sometimes re-enable the system cursor — hide it. */
+.driver-popover, .driver-popover *, .driver-overlay {
+  cursor: none !important;
+}
 
 /* ─── Dark mode comprehensive text-color fixes ──────────────────────────────── */
 /* Root cause: Tailwind compiles text-ink to hardcoded #0B1220 (invisible on dark bg) */

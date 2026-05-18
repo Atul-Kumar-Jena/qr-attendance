@@ -168,7 +168,11 @@ export function Cursor() {
           left: 0, top: 0,
           width: 32, height: 32,
           borderRadius: '50%',
-          border: '1px solid currentColor',
+          // White + mix-blend-mode: difference → always inverts to a contrasting
+          // colour on whatever's behind (cream bg, ink bg, white driver.js
+          // popover, accent buttons — visible on all).
+          border: '1.5px solid #FFFFFF',
+          mixBlendMode: 'difference',
           opacity: 0,
           pointerEvents: 'none',
           zIndex: 2147483646,
@@ -184,7 +188,8 @@ export function Cursor() {
           left: 0, top: 0,
           width: 8, height: 8,
           borderRadius: '50%',
-          background: 'currentColor',
+          background: '#FFFFFF',
+          mixBlendMode: 'difference',
           opacity: 0,
           pointerEvents: 'none',
           zIndex: 2147483647,

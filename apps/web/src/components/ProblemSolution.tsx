@@ -34,65 +34,99 @@ export function ProblemSolution() {
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      // Cards stagger in
-      gsap.utils.toArray<HTMLElement>('.ps-item').forEach((el, i) => {
-        gsap.fromTo(el,
-          { opacity: 0, y: 32, rotateX: -6 },
-          {
-            opacity: 1, y: 0, rotateX: 0,
-            transformOrigin: 'center top',
-            duration: 0.9, ease: 'power3.out',
-            scrollTrigger: { trigger: el, start: 'top 84%' },
-            delay: i * 0.05,
-          },
-        );
-      });
-
-      // Headline reveal
-      gsap.fromTo('.ps-head .reveal-line',
-        { yPercent: 110, rotateZ: 1.5 },
-        {
-          yPercent: 0, rotateZ: 0, duration: 1.1, ease: 'expo.out', stagger: 0.09,
-          scrollTrigger: { trigger: '.ps-head', start: 'top 80%' },
-        },
-      );
-
-      // Strike-through draw
-      gsap.utils.toArray<HTMLElement>('.strike-line').forEach((s) => {
-        gsap.fromTo(s,
-          { scaleX: 0 },
-          { scaleX: 1, transformOrigin: 'left center', duration: 0.65, ease: 'power3.inOut',
-            scrollTrigger: { trigger: s, start: 'top 82%' } },
-        );
-      });
-
-      // Stat counters
-      gsap.utils.toArray<HTMLElement>('.ps-num').forEach((el) => {
-        const target = Number(el.dataset.value);
-        const obj = { v: 0 };
-        ScrollTrigger.create({
-          trigger: el, start: 'top 86%',
-          onEnter: () => {
-            gsap.to(obj, {
-              v: target, duration: 1.8, ease: 'expo.out',
-              onUpdate: () => (el.textContent = String(Math.floor(obj.v))),
-            });
-          },
+    if (typeof window === 'undefined') return;
+    let ctx: ReturnType<typeof gsap.context> | undefined;
+    try {
+      ctx = gsap.context(() => {
+        // Cards stagger in — immediateRender:false so missed ScrollTriggers
+        // don't strand the cards at opacity:0
+        gsap.utils.toArray<HTMLElement>('.ps-item').forEach((el, i) => {
+          gsap.fromTo(el,
+            { opacity: 0, y: 32, rotateX: -6 },
+            {
+              opacity: 1, y: 0, rotateX: 0,
+              transformOrigin: 'center top',
+              duration: 0.9, ease: 'power3.out',
+              immediateRender: false,
+              scrollTrigger: { trigger: el, start: 'top 88%' },
+              delay: i * 0.05,
+            },
+          );
         });
-      });
 
-      // Stat block entrance
-      gsap.utils.toArray<HTMLElement>('.ps-stat-block').forEach((el, i) => {
-        gsap.fromTo(el,
-          { opacity: 0, y: 24 },
-          { opacity: 1, y: 0, duration: 0.75, ease: 'power3.out',
-            scrollTrigger: { trigger: el, start: 'top 88%' },
-            delay: i * 0.07 },
+        // Headline reveal — start visible, animate up from below on trigger
+        gsap.fromTo('.ps-head .reveal-line',
+          { yPercent: 110, rotateZ: 1.5 },
+          {
+            yPercent: 0, rotateZ: 0, duration: 1.1, ease: 'expo.out', stagger: 0.09,
+            immediateRender: false,
+            scrollTrigger: { trigger: '.ps-head', start: 'top 90%' },
+          },
         );
-      });
-    }, root);
-    return () => ctx.revert();
+
+        // Strike-through draw
+        gsap.utils.toArray<HTMLElement>('.strike-line').forEach((s) => {
+          gsap.fromTo(s,
+            { scaleX: 0 },
+            { scaleX: 1, transformOrigin: 'left center', duration: 0.65, ease: 'power3.inOut',
+              immediateRender: false,
+              scrollTrigger: { trigger: s, start: 'top 85%' } },
+          );
+        });
+
+        // Stat counters
+        gsap.utils.toArray<HTMLElement>('.ps-num').forEach((el) => {
+          const target = Number(el.dataset.value);
+          if (!Number.isFinite(target)) return;
+          const obj = { v: 0 };
+          ScrollTrigger.create({
+            trigger: el, start: 'top 90%',
+            onEnter: () => {
+              gsap.to(obj, {
+                v: target, duration: 1.8, ease: 'expo.out',
+                onUpdate: () => (el.textContent = String(Math.floor(obj.v))),
+              });
+            },
+          });
+        });
+
+        // Stat block entrance
+        gsap.utils.toArray<HTMLElement>('.ps-stat-block').forEach((el, i) => {
+          gsap.fromTo(el,
+            { opacity: 0, y: 24 },
+            { opacity: 1, y: 0, duration: 0.75, ease: 'power3.out',
+              immediateRender: false,
+              scrollTrigger: { trigger: el, start: 'top 92%' },
+              delay: i * 0.07 },
+          );
+        });
+
+        // NEW — solution-icon spin-in on each fix card
+        gsap.utils.toArray<HTMLElement>('.sol-icon').forEach((el, i) => {
+          gsap.fromTo(el,
+            { rotate: -90, scale: 0, opacity: 0 },
+            {
+              rotate: 0, scale: 1, opacity: 1,
+              duration: 0.8, ease: 'back.out(2)',
+              immediateRender: false,
+              scrollTrigger: { trigger: el, start: 'top 90%' },
+              delay: i * 0.08,
+            },
+          );
+        });
+
+        // NEW — gradient sweep on the "We close every gap." line
+        gsap.fromTo('.ps-head .text-accent',
+          { backgroundPosition: '200% 0' },
+          {
+            backgroundPosition: '0% 0', duration: 1.5, ease: 'power2.out',
+            immediateRender: false,
+            scrollTrigger: { trigger: '.ps-head', start: 'top 75%' },
+          },
+        );
+      }, root);
+    } catch { /* GSAP failure must not crash the page */ }
+    return () => { try { ctx?.revert(); } catch {} };
   }, []);
 
   return (
@@ -201,5 +235,5 @@ const SOLUTION_ICONS = [
 ];
 
 function SolutionIcon({ index }: { index: number }) {
-  return <div className="text-accent">{SOLUTION_ICONS[index]}</div>;
+  return <div className="sol-icon text-accent inline-block">{SOLUTION_ICONS[index]}</div>;
 }

@@ -128,10 +128,14 @@ export function Nav() {
         className={cn('fixed inset-x-0 top-0 z-50 transition-all duration-500', scrolled ? 'py-2' : 'py-5')}
       >
         <div className={cn(
-          'container flex items-center justify-between gap-4 transition-all duration-500',
+          // nav-pill class is ALWAYS applied; CSS keeps it transparent until
+          // scrolled. Only background / shadow / padding transition — never
+          // border-width, which was causing a 1px white outline flash in dark
+          // mode during the transition.
+          'nav-pill container flex items-center justify-between gap-4 rounded-2xl backdrop-blur-xl',
           scrolled
-            ? 'nav-pill rounded-2xl px-4 lg:px-6 py-3 max-w-5xl backdrop-blur-xl'
-            : '',
+            ? 'nav-pill-scrolled px-4 lg:px-6 py-3 max-w-5xl'
+            : 'px-4 lg:px-6 py-3',
         )}>
           <Link href="/" className="flex items-center gap-2.5 group">
             <Logo />
