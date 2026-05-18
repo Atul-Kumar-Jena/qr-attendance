@@ -609,34 +609,3 @@ html.theme-transitioning *::after {
     transition: transform 0.3s ease;
   }
 }
-
-/* ─── Polish: magnetic hover transition + decorative pulses ───────────── */
-[data-magnetic] {
-  transition: transform 0.35s cubic-bezier(.16, 1, .3, 1);
-}
-
-/* Subtle ink-pulse used by decorative backgrounds */
-@keyframes inkPulse {
-  0%, 100% { transform: scale(1);    opacity: 0.05; }
-  50%      { transform: scale(1.04); opacity: 0.10; }
-}
-.ink-pulse { animation: inkPulse 6s ease-in-out infinite; }
-
-/* Marquee never lets paragraph-spacing collide with edge fade */
-.marquee-track { padding-inline: 0; }
-
-/* Solution strike-line: ensure transform-only state stays harmless */
-.strike-line { will-change: transform; }
-
-/* Strong hover-line on Faq rows that draws in from left */
-.faq-row { position: relative; }
-.faq-row::before {
-  content: "";
-  position: absolute;
-  left: 0; bottom: 0;
-  height: 1px; width: 100%;
-  background: var(--accent);
-  transform: scaleX(0); transform-origin: left center;
-  transition: transform 0.5s cubic-bezier(.7, 0, .2, 1);
-}
-.faq-row:hover::before { transform: scaleX(1); }
