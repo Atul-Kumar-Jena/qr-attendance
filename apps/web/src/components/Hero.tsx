@@ -22,7 +22,10 @@ export function Hero() {
   const sub = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
+    if (typeof window === 'undefined' || !root.current) return;
+    let ctx: ReturnType<typeof gsap.context> | undefined;
+    try {
+    ctx = gsap.context(() => {
       // 1) Headline mask reveal
       gsap.fromTo('.hero-line .reveal-line',
         { yPercent: 110, rotateZ: 2 },
@@ -112,7 +115,8 @@ export function Hero() {
 
       return () => window.removeEventListener('pointermove', onMove);
     }, root);
-    return () => ctx.revert();
+    } catch { /* GSAP failure must not crash the page */ }
+    return () => { try { ctx?.revert(); } catch {} };
   }, []);
 
   return (

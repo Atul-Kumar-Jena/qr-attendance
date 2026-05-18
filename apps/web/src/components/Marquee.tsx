@@ -27,36 +27,60 @@ export function Marquee() {
   const track = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      const skewSetter = gsap.quickSetter(track.current!, 'skewX', 'deg');
-      const speedSetter = gsap.quickSetter(track.current!, 'x', 'px');
-      let baseX = 0;
-      const baseTween = gsap.to({}, {
-        duration: 40, repeat: -1, ease: 'none',
-        onUpdate() { baseX -= (track.current!.offsetWidth / 2) / (40 * 60); },
-      });
+    if (typeof window === 'undefined' || !root.current || !track.current) return;
+    let ctx: ReturnType<typeof gsap.context> | undefined;
+    let tickerFn: (() => void) | null = null;
+    let baseTween: gsap.core.Tween | null = null;
+    try {
+      ctx = gsap.context(() => {
+        const t = track.current;
+        const r = root.current;
+        if (!t || !r) return;
+        const skewSetter = gsap.quickSetter(t, 'skewX', 'deg');
+        const speedSetter = gsap.quickSetter(t, 'x', 'px');
+        let baseX = 0;
+        baseTween = gsap.to({}, {
+          duration: 40, repeat: -1, ease: 'none',
+          onUpdate() {
+            const el = track.current;
+            if (!el) return;
+            baseX -= (el.offsetWidth / 2) / (40 * 60);
+          },
+        });
 
-      ScrollTrigger.create({
-        trigger: root.current,
-        start: 'top bottom',
-        end: 'bottom top',
-        onUpdate: (self) => {
-          const v = self.getVelocity() / 400;
-          skewSetter(gsap.utils.clamp(-12, 12, v));
-          gsap.to(track.current, {
-            skewX: 0,
-            duration: 0.8,
-            ease: 'power3.out',
-            overwrite: true,
-          });
-        },
-      });
+        ScrollTrigger.create({
+          trigger: r,
+          start: 'top bottom',
+          end: 'bottom top',
+          onUpdate: (self) => {
+            const el = track.current;
+            if (!el) return;
+            const v = self.getVelocity() / 400;
+            skewSetter(gsap.utils.clamp(-12, 12, v));
+            gsap.to(el, {
+              skewX: 0,
+              duration: 0.8,
+              ease: 'power3.out',
+              overwrite: true,
+            });
+          },
+        });
 
-      // RAF loop for steady horizontal motion
-      gsap.ticker.add(() => speedSetter(baseX % (track.current!.offsetWidth / 2)));
-      return () => baseTween.kill();
-    }, root);
-    return () => ctx.revert();
+        // RAF loop — must guard against null ref or removal during unmount
+        tickerFn = () => {
+          const el = track.current;
+          if (!el) return;
+          speedSetter(baseX % (el.offsetWidth / 2));
+        };
+        gsap.ticker.add(tickerFn);
+      }, root);
+    } catch { /* GSAP failure must not crash the page */ }
+
+    return () => {
+      try { if (tickerFn) gsap.ticker.remove(tickerFn); } catch {}
+      try { baseTween?.kill(); } catch {}
+      try { ctx?.revert(); } catch {}
+    };
   }, []);
 
   return (

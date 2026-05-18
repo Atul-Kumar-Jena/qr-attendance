@@ -103,24 +103,36 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
-    const { doc, onSnapshot } = require('firebase/firestore');
-    const ref = doc(db, 'config', 'site');
-    const unsub = onSnapshot(
-      ref,
-      (snap: { exists: () => boolean; data: () => Record<string, unknown> }) => {
-        if (snap.exists()) {
-          const next = { ...DEFAULT_CONFIG, ...snap.data() } as SiteConfig;
-          setConfig(next);
-          writeLocalStorage(next);
-        }
+    let unsub: (() => void) | undefined;
+    try {
+      const { doc, onSnapshot } = require('firebase/firestore');
+      if (!doc || typeof doc !== 'function') {
         setLoading(false);
-      },
-      (_err: unknown) => {
-        // Firestore read failed — use localStorage fallback silently
-        setLoading(false);
-      },
-    );
-    return () => unsub();
+        return;
+      }
+      const ref = doc(db, 'config', 'site');
+      unsub = onSnapshot(
+        ref,
+        (snap: { exists: () => boolean; data: () => Record<string, unknown> }) => {
+          if (snap.exists()) {
+            const next = { ...DEFAULT_CONFIG, ...snap.data() } as SiteConfig;
+            setConfig(next);
+            writeLocalStorage(next);
+          }
+          setLoading(false);
+        },
+        (_err: unknown) => {
+          // Firestore read failed — use localStorage fallback silently
+          setLoading(false);
+        },
+      );
+    } catch (e) {
+      // Firestore failed to initialise — site still works on local config
+      // eslint-disable-next-line no-console
+      console.warn('[Attendly] SiteConfig Firestore subscribe failed:', e);
+      setLoading(false);
+    }
+    return () => { try { unsub?.(); } catch {} };
   }, []);
 
   // Apply CSS custom properties whenever colors change

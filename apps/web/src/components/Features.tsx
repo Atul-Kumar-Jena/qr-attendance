@@ -81,11 +81,13 @@ function IlluDynamicQR() {
         </animateMotion>
       </circle>
       <path id="orbit-path" d="M140,25 A70,70 0 1,1 139.99,25" fill="none"/>
-      {/* QR grid cells */}
+      {/* QR grid cells — deterministic pattern (no Math.random during render
+          or hydration mismatches cascade into GSAP ScrollTrigger crashes) */}
       {Array.from({length:9}, (_,row) => Array.from({length:9}, (_,col) => {
-        const on = (row<3&&col<3) || (row<3&&col>=6) || (row>=6&&col<3) ||
-          Math.random() > 0.45;
         const isFnd = (row<3&&col<3)||(row<3&&col>=6)||(row>=6&&col<3);
+        // Seeded pseudo-random from indices; same value SSR and CSR
+        const seed = Math.sin(row * 12.9898 + col * 78.233) * 43758.5453;
+        const on = isFnd || (seed - Math.floor(seed)) > 0.45;
         const x = 95 + col*10;
         const y = 50 + row*10;
         return on ? (
@@ -356,39 +358,30 @@ export function Features() {
   const track = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     if (window.matchMedia('(max-width: 900px)').matches) return;
-    const ctx = gsap.context(() => {
-      const cards = gsap.utils.toArray<HTMLElement>('.feat-card');
-      const total = (cards.length - 1) * 380;
-      gsap.to(track.current, {
-        x: () => `-${total}px`,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: root.current,
-          pin: true,
-          start: 'top top',
-          end: () => `+=${total + 200}`,
-          scrub: 1,
-          invalidateOnRefresh: true,
-        },
-      });
-      cards.forEach((card, i) => {
-        gsap.fromTo(card,
-          { opacity: 0.3, scale: 0.92 },
-          {
-            opacity: 1, scale: 1,
-            duration: 0.8, ease: 'power2.out',
-            scrollTrigger: {
-              trigger: card,
-              containerAnimation: (ScrollTrigger.getById('features-pin') as gsap.core.Animation | undefined) ?? undefined,
-              start: 'left 80%',
-              toggleActions: 'play none none reverse',
-            },
+    if (!root.current || !track.current) return;
+    let ctx: ReturnType<typeof gsap.context> | undefined;
+    try {
+      ctx = gsap.context(() => {
+        const cards = gsap.utils.toArray<HTMLElement>('.feat-card');
+        if (cards.length === 0 || !track.current || !root.current) return;
+        const total = (cards.length - 1) * 380;
+        gsap.to(track.current, {
+          x: () => `-${total}px`,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: root.current,
+            pin: true,
+            start: 'top top',
+            end: () => `+=${total + 200}`,
+            scrub: 1,
+            invalidateOnRefresh: true,
           },
-        );
-      });
-    }, root);
-    return () => ctx.revert();
+        });
+      }, root);
+    } catch { /* GSAP failure must not crash the page */ }
+    return () => { try { ctx?.revert(); } catch {} };
   }, []);
 
   return (

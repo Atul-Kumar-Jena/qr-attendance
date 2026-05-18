@@ -47,10 +47,12 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
   useEffect(() => {
     if (!isConfigured || !auth) { setLoading(false); return; }
 
-    const { onAuthStateChanged } = require('firebase/auth');
-    const { doc, getDoc, setDoc, serverTimestamp } = require('firebase/firestore');
+    let unsub: (() => void) | undefined;
+    try {
+      const { onAuthStateChanged } = require('firebase/auth');
+      const { doc, getDoc, setDoc, serverTimestamp } = require('firebase/firestore');
 
-    const unsub = onAuthStateChanged(auth, async (u: User | null) => {
+      unsub = onAuthStateChanged(auth, async (u: User | null) => {
       setUser(u);
       if (u) {
         let resolvedRole: Role = 'student';
@@ -92,7 +94,12 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
       }
       setLoading(false);
     });
-    return () => unsub();
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[Attendly] Auth init failed:', e);
+      setLoading(false);
+    }
+    return () => { try { unsub?.(); } catch {} };
   }, []);
 
   const signIn = async () => {
