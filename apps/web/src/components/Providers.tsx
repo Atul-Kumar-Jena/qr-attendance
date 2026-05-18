@@ -9,6 +9,7 @@ import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { OnboardingFlow } from '@/components/OnboardingFlow';
 import { CookieConsent } from '@/components/CookieConsent';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import type { User } from 'firebase/auth';
 
 function AuthWithToasts({ children }: { children: ReactNode }) {
@@ -49,16 +50,18 @@ function OnboardingGate({ children }: { children: ReactNode }) {
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <ThemeProvider>
-      <ToastProvider>
-        <SiteConfigProvider>
-          <AuthWithToasts>
-            {children}
-            <ToastContainer />
-            <CookieConsent />
-          </AuthWithToasts>
-        </SiteConfigProvider>
-      </ToastProvider>
-    </ThemeProvider>
+    <ErrorBoundary name="root">
+      <ThemeProvider>
+        <ToastProvider>
+          <SiteConfigProvider>
+            <AuthWithToasts>
+              {children}
+              <ErrorBoundary name="toasts" fallback={null}><ToastContainer /></ErrorBoundary>
+              <ErrorBoundary name="cookie-consent" fallback={null}><CookieConsent /></ErrorBoundary>
+            </AuthWithToasts>
+          </SiteConfigProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
