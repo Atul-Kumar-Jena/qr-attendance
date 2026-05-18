@@ -4,6 +4,19 @@ import { useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import gsap from 'gsap';
 
+// Next.js static export sets basePath = '/qr-attendance'.
+// anchor.getAttribute('href') already returns '/qr-attendance/admin' (Next.js
+// renders it that way in the DOM), but router.push() ALSO prepends basePath.
+// Stripping it first prevents double-prefix → /qr-attendance/qr-attendance/admin 404.
+const BASE_PATH = '/qr-attendance';
+function stripBase(href: string): string {
+  if (href.startsWith(BASE_PATH)) {
+    const stripped = href.slice(BASE_PATH.length);
+    return stripped || '/';
+  }
+  return href;
+}
+
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -28,22 +41,24 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
     const onClick = (e: MouseEvent) => {
       const anchor = (e.target as Element).closest('a');
       if (!anchor) return;
-      const href = anchor.getAttribute('href');
+      const rawHref = anchor.getAttribute('href');
       if (
-        !href ||
-        href.startsWith('#') ||
-        href.startsWith('http') ||
-        href.startsWith('mailto') ||
+        !rawHref ||
+        rawHref.startsWith('#') ||
+        rawHref.startsWith('http') ||
+        rawHref.startsWith('mailto') ||
+        rawHref.startsWith('tel') ||
         anchor.target === '_blank'
       ) return;
 
+      const route = stripBase(rawHref);
       e.preventDefault();
       gsap.to(el, {
         opacity: 0,
         y: -8,
         duration: 0.28,
         ease: 'power2.in',
-        onComplete: () => router.push(href),
+        onComplete: () => router.push(route),
       });
     };
 
@@ -57,4 +72,3 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-

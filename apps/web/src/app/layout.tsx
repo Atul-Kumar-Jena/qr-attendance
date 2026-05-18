@@ -3,6 +3,7 @@ import { DM_Sans, Cormorant_Garamond } from 'next/font/google';
 import '../styles/globals.css';
 import { PageTransition } from '@/components/PageTransition';
 import { Providers } from '@/components/Providers';
+import { DeepLinkRestore } from '@/components/DeepLinkRestore';
 
 const sans = DM_Sans({
   subsets: ['latin'],
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="font-sans antialiased">
         <Providers>
+          <DeepLinkRestore />
           <PageTransition>{children}</PageTransition>
         </Providers>
       </body>

@@ -11,7 +11,6 @@ import { Pricing } from '@/components/Pricing';
 import { Faq } from '@/components/Faq';
 import { CTA } from '@/components/CTA';
 import { Footer } from '@/components/Footer';
-import { Cursor } from '@/components/Cursor';
 import { ScrollProgress } from '@/components/ScrollProgress';
 import { SmoothScroll } from '@/components/SmoothScroll';
 import { GridBackground } from '@/components/GridBackground';
@@ -23,7 +22,6 @@ export default function Page() {
       <GridBackground />
       <SmoothScroll />
       <ScrollProgress />
-      <Cursor />
       <DarkModeNudge />
       <Nav />
       <Hero />

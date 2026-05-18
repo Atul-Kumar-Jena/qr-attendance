@@ -9,6 +9,7 @@ import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { OnboardingFlow } from '@/components/OnboardingFlow';
 import { CookieConsent } from '@/components/CookieConsent';
+import { Cursor } from '@/components/Cursor';
 import type { User } from 'firebase/auth';
 
 function AuthWithToasts({ children }: { children: ReactNode }) {
@@ -56,6 +57,7 @@ export function Providers({ children }: { children: ReactNode }) {
             {children}
             <ToastContainer />
             <CookieConsent />
+            <Cursor />
           </AuthWithToasts>
         </SiteConfigProvider>
       </ToastProvider>

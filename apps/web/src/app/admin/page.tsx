@@ -15,20 +15,40 @@ function useTourGuide(role: Role | null) {
     const key = `atd_tour_${role}`;
     if (localStorage.getItem(key)) return;
     localStorage.setItem(key, '1');
+
+    const ALL_STEPS = [
+      { element: '#tour-overview',     popover: { title: 'Overview',        description: 'Your dashboard at a glance — sessions, students, attendance stats.' } },
+      { element: '#tour-students',     popover: { title: 'Students',         description: 'Add, search and manage students. Click a student to add remarks.' } },
+      { element: '#tour-manage-users', popover: { title: 'Manage Users',     description: 'Invite admins and teachers, change roles, suspend accounts.' } },
+      { element: '#tour-institution',  popover: { title: 'Institution',      description: 'Your institution code lives here — share it so others can join.' } },
+      { element: '#tour-qr-btn',       popover: { title: 'Start QR Session', description: 'Launch a live QR session. Codes rotate every second — impossible to fake.' } },
+    ];
+
+    let timer: ReturnType<typeof setTimeout>;
     import('driver.js').then(({ driver }) => {
-      import('driver.js/dist/driver.css' as any).catch(() => {});
-      const d = driver({
-        animate: true, smoothScroll: true, showProgress: true,
-        steps: [
-          { element: '#tour-overview', popover: { title: 'Overview', description: 'Your dashboard at a glance — sessions, students, attendance stats.' } },
-          { element: '#tour-students', popover: { title: 'Students', description: 'Add, search and manage students. Click a student to add remarks.' } },
-          { element: '#tour-manage-users', popover: { title: 'Manage Users', description: 'Invite admins and teachers, change roles, suspend accounts.' } },
-          { element: '#tour-institution', popover: { title: 'Institution', description: 'Your institution code lives here — share it so others can join.' } },
-          { element: '#tour-qr-btn', popover: { title: 'Start QR Session', description: 'Launch a live QR session. The code rotates every second — impossible to fake.' } },
-        ],
-      });
-      setTimeout(() => d.drive(), 800);
+      // Extra delay ensures React has committed the full sidebar DOM before
+      // driver.js reads offsetWidth/offsetHeight. Passing a null element
+      // to driver.js v1 throws "Cannot read properties of null (reading
+      // 'offsetWidth')" which React 18 catches globally → RootCrashScreen.
+      timer = setTimeout(() => {
+        try {
+          const steps = ALL_STEPS.filter(s => !!document.querySelector(s.element));
+          if (steps.length === 0) return;
+          const d = driver({
+            animate: true,
+            smoothScroll: true,
+            showProgress: true,
+            allowClose: true,
+            overlayClickBehavior: 'close',
+            steps,
+            onDestroyStarted: () => { try { d.destroy(); } catch {} },
+          });
+          d.drive();
+        } catch { /* tour failure is non-fatal */ }
+      }, 1500);
     }).catch(() => {});
+
+    return () => { try { clearTimeout(timer); } catch {} };
   }, [role]);
 }
 
