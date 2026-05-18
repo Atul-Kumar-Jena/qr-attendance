@@ -18,25 +18,48 @@ export function CTA() {
   const path = useRef<SVGPathElement>(null);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.fromTo(big.current,
-        { scale: 0.6, yPercent: 30, opacity: 0, letterSpacing: '0.4em' },
-        {
-          scale: 1, yPercent: 0, opacity: 1, letterSpacing: '-0.04em',
-          ease: 'expo.out',
-          scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'center center', scrub: 1 },
-        });
+    if (typeof window === 'undefined') return;
+    let ctx: ReturnType<typeof gsap.context> | undefined;
+    let onMove: ((e: PointerEvent) => void) | null = null;
+    try {
+      ctx = gsap.context(() => {
+        // Giant text grows + tightens as you scroll into view
+        gsap.fromTo(big.current,
+          { scale: 0.6, yPercent: 30, opacity: 0, letterSpacing: '0.4em' },
+          {
+            scale: 1, yPercent: 0, opacity: 1, letterSpacing: '-0.04em',
+            ease: 'expo.out',
+            scrollTrigger: { trigger: root.current, start: 'top 80%', end: 'center center', scrub: 1 },
+          });
 
-      const p = path.current;
-      if (!p) return;
-      const len = p.getTotalLength();
-      gsap.set(p, { strokeDasharray: len, strokeDashoffset: len });
-      gsap.to(p, {
-        strokeDashoffset: 0, ease: 'none',
-        scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'bottom 60%', scrub: 1 },
-      });
-    }, root);
-    return () => ctx.revert();
+        // Path draws on with scroll
+        const p = path.current;
+        if (p) {
+          const len = p.getTotalLength();
+          gsap.set(p, { strokeDasharray: len, strokeDashoffset: len });
+          gsap.to(p, {
+            strokeDashoffset: 0, ease: 'none',
+            scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'bottom 60%', scrub: 1 },
+          });
+        }
+
+        // Subtle parallax — giant text drifts slightly with cursor
+        onMove = (e: PointerEvent) => {
+          if (!big.current) return;
+          const { innerWidth: w, innerHeight: h } = window;
+          gsap.to(big.current, {
+            x: (e.clientX - w / 2) * 0.012,
+            y: (e.clientY - h / 2) * 0.012,
+            duration: 1.4, ease: 'power3.out', overwrite: 'auto',
+          });
+        };
+        window.addEventListener('pointermove', onMove);
+      }, root);
+    } catch { /* GSAP failure must not crash the page */ }
+    return () => {
+      if (onMove) window.removeEventListener('pointermove', onMove);
+      try { ctx?.revert(); } catch {}
+    };
   }, []);
 
   return (

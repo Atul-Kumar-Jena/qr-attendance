@@ -84,7 +84,13 @@ export function Marquee() {
   }, []);
 
   return (
-    <section ref={root} className="border-y border-ink/8 py-7 bg-cream-100/60 overflow-hidden">
+    <section ref={root} className="relative border-y border-ink/8 py-7 bg-cream-100/60 overflow-hidden">
+      {/* Edge-fade masks — keeps the marquee text from "hitting" the viewport
+          edges harshly. CSS mask-image is bg-aware so it works in dark mode. */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-24 z-10"
+        style={{ background: 'linear-gradient(to right, var(--bg-2), transparent)' }} />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-24 z-10"
+        style={{ background: 'linear-gradient(to left,  var(--bg-2), transparent)' }} />
       <div ref={track} className="flex whitespace-nowrap will-change-transform">
         {[...ITEMS, ...ITEMS].map((t, i) => (
           <span

@@ -26,19 +26,30 @@ export function Faq() {
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.from('.faq-row', {
-        opacity: 0, y: 30, stagger: 0.06, ease: 'power3.out', duration: 0.8,
-        scrollTrigger: { trigger: root.current, start: 'top 80%' },
-      });
-    }, root);
-    return () => ctx.revert();
+    if (typeof window === 'undefined') return;
+    let ctx: ReturnType<typeof gsap.context> | undefined;
+    try {
+      ctx = gsap.context(() => {
+        gsap.from('.faq-row', {
+          opacity: 0, y: 30, stagger: 0.06, ease: 'power3.out', duration: 0.8,
+          immediateRender: false,
+          scrollTrigger: { trigger: root.current, start: 'top 85%' },
+        });
+        // Section heading wipe
+        gsap.from('.faq-head', {
+          opacity: 0, y: 24, duration: 1, ease: 'power3.out',
+          immediateRender: false,
+          scrollTrigger: { trigger: root.current, start: 'top 85%' },
+        });
+      }, root);
+    } catch { /* GSAP failure must not crash the page */ }
+    return () => { try { ctx?.revert(); } catch {} };
   }, []);
 
   return (
     <section ref={root} className="py-28 lg:py-40">
       <div className="container grid lg:grid-cols-[1fr_2fr] gap-12">
-        <div>
+        <div className="faq-head">
           <span className="text-[11px] tracking-[0.3em] text-ink-mute uppercase">[ 07 — faq ]</span>
           <h2 className="mt-4 font-display text-[2.5rem] lg:text-[3.4rem] leading-[1.02] tracking-tightish">
             Asked often.
@@ -57,24 +68,36 @@ export function Faq() {
 function Row({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   const body = useRef<HTMLDivElement>(null);
+  const plus = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     if (!body.current) return;
-    gsap.to(body.current, {
-      height: open ? body.current.scrollHeight : 0,
-      opacity: open ? 1 : 0,
-      duration: 0.6,
-      ease: 'expo.inOut',
-    });
+    try {
+      gsap.to(body.current, {
+        height: open ? body.current.scrollHeight : 0,
+        opacity: open ? 1 : 0,
+        duration: 0.6,
+        ease: 'expo.inOut',
+      });
+      // Plus icon bounces into × with elastic feel
+      if (plus.current) {
+        gsap.to(plus.current, {
+          rotate: open ? 135 : 0,
+          scale: open ? 1.15 : 1,
+          duration: 0.55,
+          ease: open ? 'back.out(2.4)' : 'power3.out',
+        });
+      }
+    } catch {}
   }, [open]);
   return (
-    <li className="faq-row py-5">
+    <li className="faq-row py-5 group">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between text-left gap-6"
+        className="w-full flex items-center justify-between text-left gap-6 cursor-pointer"
         data-magnetic
       >
-        <span className="font-display text-[1.35rem] leading-tight">{q}</span>
-        <span className={`text-2xl text-accent transition-transform ${open ? 'rotate-45' : ''}`}>+</span>
+        <span className="font-display text-[1.35rem] leading-tight group-hover:text-accent transition-colors duration-300">{q}</span>
+        <span ref={plus} className="text-2xl text-accent inline-block">+</span>
       </button>
       <div ref={body} className="overflow-hidden h-0 opacity-0 text-[14px] text-ink-mute max-w-2xl">
         <p className="pt-3">{a}</p>
