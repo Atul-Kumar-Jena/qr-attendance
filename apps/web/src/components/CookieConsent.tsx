@@ -7,6 +7,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 const STORAGE_KEY = 'atd_cookies';
 const TERMS_KEY = 'atd_terms';
 
+// Pages where the banner would block users reading the policy itself.
+const SUPPRESSED_PATHS = ['/cookies', '/terms', '/profile'];
+
+function pathIsSuppressed(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const path = window.location.pathname;
+    return SUPPRESSED_PATHS.some((p) => path.includes(p));
+  } catch { return false; }
+}
+
 export function CookieConsent() {
   const [visible, setVisible] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -15,6 +26,7 @@ export function CookieConsent() {
 
   useEffect(() => {
     try {
+      if (pathIsSuppressed()) return; // never show on /cookies, /terms, /profile
       if (!localStorage.getItem(STORAGE_KEY) || !localStorage.getItem(TERMS_KEY)) {
         const t = setTimeout(() => setVisible(true), 1200);
         return () => clearTimeout(t);
@@ -69,7 +81,7 @@ export function CookieConsent() {
                 </div>
               </div>
 
-              {/* Expandable details */}
+              {/* Expandable details — plain language only */}
               <AnimatePresence initial={false}>
                 {expanded && (
                   <motion.div
@@ -79,19 +91,18 @@ export function CookieConsent() {
                     transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                     className="overflow-hidden"
                   >
-                    <div className="px-5 pb-2 text-[12px] text-ink-mute leading-relaxed">
+                    <div className="px-5 pb-2 text-[12.5px] text-ink-mute leading-relaxed">
                       <ul className="space-y-1.5 mb-3">
-                        <li>• <span className="font-medium text-ink dark:text-cream-50/90">Necessary:</span> sign-in session, theme, consent record</li>
-                        <li>• <span className="font-medium text-ink dark:text-cream-50/90">Functional:</span> tour state, onboarding progress</li>
-                        <li>• <span className="font-medium text-ink dark:text-cream-50/90">No analytics:</span> we don&apos;t track, profile or resell anything</li>
+                        <li>• Keep you signed in across visits</li>
+                        <li>• Remember your light/dark theme choice</li>
+                        <li>• Skip the guided tour after you&apos;ve seen it once</li>
+                        <li>• No third-party trackers or ads</li>
                       </ul>
                       <Link
                         href="/cookies"
                         className="inline-flex items-center gap-1 text-accent hover:underline text-[12px]"
-                        target="_blank"
-                        rel="noopener"
                       >
-                        Read full cookie policy →
+                        Read the full policy →
                       </Link>
                     </div>
                   </motion.div>
@@ -108,12 +119,12 @@ export function CookieConsent() {
                     className="mt-0.5 w-4 h-4 rounded border-ink/25 dark:border-white/25 accent-accent cursor-pointer"
                   />
                   <span className="text-[12px] text-ink-mute leading-relaxed group-hover:text-ink dark:group-hover:text-cream-50/90 transition-colors">
-                    I have read and agree to the{' '}
-                    <Link href="/terms" target="_blank" rel="noopener" className="text-accent hover:underline">
-                      Terms of Service
+                    I agree to the{' '}
+                    <Link href="/terms" className="text-accent hover:underline">
+                      Terms
                     </Link>
                     {' '}and{' '}
-                    <Link href="/cookies" target="_blank" rel="noopener" className="text-accent hover:underline">
+                    <Link href="/cookies" className="text-accent hover:underline">
                       Cookie Policy
                     </Link>.
                   </span>
