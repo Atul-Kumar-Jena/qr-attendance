@@ -3,6 +3,9 @@ import { createContext, useContext, useEffect, useState, useRef, ReactNode } fro
 import { db } from '@/lib/firebase';
 
 export type PricingMode = 'LIMITED_OFFER' | 'PAID' | 'FREE';
+export const VALID_PRICING_MODES: PricingMode[] = ['LIMITED_OFFER', 'PAID', 'FREE'];
+
+export interface StatItem { tag: string; value: string; sub: string; }
 
 export interface SiteConfig {
   siteTitle: string;
@@ -26,6 +29,7 @@ export interface SiteConfig {
   defaultQrRotationSec: number;
   loginRateLimitMax: number;
   scanRateLimitMax: number;
+  siteStats: StatItem[];
 }
 
 export const DEFAULT_CONFIG: SiteConfig = {
@@ -50,6 +54,7 @@ export const DEFAULT_CONFIG: SiteConfig = {
   defaultQrRotationSec: 7,
   loginRateLimitMax: 5,
   scanRateLimitMax: 10,
+  siteStats: [],
 };
 
 interface SaveResult { ok: boolean; error?: string }
@@ -67,8 +72,6 @@ const SiteConfigContext = createContext<SiteConfigState>({
 });
 
 const LS_KEY = 'attendly_site_config';
-
-const VALID_PRICING_MODES: PricingMode[] = ['LIMITED_OFFER', 'PAID', 'FREE'];
 
 function readLocalStorage(): Partial<SiteConfig> {
   if (typeof window === 'undefined') return {};
@@ -149,7 +152,7 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
               for (const [k, v] of Object.entries(raw)) {
                 if (k in DEFAULT_CONFIG) safe[k] = v;
               }
-              if (safe.pricingMode && !VALID_PRICING_MODES.includes(safe.pricingMode as PricingMode)) {
+              if (safe.pricingMode && !(VALID_PRICING_MODES as string[]).includes(safe.pricingMode as string)) {
                 delete safe.pricingMode;
               }
               if (safe.limitedOfferDiscountPct != null && (typeof safe.limitedOfferDiscountPct !== 'number' || isNaN(safe.limitedOfferDiscountPct as number))) {

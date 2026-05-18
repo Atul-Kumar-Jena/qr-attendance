@@ -119,7 +119,6 @@ export function Nav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Outside-click dismiss for mobile menu
   useEffect(() => {
     if (!menuOpen) return;
     const handler = (e: MouseEvent) => {
@@ -134,7 +133,6 @@ export function Nav() {
     return () => document.removeEventListener('mousedown', handler);
   }, [menuOpen]);
 
-  // Animate menu open/close
   useEffect(() => {
     if (!menuRef.current) return;
     if (menuOpen) {
@@ -147,14 +145,12 @@ export function Nav() {
     }
   }, [menuOpen]);
 
-  // Entrance animation
   useEffect(() => {
     gsap.fromTo(headerRef.current,
       { y: -20, opacity: 0 },
       { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out', delay: 0.1 },
     );
   }, []);
-
 
   return (
     <>
@@ -167,35 +163,47 @@ export function Nav() {
       >
         <div
           className={cn(
-            'container flex items-center justify-between transition-all duration-500',
-            scrolled
-              ? 'rounded-2xl border border-ink/8 px-5 py-3 max-w-3xl backdrop-blur-xl bg-cream-50/80 shadow-[0_4px_32px_-4px_rgba(11,18,32,0.12)] dark:shadow-[0_4px_40px_-4px_rgba(0,0,0,0.6),0_0_0_1px_rgba(240,237,230,0.07)]'
-              : '',
+            'container relative flex items-center justify-between transition-all duration-500',
+            scrolled ? 'max-w-3xl px-5 py-3' : '',
           )}
         >
-          <Link href="/" className="flex items-center gap-2.5 group">
+          {/* Pill background — fades in as a single layer to avoid dark-mode rectangle flash */}
+          <div
+            aria-hidden
+            className={cn(
+              'absolute inset-0 rounded-2xl transition-opacity duration-500 pointer-events-none',
+              scrolled ? 'opacity-100' : 'opacity-0',
+              'bg-cream-50/80 dark:bg-[#0D0F14]/85 backdrop-blur-xl',
+              'border border-ink/8 dark:border-white/10',
+              'shadow-[0_4px_32px_-4px_rgba(11,18,32,0.12)] dark:shadow-[0_4px_40px_-4px_rgba(0,0,0,0.6),0_0_0_1px_rgba(240,237,230,0.06)]',
+            )}
+          />
+
+          {/* Logo */}
+          <Link href="/" className="relative z-10 flex items-center gap-2.5 group flex-shrink-0">
             <Logo />
             <span className="font-display text-[1.25rem] leading-none tracking-tight">Attendly</span>
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-7 text-[13px] tracking-wide text-ink-mute">
+          <nav className={cn(
+            'relative z-10 hidden md:flex items-center text-[13px] tracking-wide text-ink-mute',
+            scrolled ? 'gap-5' : 'gap-7',
+          )}>
             {links.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
-                className="relative py-1 hover:text-ink dark:hover:text-white/90 transition-colors duration-200 after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full"
+                className="relative py-1 whitespace-nowrap hover:text-ink dark:hover:text-white/90 transition-colors duration-200 after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full"
               >
                 {l.label}
               </Link>
             ))}
           </nav>
 
-          <div className="flex items-center gap-3">
-            {/* Theme toggle */}
+          <div className="relative z-10 flex items-center gap-3 flex-shrink-0">
             <ThemeToggle />
 
-            {/* Sign in / avatar */}
             {user ? (
               <Link href="/admin" className="hidden sm:flex items-center gap-2 text-[12.5px] tracking-wide text-ink-mute hover:text-ink dark:hover:text-white/90 transition-colors">
                 <UserAvatar />
@@ -214,7 +222,7 @@ export function Nav() {
             >
               Request demo
             </Link>
-            {/* Hamburger */}
+
             <button
               ref={hamburgerRef}
               className="md:hidden flex flex-col gap-1.5 p-1"
@@ -229,14 +237,13 @@ export function Nav() {
         </div>
       </header>
 
-      {/* Mobile menu backdrop */}
       {menuOpen && <div className="fixed inset-0 z-30 md:hidden" onClick={() => setMenuOpen(false)} />}
 
-      {/* Mobile menu — top adjusts with header height */}
       <div
         ref={menuRef}
         className={cn(
-          'fixed inset-x-4 z-40 rounded-2xl border border-ink/8 bg-cream-50/95 backdrop-blur-xl p-6 shadow-lg md:hidden opacity-0 pointer-events-none',
+          'fixed inset-x-4 z-40 rounded-2xl border border-ink/8 dark:border-white/10',
+          'bg-cream-50/95 dark:bg-[#0D0F14]/95 backdrop-blur-xl p-6 shadow-lg md:hidden opacity-0 pointer-events-none',
           scrolled ? 'top-[72px]' : 'top-[80px]',
         )}
       >
@@ -246,7 +253,7 @@ export function Nav() {
               key={l.href}
               href={l.href}
               onClick={() => setMenuOpen(false)}
-              className="text-[15px] text-ink-mute hover:text-ink transition-colors border-b border-ink/6 pb-4 last:border-0 last:pb-0"
+              className="text-[15px] text-ink dark:text-[#F0EDE6] hover:text-accent dark:hover:text-accent transition-colors border-b border-ink/6 dark:border-white/8 pb-4 last:border-0 last:pb-0"
             >
               {l.label}
             </Link>

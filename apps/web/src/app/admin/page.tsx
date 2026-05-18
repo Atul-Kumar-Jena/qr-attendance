@@ -1901,6 +1901,36 @@ function GodModePanel() {
         </div>
       </Card>
 
+      {/* Stats editor — "Numbers that speak for themselves" */}
+      <Card className="p-6 space-y-4">
+        <SectionTitle>Numbers — &quot;speak for themselves&quot;</SectionTitle>
+        <p className="text-[12px] text-ink-mute">8 stat cards (4 left column, 4 right). Leave all blank to restore defaults.</p>
+        <div className="space-y-2">
+          {Array.from({ length: 8 }, (_, i) => {
+            const stat = (local.siteStats?.[i]) || { tag: '', value: '', sub: '' };
+            const update = (field: 'tag' | 'value' | 'sub', val: string) => {
+              const next = Array.from({ length: 8 }, (__, j) => local.siteStats?.[j] || { tag: '', value: '', sub: '' }) as { tag: string; value: string; sub: string }[];
+              next[i] = { ...next[i], [field]: val };
+              set('siteStats', next);
+            };
+            return (
+              <div key={i} className="grid grid-cols-3 gap-2 items-center">
+                {i === 0 && <><div className="text-[10px] text-ink-mute">Label</div><div className="text-[10px] text-ink-mute">Value</div><div className="text-[10px] text-ink-mute">Subtitle</div></>}
+                <input value={stat.tag} onChange={e => update('tag', e.target.value)} placeholder={`Label ${i + 1}`}
+                  className="rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-1.5 text-[12px] dark:text-cream-50 focus:outline-none focus:ring-1 focus:ring-accent/40" />
+                <input value={stat.value} onChange={e => update('value', e.target.value)} placeholder="e.g. 99.7%"
+                  className="rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-1.5 text-[12px] dark:text-cream-50 focus:outline-none focus:ring-1 focus:ring-accent/40" />
+                <input value={stat.sub} onChange={e => update('sub', e.target.value)} placeholder={`Subtitle ${i + 1}`}
+                  className="rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-1.5 text-[12px] dark:text-cream-50 focus:outline-none focus:ring-1 focus:ring-accent/40" />
+              </div>
+            );
+          })}
+        </div>
+        <button onClick={() => set('siteStats', [])} className="text-[11px] text-ink-mute hover:text-accent transition-colors">
+          ↺ Reset to defaults
+        </button>
+      </Card>
+
       {/* Feature flags */}
       <Card className="p-6 space-y-4">
         <SectionTitle>Feature flags</SectionTitle>
