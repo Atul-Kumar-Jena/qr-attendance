@@ -3,47 +3,61 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 
-const CATEGORIES = [
+const ESSENTIALS = [
   {
-    icon: '🔐',
-    title: 'Keeping you signed in',
-    body: 'When you sign in with Google, we save a small token so you stay signed in next time you visit. No need to log in every page.',
+    icon: '🔑',
+    title: 'Sign-in token',
+    body: 'When you sign in with Google, we save a tiny token so you stay signed in next visit. Without this, you\'d have to log in on every page.',
+    cantTurnOff: true,
   },
   {
     icon: '🎨',
-    title: 'Remembering your preferences',
-    body: 'Light mode, dark mode, your institution code — we keep these on your device so the site loads the way you like it.',
-  },
-  {
-    icon: '🧭',
-    title: 'Showing you the tour just once',
-    body: 'The first time you visit a section, a quick guided tour appears. We remember that you\'ve seen it so it doesn\'t get in the way next time.',
-  },
-  {
-    icon: '🛡️',
-    title: 'Security & fraud prevention',
-    body: 'A tiny device fingerprint helps us catch fake attendance attempts. It stays on your device — never sent to advertisers.',
+    title: 'Theme & display',
+    body: 'Your light / dark / auto choice, your accent colour, and any layout tweaks you make. Just so the site looks the way you like it.',
+    cantTurnOff: true,
   },
 ];
 
-const PROMISES = [
-  'No third-party advertising or tracking pixels — ever.',
-  'No selling or sharing your data with marketers.',
-  'No cross-site profiling. Your activity stays with us.',
-  'You can clear everything any time with one click below.',
+const HELPFUL = [
+  {
+    icon: '🧭',
+    title: 'Guided tour memory',
+    body: 'The first time you open a new section, a quick walkthrough appears. We remember you\'ve seen it so it doesn\'t reappear.',
+  },
+  {
+    icon: '🎯',
+    title: 'Onboarding progress',
+    body: 'If you\'re a new student or institution, we save your step in the join flow — so refreshing the page doesn\'t start it over.',
+  },
+];
+
+const SECURITY = [
+  {
+    icon: '🛡️',
+    title: 'Device fingerprint',
+    body: 'A small random hash of your browser. Helps Attendly tell your scans apart from impostors. Never sent to anyone outside Attendly.',
+  },
+];
+
+const NEVER = [
+  'Third-party advertising cookies',
+  'Cross-site tracking pixels',
+  'Behavioural profiling for marketers',
+  'Selling or sharing data with brokers',
+  'Fingerprinting for ad networks',
 ];
 
 export default function CookiesPage() {
   return (
     <main className="min-h-screen bg-cream-100 dark:bg-[#0D0F14] px-6 py-16 relative overflow-hidden">
-      {/* Subtle backdrop */}
+      {/* Subtle backdrop with a different hue so users see this is a different doc from /terms */}
       <div
         aria-hidden
         className="absolute inset-0 opacity-40"
         style={{
           backgroundImage: [
-            'linear-gradient(rgba(139,92,246,0.05) 1px, transparent 1px)',
-            'linear-gradient(90deg, rgba(139,92,246,0.05) 1px, transparent 1px)',
+            'linear-gradient(rgba(139,92,246,0.06) 1px, transparent 1px)',
+            'linear-gradient(90deg, rgba(139,92,246,0.06) 1px, transparent 1px)',
           ].join(', '),
           backgroundSize: '48px 48px',
         }}
@@ -64,45 +78,46 @@ export default function CookiesPage() {
           </Link>
 
           <div className="text-[10.5px] tracking-[0.22em] uppercase text-ink-mute mb-4">
-            [ how we use cookies ]
+            [ document 02 · cookie policy ]
           </div>
-          <h1 className="font-display text-[2.6rem] md:text-[3.4rem] leading-[1.05] tracking-tightest text-ink dark:text-[#F0EDE6] mb-4">
-            Simple, <span className="italic text-accent">private,</span> respectful.
+          <h1 className="font-display text-[2.6rem] md:text-[3.4rem] leading-[1.05] tracking-tightest text-ink dark:text-[#F0EDE6] mb-3">
+            What we keep on <span className="italic text-accent">your device</span>.
           </h1>
-          <p className="text-[14.5px] text-ink-mute leading-relaxed mb-10">
-            We use a few small bits of local storage to make the site work and remember
-            your preferences. That&apos;s it. No ads, no trackers, no resold data.
+          <p className="text-[14.5px] text-ink-mute leading-relaxed mb-3">
+            We use a handful of small browser-side items so Attendly works smoothly. No ads, no trackers, no resold data.
+          </p>
+          <p className="text-[12px] text-ink-mute mb-10">
+            Effective: May 2026 · This page covers only your local browser storage. For the service agreement, see{' '}
+            <Link href="/terms" className="text-accent hover:underline">Terms &amp; Conditions</Link>.
           </p>
 
-          {/* What we use */}
-          <div className="text-[10.5px] tracking-[0.22em] uppercase text-ink-mute mb-3">
-            What we save
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3 mb-10">
-            {CATEGORIES.map((c, i) => (
-              <motion.div
-                key={c.title}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.06 * i }}
-                className="rounded-2xl border border-ink/8 dark:border-white/8 bg-cream-50 dark:bg-[#13161D] p-5"
-              >
-                <div className="text-[24px] mb-2 leading-none">{c.icon}</div>
-                <div className="text-[14px] font-medium text-ink dark:text-cream-50 mb-1">{c.title}</div>
-                <p className="text-[12.5px] text-ink-mute leading-relaxed">{c.body}</p>
-              </motion.div>
-            ))}
+          {/* Essential */}
+          <SectionHeader title="Essential — always on" tint="green" />
+          <div className="grid sm:grid-cols-2 gap-3 mb-8">
+            {ESSENTIALS.map((c, i) => <CookieCard key={c.title} card={c} i={i} accent="green" />)}
           </div>
 
-          {/* Our promise */}
-          <div className="text-[10.5px] tracking-[0.22em] uppercase text-ink-mute mb-3">
-            Our privacy promise
+          {/* Helpful */}
+          <SectionHeader title="Helpful — improve your experience" tint="blue" />
+          <div className="grid sm:grid-cols-2 gap-3 mb-8">
+            {HELPFUL.map((c, i) => <CookieCard key={c.title} card={c} i={i} accent="blue" />)}
           </div>
-          <div className="rounded-2xl border border-accent/30 bg-accent/5 dark:bg-accent/10 p-5 mb-10">
-            <ul className="space-y-2.5">
-              {PROMISES.map((p) => (
-                <li key={p} className="flex gap-2.5 text-[13px] text-ink dark:text-cream-50/90">
-                  <span className="text-accent flex-shrink-0">✓</span>
+
+          {/* Security */}
+          <SectionHeader title="Security — fraud prevention" tint="purple" />
+          <div className="grid sm:grid-cols-2 gap-3 mb-10">
+            {SECURITY.map((c, i) => <CookieCard key={c.title} card={c} i={i} accent="purple" />)}
+          </div>
+
+          {/* Never */}
+          <div className="rounded-2xl border border-red-400/25 bg-red-50/40 dark:bg-red-900/10 p-5 mb-10">
+            <h3 className="text-[13.5px] font-medium text-ink dark:text-cream-50 mb-2.5 flex items-center gap-2">
+              <span className="text-red-500">✗</span> What we never use
+            </h3>
+            <ul className="space-y-2">
+              {NEVER.map((p) => (
+                <li key={p} className="flex gap-2.5 text-[12.5px] text-ink-mute leading-relaxed">
+                  <span className="text-red-500 flex-shrink-0 text-[10px] mt-1">●</span>
                   <span>{p}</span>
                 </li>
               ))}
@@ -113,7 +128,7 @@ export default function CookiesPage() {
           <div className="rounded-2xl border border-ink/8 dark:border-white/8 bg-cream-50 dark:bg-[#13161D] p-5 mb-10">
             <h2 className="text-[14px] font-medium text-ink dark:text-cream-50 mb-1.5">In your control</h2>
             <p className="text-[12.5px] text-ink-mute leading-relaxed mb-3">
-              You can clear all saved preferences any time. Your sign-in, theme, and consent will reset.
+              You can clear everything we&apos;ve saved on your device in one click. Your sign-in, theme, tour state and device fingerprint will reset.
             </p>
             <Link
               href="/?reset=1"
@@ -135,15 +150,58 @@ export default function CookiesPage() {
               href="/terms"
               className="flex-1 rounded-xl border border-ink/15 dark:border-white/15 px-5 py-3.5 text-[13.5px] tracking-wide text-ink dark:text-cream-50/90 text-center hover:bg-ink/4 dark:hover:bg-white/6 transition-colors"
             >
-              Read terms of service
+              Read Terms &amp; Conditions →
             </Link>
           </div>
 
           <div className="mt-8 text-[11.5px] text-ink-mute text-center">
-            Questions? Email <a href="mailto:hello@attendly.app" className="text-accent hover:underline">hello@attendly.app</a>
+            Last updated May 2026 · <a href="mailto:hello@attendly.app" className="text-accent hover:underline">hello@attendly.app</a>
           </div>
         </motion.div>
       </div>
     </main>
+  );
+}
+
+function SectionHeader({ title, tint }: { title: string; tint: 'green' | 'blue' | 'purple' }) {
+  const dot =
+    tint === 'green' ? 'bg-green-500' :
+    tint === 'blue'  ? 'bg-blue-500'  : 'bg-purple-500';
+  return (
+    <div className="flex items-center gap-2.5 mb-3">
+      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+      <span className="text-[10.5px] tracking-[0.22em] uppercase text-ink-mute">{title}</span>
+    </div>
+  );
+}
+
+function CookieCard({
+  card,
+  i,
+  accent,
+}: {
+  card: { icon: string; title: string; body: string; cantTurnOff?: boolean };
+  i: number;
+  accent: 'green' | 'blue' | 'purple';
+}) {
+  const ring =
+    accent === 'green' ? 'border-green-500/15' :
+    accent === 'blue'  ? 'border-blue-500/15'  : 'border-purple-500/15';
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.06 * i }}
+      className={`rounded-2xl border bg-cream-50 dark:bg-[#13161D] p-5 ${ring}`}
+    >
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="text-[24px] leading-none">{card.icon}</div>
+        {card.cantTurnOff && (
+          <span className="text-[9.5px] tracking-[0.15em] uppercase text-ink-mute/70">always on</span>
+        )}
+      </div>
+      <div className="text-[14px] font-medium text-ink dark:text-cream-50 mb-1">{card.title}</div>
+      <p className="text-[12.5px] text-ink-mute leading-relaxed">{card.body}</p>
+    </motion.div>
   );
 }
