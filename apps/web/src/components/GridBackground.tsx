@@ -29,8 +29,8 @@ export function GridBackground() {
 
       const isDark = document.documentElement.classList.contains('dark');
       spot.style.background = isDark
-        ? `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(139,92,246,0.13) 0%, rgba(99,102,241,0.05) 45%, transparent 70%)`
-        : `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(139,92,246,0.09) 0%, rgba(99,102,241,0.03) 45%, transparent 70%)`;
+        ? `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(255,107,61,0.14) 0%, rgba(255,107,61,0.04) 45%, transparent 70%)`
+        : `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(255,107,61,0.10) 0%, rgba(255,107,61,0.03) 45%, transparent 70%)`;
 
       raf = requestAnimationFrame(tick);
     };
@@ -47,22 +47,22 @@ export function GridBackground() {
 
   return (
     <div className="fixed inset-0 pointer-events-none z-0" aria-hidden>
-      {/* Dim base grid */}
+      {/* Dim base grid — accent orange tint */}
       <div className="absolute inset-0" style={{
         backgroundImage: [
-          'linear-gradient(rgba(139,92,246,0.04) 1px, transparent 1px)',
-          'linear-gradient(90deg, rgba(139,92,246,0.04) 1px, transparent 1px)',
+          'linear-gradient(rgba(255,107,61,0.05) 1px, transparent 1px)',
+          'linear-gradient(90deg, rgba(255,107,61,0.05) 1px, transparent 1px)',
         ].join(', '),
         backgroundSize: G,
       }} />
 
       {/* Dim intersection dots */}
       <div className="absolute inset-0" style={{
-        backgroundImage: 'radial-gradient(circle, rgba(139,92,246,0.14) 0.9px, transparent 0.9px)',
+        backgroundImage: 'radial-gradient(circle, rgba(255,107,61,0.14) 0.9px, transparent 0.9px)',
         backgroundSize: G,
       }} />
 
-      {/* Cursor-revealed bright layer (grid lines + dots in one masked div) */}
+      {/* Cursor-revealed bright layer */}
       <div
         ref={revealRef}
         className="absolute inset-0"
@@ -74,24 +74,24 @@ export function GridBackground() {
         {/* Vivid lines */}
         <div className="absolute inset-0" style={{
           backgroundImage: [
-            'linear-gradient(rgba(139,92,246,0.6) 1px, transparent 1px)',
-            'linear-gradient(90deg, rgba(139,92,246,0.6) 1px, transparent 1px)',
+            'linear-gradient(rgba(255,107,61,0.65) 1px, transparent 1px)',
+            'linear-gradient(90deg, rgba(255,107,61,0.65) 1px, transparent 1px)',
           ].join(', '),
           backgroundSize: G,
         }} />
         {/* Vivid dots */}
         <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle, rgba(167,139,250,0.95) 1.1px, transparent 1.1px)',
+          backgroundImage: 'radial-gradient(circle, rgba(255,140,90,0.95) 1.1px, transparent 1.1px)',
           backgroundSize: G,
         }} />
-        {/* Glow bloom behind lines */}
+        {/* Soft bloom */}
         <div className="absolute inset-0" style={{
           backgroundImage: [
-            'linear-gradient(rgba(167,139,250,0.15) 3px, transparent 3px)',
-            'linear-gradient(90deg, rgba(167,139,250,0.15) 3px, transparent 3px)',
+            'linear-gradient(rgba(255,107,61,0.18) 3px, transparent 3px)',
+            'linear-gradient(90deg, rgba(255,107,61,0.18) 3px, transparent 3px)',
           ].join(', '),
           backgroundSize: G,
-          filter: 'blur(2px)',
+          filter: 'blur(2.5px)',
         }} />
       </div>
 

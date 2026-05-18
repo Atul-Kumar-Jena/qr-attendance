@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-const RING_LERP = 0.15;   // ring chases at 15% per frame — responsive but still smooth
-const SCALE_MAG = 2.5;    // ring scale on magnetic elements
+const RING_LERP = 0.15;
+const SCALE_MAG = 2.5;
 
 export function Cursor() {
   const dot  = useRef<HTMLDivElement>(null);
@@ -133,17 +133,26 @@ export function Cursor() {
 
   return (
     <>
-      {/* Ring — lags behind via RAF lerp */}
+      {/* Ring — accent color, always visible in both modes */}
       <div
         ref={ring}
-        className="pointer-events-none fixed left-0 top-0 z-[99998] w-9 h-9 rounded-full border border-ink/50 dark:border-white/40 hidden md:block"
-        style={{ willChange: 'transform', transition: 'border-color 0.3s, width 0.3s, height 0.3s' }}
+        className="pointer-events-none fixed left-0 top-0 z-[99998] w-9 h-9 rounded-full hidden md:block"
+        style={{
+          willChange: 'transform',
+          border: '1.5px solid rgba(255,107,61,0.65)',
+          transition: 'width 0.3s, height 0.3s',
+          boxShadow: '0 0 8px rgba(255,107,61,0.2)',
+        }}
       />
-      {/* Dot — instant */}
+      {/* Dot — mix-blend-mode: difference → always contrasts with background */}
       <div
         ref={dot}
-        className="pointer-events-none fixed left-0 top-0 z-[99999] w-2.5 h-2.5 rounded-full bg-ink dark:bg-[#F0EDE6] hidden md:block"
-        style={{ willChange: 'transform', transition: 'transform 0.08s, background-color 0.3s' }}
+        className="pointer-events-none fixed left-0 top-0 z-[99999] w-2.5 h-2.5 rounded-full bg-white hidden md:block"
+        style={{
+          willChange: 'transform',
+          mixBlendMode: 'difference',
+          transition: 'transform 0.08s',
+        }}
       />
       {/* Hover tooltip */}
       <div

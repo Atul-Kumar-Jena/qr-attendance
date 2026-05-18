@@ -160,13 +160,13 @@ export function Nav() {
         ref={headerRef}
         className={cn(
           'fixed inset-x-0 top-0 z-50 transition-all duration-500',
-          scrolled ? 'py-2' : 'py-5',
+          scrolled ? 'py-2' : 'py-4',
         )}
       >
         <div
           className={cn(
             'container relative flex items-center justify-between gap-4 transition-all duration-500',
-            scrolled ? 'max-w-3xl px-5 py-3' : '',
+            scrolled ? 'max-w-3xl px-6 py-3.5' : 'px-6',
           )}
         >
           {/* Pill background — fades in as a single layer to avoid dark-mode rectangle flash */}

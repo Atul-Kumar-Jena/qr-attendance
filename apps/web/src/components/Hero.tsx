@@ -6,6 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Magnetic } from './Magnetic';
 import { initGSAP } from '@/lib/gsap-init';
 import { LiveQrShowcase } from '@/components/LiveQrShowcase';
+import { DemoModal } from '@/components/DemoModal';
 import { useSiteConfig } from '@/context/SiteConfigContext';
 
 if (typeof window !== 'undefined') {
@@ -21,6 +22,7 @@ export function Hero() {
   const orb = useRef<HTMLDivElement>(null);
   const qr = useRef<HTMLDivElement>(null);
   const sub = useRef<HTMLParagraphElement>(null);
+  const [demoOpen, setDemoOpen] = useState(false);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -115,6 +117,7 @@ export function Hero() {
   }, []);
 
   return (
+    <>
     <section ref={root} className="relative pt-36 pb-24 md:pt-48 md:pb-36 overflow-hidden">
       {/* Background orb */}
       <div
@@ -152,10 +155,12 @@ export function Hero() {
             </h1>
 
             {/* Subtitle */}
-            <p
-              ref={sub}
-              className="mt-8 max-w-[480px] text-[13.5px] leading-[1.75] text-ink-mute font-mono tracking-wide"
-            />
+            <div className="mt-8 max-w-[480px] overflow-hidden">
+              <p
+                ref={sub}
+                className="text-[13.5px] leading-[1.75] text-ink-mute font-mono tracking-wide"
+              />
+            </div>
 
             {/* CTAs */}
             <div className="mt-10 flex flex-wrap items-center gap-4">
@@ -171,12 +176,15 @@ export function Hero() {
                 </a>
               </Magnetic>
               <Magnetic strength={0.18}>
-                <a
-                  href="#features"
+                <button
+                  onClick={() => setDemoOpen(true)}
                   className="hero-cta inline-flex items-center gap-2 rounded-xl border border-ink/12 bg-cream-50/50 px-7 py-3.5 text-[13px] tracking-wide text-ink hover:bg-cream-100 transition-all"
                 >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+                    <path d="M4 2l10 6-10 6V2z" fill="currentColor"/>
+                  </svg>
                   Watch 90-sec demo
-                </a>
+                </button>
               </Magnetic>
             </div>
 
@@ -199,6 +207,8 @@ export function Hero() {
         </div>
       </div>
     </section>
+    <DemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
+    </>
   );
 }
 

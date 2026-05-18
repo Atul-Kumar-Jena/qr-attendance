@@ -4,6 +4,16 @@ import { useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import gsap from 'gsap';
 
+const BASE_PATH = '/qr-attendance';
+
+function stripBase(href: string): string {
+  if (href.startsWith(BASE_PATH)) {
+    const stripped = href.slice(BASE_PATH.length);
+    return stripped || '/';
+  }
+  return href;
+}
+
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -21,6 +31,8 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   // Intercept link clicks — fade OUT then use Next.js router (no full reload)
+  // IMPORTANT: Strip basePath from href before router.push — Next.js adds it automatically.
+  // Without this, every click double-applies the basePath → 404.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -28,22 +40,23 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
     const onClick = (e: MouseEvent) => {
       const anchor = (e.target as Element).closest('a');
       if (!anchor) return;
-      const href = anchor.getAttribute('href');
+      const rawHref = anchor.getAttribute('href');
       if (
-        !href ||
-        href.startsWith('#') ||
-        href.startsWith('http') ||
-        href.startsWith('mailto') ||
+        !rawHref ||
+        rawHref.startsWith('#') ||
+        rawHref.startsWith('http') ||
+        rawHref.startsWith('mailto') ||
         anchor.target === '_blank'
       ) return;
 
       e.preventDefault();
+      const route = stripBase(rawHref);
       gsap.to(el, {
         opacity: 0,
         y: -8,
         duration: 0.28,
         ease: 'power2.in',
-        onComplete: () => router.push(href),
+        onComplete: () => router.push(route),
       });
     };
 
@@ -57,4 +70,3 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
