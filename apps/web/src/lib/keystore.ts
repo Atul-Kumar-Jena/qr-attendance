@@ -8,6 +8,7 @@
 
 import { generateKeyPair, type KeyPairExport } from './crypto';
 import { getKey, putKey, deleteKey, listKeys, type StoredKey } from './idb';
+import { publishInstitutionPublicKey } from './firestore-db';
 
 function instKeyId(institutionId: string): string {
   return `inst:${institutionId}`;
@@ -24,6 +25,15 @@ export async function getOrCreateInstitutionKeys(
   const kp = await generateKeyPair();
   const rec: StoredKey = { id, ...kp };
   await putKey(rec);
+  // Publish just the public half so student devices can verify QR tokens
+  try {
+    await publishInstitutionPublicKey({
+      institutionId,
+      algo: kp.algo,
+      publicKey: kp.publicKey,
+      fingerprint: kp.publicKey.slice(0, 16),
+    });
+  } catch { /* offline or rules block — local key still works */ }
   return rec;
 }
 
@@ -36,13 +46,23 @@ export async function getInstitutionKeys(
 export async function rotateInstitutionKeys(
   institutionId: string,
 ): Promise<StoredKey> {
+  const previous = await getInstitutionKeys(institutionId);
   const kp = await generateKeyPair();
   const rec: StoredKey = {
     id: instKeyId(institutionId),
     ...kp,
-    meta: { rotatedFrom: (await getInstitutionKeys(institutionId))?.publicKey?.slice(0, 16) || null },
+    meta: { rotatedFrom: previous?.publicKey?.slice(0, 16) || null },
   };
   await putKey(rec);
+  try {
+    await publishInstitutionPublicKey({
+      institutionId,
+      algo: kp.algo,
+      publicKey: kp.publicKey,
+      fingerprint: kp.publicKey.slice(0, 16),
+      rotatedFrom: previous?.publicKey?.slice(0, 16) || null,
+    });
+  } catch {}
   return rec;
 }
 

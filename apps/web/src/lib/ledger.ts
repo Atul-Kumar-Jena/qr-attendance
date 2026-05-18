@@ -115,3 +115,46 @@ export async function resetChain(): Promise<void> {
 
 export { markSynced };
 export type { LedgerRecord };
+
+// ─── Sync to server (Firestore) ──────────────────────────────────────────────
+
+import { syncLedgerEntry } from './firestore-db';
+import { getDeviceInfo } from './device';
+
+export interface SyncReport {
+  attempted: number;
+  succeeded: number;
+  failed: number;
+}
+
+export async function syncPending(institutionId: string): Promise<SyncReport> {
+  if (!institutionId) return { attempted: 0, succeeded: 0, failed: 0 };
+  const all = await getLedger();
+  const pending = all.filter((r) => !r.synced && typeof r.seq === 'number');
+  if (!pending.length) return { attempted: 0, succeeded: 0, failed: 0 };
+  let device = '';
+  try { device = (await getDeviceInfo()).shortId; } catch {}
+  let succeeded = 0;
+  let failed = 0;
+  for (const r of pending) {
+    const ok = await syncLedgerEntry({
+      institutionId,
+      seq: r.seq as number,
+      prevHash: r.prevHash,
+      hash: r.hash,
+      ts: r.ts,
+      kind: r.kind,
+      payload: r.payload,
+      signerPub: r.signerPub ?? null,
+      sig: r.sig ?? null,
+      deviceFp: device || null,
+    });
+    if (ok) {
+      try { await markSynced(r.seq as number); } catch {}
+      succeeded++;
+    } else {
+      failed++;
+    }
+  }
+  return { attempted: pending.length, succeeded, failed };
+}

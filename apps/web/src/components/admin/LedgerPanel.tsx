@@ -2,14 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
+import { useAuth } from '@/context/AuthContext';
 import {
   appendRecord,
   chainStats,
   getChain,
   resetChain,
+  syncPending,
   verifyChain,
   type LedgerRecord,
   type ChainVerifyReport,
+  type SyncReport,
 } from '@/lib/ledger';
 
 type VerifyState =
@@ -18,9 +21,11 @@ type VerifyState =
   | { kind: 'done'; report: ChainVerifyReport };
 
 export function LedgerPanel() {
+  const { institutionId } = useAuth();
   const [chain, setChain] = useState<LedgerRecord[]>([]);
   const [stats, setStats] = useState<{ count: number; pendingSync: number; lastHash: string; lastTs: number | null; bytes: number } | null>(null);
   const [verify, setVerify] = useState<VerifyState>({ kind: 'idle' });
+  const [sync, setSync] = useState<SyncReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const rootRef = useRef<HTMLDivElement>(null);
@@ -87,6 +92,20 @@ export function LedgerPanel() {
     }
   };
 
+  const handleSync = async () => {
+    if (!institutionId) { setError('Sign in to an institution first.'); return; }
+    setBusy(true);
+    try {
+      const r = await syncPending(institutionId);
+      setSync(r);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+      refresh();
+    }
+  };
+
   const handleExport = async () => {
     const blob = new Blob([JSON.stringify(chain, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -137,6 +156,14 @@ export function LedgerPanel() {
           {verify.kind === 'running' ? 'Verifying…' : 'Verify chain integrity'}
         </button>
         <button
+          onClick={handleSync}
+          disabled={busy || !institutionId || !stats?.pendingSync}
+          className="text-[12.5px] rounded-lg border border-ink/15 dark:border-white/15 px-3.5 py-2 hover:bg-ink/4 dark:hover:bg-white/6 transition-colors disabled:opacity-50"
+          title={!institutionId ? 'Sign in to an institution first' : !stats?.pendingSync ? 'Nothing pending' : ''}
+        >
+          {busy ? 'Syncing…' : `Sync pending (${stats?.pendingSync ?? 0})`}
+        </button>
+        <button
           onClick={handleSeed}
           disabled={busy}
           className="text-[12.5px] rounded-lg border border-ink/15 dark:border-white/15 px-3.5 py-2 hover:bg-ink/4 dark:hover:bg-white/6 transition-colors disabled:opacity-50"
@@ -158,6 +185,17 @@ export function LedgerPanel() {
           Reset chain
         </button>
       </div>
+
+      {/* Sync result */}
+      {sync && (
+        <div data-anim className={`rounded-xl border px-4 py-3 text-[12.5px] ${
+          sync.failed === 0
+            ? 'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400'
+            : 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400'
+        }`}>
+          Sync: {sync.succeeded}/{sync.attempted} pushed{sync.failed > 0 ? ` · ${sync.failed} failed (will retry next sync)` : ''}
+        </div>
+      )}
 
       {/* Verify result */}
       {verify.kind === 'done' && (

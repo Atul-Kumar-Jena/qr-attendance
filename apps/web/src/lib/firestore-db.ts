@@ -415,3 +415,62 @@ export function onStudentAttendance(studentId: string, institutionId: string, cb
     cb(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as FSAttendanceRecord)));
   }, () => cb([]));
 }
+
+// ── Institution public keys (so other devices can verify signed QR tokens) ───
+
+export interface FSInstitutionKey {
+  institutionId: string;
+  algo: string;
+  publicKey: string;
+  fingerprint: string;
+  createdAt?: unknown;
+  rotatedFrom?: string | null;
+}
+
+export async function publishInstitutionPublicKey(rec: FSInstitutionKey): Promise<void> {
+  if (!db || !rec.institutionId) return;
+  const { doc, setDoc, serverTimestamp } = require('firebase/firestore');
+  await setDoc(
+    doc(db, 'institutionKeys', rec.institutionId),
+    { ...rec, createdAt: serverTimestamp() },
+    { merge: true },
+  ).catch(() => {});
+}
+
+export async function getInstitutionPublicKey(institutionId: string): Promise<FSInstitutionKey | null> {
+  if (!db || !institutionId) return null;
+  const { doc, getDoc } = require('firebase/firestore');
+  try {
+    const snap = await getDoc(doc(db, 'institutionKeys', institutionId));
+    return snap.exists() ? (snap.data() as FSInstitutionKey) : null;
+  } catch { return null; }
+}
+
+// ── Audit ledger sync (push hash-chained records to Firestore) ───────────────
+
+export interface FSLedgerEntry {
+  institutionId: string;
+  seq: number;
+  prevHash: string;
+  hash: string;
+  ts: number;
+  kind: string;
+  payload: unknown;
+  signerPub?: string | null;
+  sig?: string | null;
+  deviceFp?: string | null;
+}
+
+export async function syncLedgerEntry(entry: FSLedgerEntry): Promise<boolean> {
+  if (!db || !entry.institutionId) return false;
+  const { doc, setDoc, serverTimestamp } = require('firebase/firestore');
+  try {
+    // Use seq + institution as primary key — duplicates fail silently
+    await setDoc(
+      doc(db, 'ledger', `${entry.institutionId}__${entry.seq}`),
+      { ...entry, syncedAt: serverTimestamp() },
+      { merge: false },
+    );
+    return true;
+  } catch { return false; }
+}
