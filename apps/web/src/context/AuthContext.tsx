@@ -109,7 +109,38 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
     onSignIn?.(u, isNew);
   };
 
-  const signOut = async () => { await signOutUser(); onSignOut?.(); };
+  const signOut = async () => {
+    try { await signOutUser(); } catch { /* offline */ }
+    // Reset local React state immediately so UI updates without waiting for Firebase
+    setUser(null);
+    setRole(null);
+    setInstitutionId(null);
+    setNeedsOnboarding(false);
+    // Clear cached onboarding markers but keep cookie consent, theme, and crypto keys
+    if (typeof window !== 'undefined') {
+      try {
+        const remove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith('atd_onboarding_') || k.startsWith('atd_tour_'))) remove.push(k);
+        }
+        remove.forEach((k) => localStorage.removeItem(k));
+      } catch {}
+    }
+    onSignOut?.();
+    // Always land on the home page after sign-out so admin/profile pages don't flash
+    if (typeof window !== 'undefined') {
+      try {
+        // Use Next basePath-aware navigation
+        const path = window.location.pathname;
+        if (path.includes('/admin') || path.includes('/profile')) {
+          // basePath is /qr-attendance — use full origin to avoid relative-path issues
+          const base = path.startsWith('/qr-attendance') ? '/qr-attendance/' : '/';
+          window.location.href = base;
+        }
+      } catch {}
+    }
+  };
 
   const markOnboardingDone = () => {
     setNeedsOnboarding(false);

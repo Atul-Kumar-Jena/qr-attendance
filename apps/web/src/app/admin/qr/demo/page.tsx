@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import gsap from 'gsap';
 import { useAuth } from '@/context/AuthContext';
 import { QRCodeSVG } from 'qrcode.react';
+import { signQrToken, randomNonce, type QrClaims } from '@/lib/crypto';
+import { getOrCreateInstitutionKeys } from '@/lib/keystore';
+import { appendRecord } from '@/lib/ledger';
 
 type Stage = 'setup' | 'live' | 'ended';
 
@@ -68,8 +71,14 @@ export default function QrDisplay() {
   const [ending, setEnding] = useState(false);
   const [tick, setTick] = useState(0);
   const [liveCount, setLiveCount] = useState(0);
+  const [qrPayload, setQrPayload] = useState('');
+  const [signerFp, setSignerFp] = useState('');
+  const [maxScans, setMaxScans] = useState(0); // 0 = unlimited
+  const [ttlSec, setTtlSec] = useState(1.5);
   const qrRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const instPrivRef = useRef<string>('');
+  const instPubRef  = useRef<string>('');
 
   useQrDemoTour();
 
@@ -89,16 +98,62 @@ export default function QrDisplay() {
     });
   }, [sessionId, stage]);
 
+  // Load (or generate) the institution signing key when going live
+  useEffect(() => {
+    if (stage !== 'live' || !institutionId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const key = await getOrCreateInstitutionKeys(institutionId);
+        if (cancelled) return;
+        instPrivRef.current = key.privateKey;
+        instPubRef.current  = key.publicKey;
+        setSignerFp(key.publicKey.slice(0, 16));
+      } catch (e) {
+        console.warn('[crypto] failed to load institution keys', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [stage, institutionId]);
+
+  // Sign a fresh QR token on every tick (real ECDSA P-256)
+  useEffect(() => {
+    if (stage !== 'live' || !sessionId || !institutionId || !instPrivRef.current) return;
+    let cancelled = false;
+    (async () => {
+      const claims: QrClaims = {
+        v: 1,
+        sid: sessionId,
+        t: tick,
+        ts: Date.now(),
+        ttl: Math.round(ttlSec * 1000),
+        max: maxScans,
+        non: randomNonce(8),
+        iss: institutionId,
+      };
+      try {
+        const token = await signQrToken(instPrivRef.current, claims);
+        if (cancelled) return;
+        setQrPayload(`attendly://scan?v=1&p=${token}`);
+      } catch (e) {
+        console.warn('[crypto] sign failed', e);
+        if (!cancelled) setQrPayload(`attendly://scan?session=${sessionId}&t=${tick}&fallback=1`);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [tick, stage, sessionId, institutionId, ttlSec, maxScans]);
+
   // QR rotation interval — only while live
   useEffect(() => {
     if (stage !== 'live') return;
+    const intervalMs = Math.max(800, Math.round(ttlSec * 1000));
     timerRef.current = setInterval(() => {
       setTick((t) => t + 1);
       gsap.fromTo(qrRef.current, { rotateY: 90, opacity: 0 },
         { rotateY: 0, opacity: 1, duration: 0.35, ease: 'expo.out' });
-    }, 1000);
+    }, intervalMs);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [stage]);
+  }, [stage, ttlSec]);
 
   const startSession = async () => {
     if (!subjectName.trim() || !className.trim()) return;
@@ -123,6 +178,12 @@ export default function QrDisplay() {
       });
       setSessionId(id);
       setStage('live');
+      try {
+        await appendRecord({
+          kind: 'qr_session_started',
+          payload: { sessionId: id, subject: subjectName.trim(), class: className.trim(), teacherId: user.uid, ttlSec, maxScans },
+        });
+      } catch {}
     } catch (e: unknown) {
       alert('Failed to start session: ' + (e instanceof Error ? e.message : String(e)));
     } finally {
@@ -144,17 +205,18 @@ export default function QrDisplay() {
           details: `${subjectName} · ${className}`,
         });
       }
+      try {
+        await appendRecord({
+          kind: 'qr_session_ended',
+          payload: { sessionId, totalScans: liveCount, durationMs: Date.now() },
+        });
+      } catch {}
     } catch (e: unknown) {
       alert('Session end failed: ' + (e instanceof Error ? e.message : String(e)));
     }
     setStage('ended');
     setEnding(false);
   };
-
-  // Build the QR payload — encodes a signed rotating token
-  const qrPayload = sessionId
-    ? `attendly://scan?session=${sessionId}&t=${tick}&token=${btoa(`${sessionId}:${tick}`).slice(0, 12)}`
-    : '';
 
   // ── Setup screen ─────────────────────────────────────────────────────────────
   if (stage === 'setup') {
@@ -209,6 +271,36 @@ export default function QrDisplay() {
                   className="w-full mt-2 text-[14px] bg-white/8 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-accent/60 text-cream-50 placeholder:text-cream-50/30 transition-colors"
                 />
               )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] tracking-wide text-cream-50/50 mb-1.5 uppercase">Token TTL</label>
+                <select
+                  value={ttlSec}
+                  onChange={(e) => setTtlSec(parseFloat(e.target.value))}
+                  className="w-full text-[14px] bg-white/8 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-accent/60 text-cream-50 appearance-none"
+                >
+                  <option value={1}>1.0s (strict)</option>
+                  <option value={1.5}>1.5s (balanced)</option>
+                  <option value={2}>2.0s</option>
+                  <option value={3}>3.0s (slow networks)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] tracking-wide text-cream-50/50 mb-1.5 uppercase">Max scans / token</label>
+                <select
+                  value={maxScans}
+                  onChange={(e) => setMaxScans(parseInt(e.target.value, 10))}
+                  className="w-full text-[14px] bg-white/8 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-accent/60 text-cream-50 appearance-none"
+                >
+                  <option value={0}>Unlimited</option>
+                  <option value={1}>1 (anti-replay)</option>
+                  <option value={5}>5</option>
+                  <option value={25}>25</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -291,8 +383,16 @@ export default function QrDisplay() {
         {ending ? 'Ending…' : 'End session'}
       </button>
 
-      <div className="absolute bottom-6 left-6 font-mono text-[10px] text-cream-50/25">
-        {sessionId.slice(0, 8)}…
+      <div className="absolute bottom-6 left-6 font-mono text-[10px] text-cream-50/25 leading-tight">
+        sid {sessionId.slice(0, 8)}…<br />
+        sig {signerFp || '—'}…
+      </div>
+
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-cream-50/35 tracking-wide flex items-center gap-2">
+        <span className={signerFp ? 'text-green-400' : 'text-amber-400'}>●</span>
+        {signerFp
+          ? `ECDSA-P256 · TTL ${ttlSec}s · ${maxScans === 0 ? 'unlimited' : `max ${maxScans}`}`
+          : 'generating signing key…'}
       </div>
     </div>
   );

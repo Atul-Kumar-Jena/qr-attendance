@@ -8,6 +8,8 @@ import { useSiteConfig, type SiteConfig, type PricingMode } from '@/context/Site
 import { AuthModal } from '@/components/AuthModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SkeletonTable } from '@/components/Skeleton';
+import { CryptoPanel } from '@/components/admin/CryptoPanel';
+import { LedgerPanel } from '@/components/admin/LedgerPanel';
 
 function useTourGuide(role: Role | null) {
   useEffect(() => {
@@ -41,6 +43,8 @@ type Tab =
   | 'classes'
   | 'reports'
   | 'audit'
+  | 'crypto'
+  | 'ledger'
   | 'manage-users'
   | 'teacher-perms'
   | 'institution'
@@ -51,17 +55,17 @@ const ROLE_META: Record<Role, { label: string; dot: string; access: Tab[] }> = {
   developer: {
     label: 'Developer',
     dot: 'bg-red-500',
-    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'manage-users', 'teacher-perms', 'institution', 'institutions', 'god-mode'],
+    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'crypto', 'ledger', 'manage-users', 'teacher-perms', 'institution', 'institutions', 'god-mode'],
   },
   institution: {
     label: 'Institution',
     dot: 'bg-orange-500',
-    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'manage-users', 'teacher-perms', 'institution'],
+    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'crypto', 'ledger', 'manage-users', 'teacher-perms', 'institution'],
   },
   admin: {
     label: 'Admin',
     dot: 'bg-yellow-500',
-    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'manage-users', 'teacher-perms'],
+    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'crypto', 'ledger', 'manage-users', 'teacher-perms'],
   },
   teacher: {
     label: 'Teacher',
@@ -82,6 +86,8 @@ const TAB_LABELS: Record<Tab, string> = {
   'classes':       'Classes',
   'reports':       'Reports',
   'audit':         'Audit Logs',
+  'crypto':        '🔐 Crypto & Keys',
+  'ledger':        '⛓ Hash Ledger',
   'manage-users':  'Manage Users',
   'teacher-perms': 'Teacher Perms',
   'institution':   'Institution',
@@ -249,6 +255,8 @@ export default function AdminHome() {
               {currentTab === 'classes'       && <ClassesPanel />}
               {currentTab === 'reports'       && <ReportsPanel />}
               {currentTab === 'audit'         && <AuditPanel role={role!} />}
+              {currentTab === 'crypto'        && <CryptoPanel />}
+              {currentTab === 'ledger'        && <LedgerPanel />}
               {currentTab === 'manage-users'  && <ManageUsersPanel role={role!} />}
               {currentTab === 'teacher-perms' && <TeacherPermsPanel />}
               {currentTab === 'institution'   && <InstitutionPanel />}
