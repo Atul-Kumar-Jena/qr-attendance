@@ -1663,6 +1663,25 @@ function GodModePanel() {
   const [draftPrice, setDraftPrice] = useState('');
   const [draftPriceLabel, setDraftPriceLabel] = useState('per month');
   const [draftPaymentUrl, setDraftPaymentUrl] = useState('');
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // GSAP card stagger entrance
+  useEffect(() => {
+    if (typeof window === 'undefined' || !rootRef.current) return;
+    let cancelled = false;
+    import('gsap').then(({ default: gsap }) => {
+      if (cancelled || !rootRef.current) return;
+      try {
+        const cards = rootRef.current.querySelectorAll(':scope > div, :scope > .glass');
+        gsap.fromTo(
+          cards,
+          { opacity: 0, y: 18 },
+          { opacity: 1, y: 0, duration: 0.55, ease: 'power3.out', stagger: 0.06 },
+        );
+      } catch {}
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const set = useCallback(<K extends keyof SiteConfig>(k: K, v: SiteConfig[K]) => {
     setLocal((c) => ({ ...c, [k]: v }));
@@ -1714,7 +1733,7 @@ function GodModePanel() {
   };
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div ref={rootRef} className="space-y-8 max-w-3xl">
       {/* Warning banner */}
       <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40 px-4 py-3 text-[12.5px] text-red-700 dark:text-red-400 flex items-start gap-3">
         <span className="text-red-500 text-lg leading-none flex-shrink-0">⚡</span>
