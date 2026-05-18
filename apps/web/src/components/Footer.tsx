@@ -26,8 +26,8 @@ export function Footer() {
         <Col title="Company" links={[
           { label: 'About', href: '#' },
           { label: 'Contact', href: '#' },
-          { label: 'Privacy', href: '#' },
-          { label: 'Terms', href: '#' },
+          { label: 'Cookies', href: '/cookies' },
+          { label: 'Terms', href: '/terms' },
         ]} />
       </div>
       <div className="border-t border-ink/8">

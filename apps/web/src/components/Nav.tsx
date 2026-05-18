@@ -245,24 +245,112 @@ export function Nav() {
         ref={menuRef}
         className={cn(
           'fixed inset-x-4 z-40 rounded-2xl border border-ink/8 dark:border-white/10',
-          'bg-cream-50/95 dark:bg-[#0D0F14]/95 backdrop-blur-xl p-6 shadow-lg md:hidden opacity-0 pointer-events-none',
+          'bg-cream-50/95 dark:bg-[#0D0F14]/95 backdrop-blur-xl shadow-lg md:hidden opacity-0 pointer-events-none',
+          'max-h-[85vh] overflow-y-auto',
           scrolled ? 'top-[72px]' : 'top-[80px]',
         )}
       >
-        <nav className="flex flex-col gap-5">
-          {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              onClick={() => setMenuOpen(false)}
-              className="text-[15px] text-ink dark:text-[#F0EDE6] hover:text-accent dark:hover:text-accent transition-colors border-b border-ink/6 dark:border-white/8 pb-4 last:border-0 last:pb-0"
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
+        <MobileMenuContents onClose={() => setMenuOpen(false)} />
       </div>
     </>
+  );
+}
+
+function MobileMenuContents({ onClose }: { onClose: () => void }) {
+  const { user, role, signOut } = useAuth();
+  const canAccessAdmin = role && ['developer', 'institution', 'admin', 'teacher'].includes(role);
+  const initials = user?.displayName
+    ? user.displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+    : (user?.email?.[0] ?? '?').toUpperCase();
+
+  return (
+    <div className="p-5 space-y-4">
+      {/* User header — when signed in */}
+      {user && (
+        <div className="rounded-xl border border-ink/8 dark:border-white/10 bg-ink/3 dark:bg-white/4 p-3.5 flex items-center gap-3">
+          {user.photoURL ? (
+            <img src={user.photoURL} alt="" className="w-10 h-10 rounded-full object-cover" />
+          ) : (
+            <span className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent text-[13px] font-semibold">{initials}</span>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="text-[13.5px] font-medium text-ink dark:text-cream-50 truncate">{user.displayName || 'User'}</div>
+            <div className="text-[11.5px] text-ink-mute truncate">{user.email}</div>
+          </div>
+          {role && (
+            <span className={cn(
+              'text-[10px] px-2 py-0.5 rounded-full border flex-shrink-0',
+              role === 'developer'   && 'bg-red-500/15 text-red-400 border-red-500/25',
+              role === 'institution' && 'bg-orange-500/15 text-orange-400 border-orange-500/25',
+              role === 'admin'       && 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/25',
+              role === 'teacher'     && 'bg-blue-500/15 text-blue-400 border-blue-500/25',
+              role === 'student'     && 'bg-green-500/15 text-green-400 border-green-500/25',
+            )}>
+              {role.charAt(0).toUpperCase() + role.slice(1)}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Dashboard CTA — when signed in and has access */}
+      {user && canAccessAdmin && (
+        <Link
+          href="/admin"
+          onClick={onClose}
+          className="flex items-center justify-center gap-2 rounded-xl bg-accent text-cream-50 px-4 py-3 text-[13px] font-medium hover:bg-accent/90 transition-colors"
+        >
+          🛠 Open dashboard
+        </Link>
+      )}
+
+      {/* Section nav */}
+      <nav className="flex flex-col">
+        {links.map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            onClick={onClose}
+            className="text-[14.5px] text-ink dark:text-[#F0EDE6] hover:text-accent dark:hover:text-accent transition-colors border-b border-ink/6 dark:border-white/8 py-3 last:border-0"
+          >
+            {l.label}
+          </Link>
+        ))}
+      </nav>
+
+      {/* Sign in / Profile / Sign out actions */}
+      {user ? (
+        <div className="flex gap-2">
+          <Link
+            href="/profile"
+            onClick={onClose}
+            className="flex-1 rounded-xl border border-ink/15 dark:border-white/15 px-4 py-2.5 text-[12.5px] text-center text-ink dark:text-cream-50/90 hover:bg-ink/4 dark:hover:bg-white/6 transition-colors"
+          >
+            Profile
+          </Link>
+          <button
+            onClick={() => { onClose(); signOut(); }}
+            className="flex-1 rounded-xl border border-red-500/25 text-red-500 dark:text-red-400 px-4 py-2.5 text-[12.5px] hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
+      ) : (
+        <AuthModal trigger={
+          <button
+            onClick={onClose}
+            className="w-full rounded-xl bg-accent text-cream-50 px-4 py-3 text-[13px] font-medium hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+          >
+            Sign in with Google
+          </button>
+        } />
+      )}
+
+      {/* Theme toggle row */}
+      <div className="flex items-center justify-between pt-2">
+        <div className="text-[11px] tracking-[0.18em] uppercase text-ink-mute">Appearance</div>
+        <ThemeToggle />
+      </div>
+    </div>
   );
 }
 

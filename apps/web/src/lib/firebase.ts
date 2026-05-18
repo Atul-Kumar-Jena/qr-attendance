@@ -22,6 +22,8 @@ const app = isConfigured
 export const auth = app ? getAuth(app) : null;
 export const db   = app ? getFirestore(app) : null;
 export const googleProvider = new GoogleAuthProvider();
+// Always show the Google account chooser so users can pick a different account
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 export { isConfigured };
 
 export async function signInWithGoogle() {

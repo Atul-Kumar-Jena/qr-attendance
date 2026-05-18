@@ -105,7 +105,7 @@ function useLiveSessionCount() {
 }
 
 export default function AdminHome() {
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>('overview');
   const liveCount = useLiveSessionCount();
   useTourGuide(role);
@@ -190,7 +190,14 @@ export default function AdminHome() {
           })}
         </nav>
 
-        <div className="mt-6 pt-6 border-t border-ink/10 dark:border-white/10">
+        <div className="mt-6 pt-6 border-t border-ink/10 dark:border-white/10 space-y-2">
+          <Link
+            href="/profile"
+            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl bg-ink/4 dark:bg-white/6 hover:bg-ink/10 dark:hover:bg-white/12 text-ink dark:text-cream-50 text-[13px] transition-all"
+          >
+            <span>👤</span>
+            <span>Profile</span>
+          </Link>
           <Link
             href="/"
             className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl bg-ink/6 dark:bg-white/8 hover:bg-ink/12 dark:hover:bg-white/14 text-ink dark:text-cream-50 text-[13px] font-medium transition-all"
@@ -198,6 +205,13 @@ export default function AdminHome() {
             <span>←</span>
             <span>Back to site</span>
           </Link>
+          <button
+            onClick={() => signOut()}
+            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl border border-red-500/25 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-[13px] transition-all"
+          >
+            <span>↩</span>
+            <span>Sign out</span>
+          </button>
         </div>
       </aside>
 
