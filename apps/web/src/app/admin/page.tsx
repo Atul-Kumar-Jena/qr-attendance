@@ -279,6 +279,11 @@ export default function AdminHome() {
           )}
         </div>
 
+        {/* Dev impersonation banner — appears when a developer is acting as
+            an institution. Every panel below sees the impersonated institution
+            via useAuth().institutionId, no other code changes needed. */}
+        {role === 'developer' && <ImpersonationBanner />}
+
         <AnimatePresence mode="wait">
           <motion.div
             key={currentTab}
@@ -303,6 +308,40 @@ export default function AdminHome() {
           </motion.div>
         </AnimatePresence>
       </main>
+    </div>
+  );
+}
+
+// ─── Dev impersonation banner ─────────────────────────────────────────────────
+
+function ImpersonationBanner() {
+  const { impersonatedInstitutionId, setImpersonatedInstitution } = useAuth();
+  const [name, setName] = useState<string>('');
+  useEffect(() => {
+    if (!impersonatedInstitutionId) { setName(''); return; }
+    const { onInstitution } = require('@/lib/firestore-db');
+    return onInstitution(impersonatedInstitutionId, (i: import('@/lib/firestore-db').FSInstitution | null) => {
+      setName(i?.name ?? impersonatedInstitutionId);
+    });
+  }, [impersonatedInstitutionId]);
+  if (!impersonatedInstitutionId) return null;
+  return (
+    <div className="mb-6 rounded-xl bg-purple-50 dark:bg-purple-900/15 border border-purple-200 dark:border-purple-700/30 px-4 py-3 flex items-center justify-between gap-4">
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="text-purple-600 dark:text-purple-400 text-lg flex-shrink-0">👁</span>
+        <div className="min-w-0">
+          <div className="text-[12.5px] font-medium text-purple-800 dark:text-purple-300">
+            Acting as institution · <span className="font-mono">{name || '…'}</span>
+          </div>
+          <div className="text-[11px] text-purple-700/70 dark:text-purple-300/70 truncate">
+            Every read &amp; write below is scoped to this institution. Your audit-log entries are tagged with your dev account, never hidden.
+          </div>
+        </div>
+      </div>
+      <button onClick={() => setImpersonatedInstitution(null)}
+        className="text-[11.5px] rounded-lg bg-purple-600 text-white px-3 py-1.5 hover:bg-purple-700 transition-colors flex-shrink-0">
+        Exit impersonation
+      </button>
     </div>
   );
 }
@@ -345,6 +384,82 @@ function Toggle({ label, checked, onChange, description, danger }: {
         {description && <div className="text-[11px] text-ink-mute mt-0.5">{description}</div>}
       </div>
     </label>
+  );
+}
+
+// Pricing tier editor — used by GodModePanel.  Empty array means "use BASE_TIERS"
+// on the landing page, so cards are never blank.
+function PricingTierEditor({ tiers, onChange }: {
+  tiers: import('@/context/SiteConfigContext').PricingTier[];
+  onChange: (next: import('@/context/SiteConfigContext').PricingTier[]) => void;
+}) {
+  const DEFAULTS: import('@/context/SiteConfigContext').PricingTier[] = [
+    { name: 'Starter',    price: 0,    unit: '/ month', pitch: 'For coaching centers up to 200 students.', feats: ['1 institution','200 students','Dynamic QR','Email reports','Community support'], cta: 'Start free' },
+    { name: 'Pro',        price: 99,   unit: '/ month', pitch: 'Most schools and small colleges.',           feats: ['Up to 5000 students','Geofence + device binding','PDF / Excel reports','Fraud queue','Priority support'], cta: 'Choose Pro', highlight: true },
+    { name: 'Enterprise', price: null, unit: 'custom',  pitch: 'Universities, multi-campus, SSO.',           feats: ['Unlimited students','Custom geofence policies','SAML SSO + audit export','Webhooks','Dedicated SLA'], cta: 'Talk to sales' },
+  ];
+  const current = tiers && tiers.length > 0 ? tiers : DEFAULTS;
+  const editing = tiers && tiers.length > 0;
+
+  const patch = (i: number, p: Partial<import('@/context/SiteConfigContext').PricingTier>) => {
+    const next = current.map((t, idx) => (idx === i ? { ...t, ...p } : t));
+    onChange(next);
+  };
+
+  return (
+    <div className="space-y-3">
+      {current.map((t, i) => (
+        <div key={i} className="rounded-lg border border-ink/8 bg-cream-100 p-3 grid grid-cols-[1fr_auto_auto] items-end gap-3">
+          <Field label={`Tier ${i + 1} name`} value={t.name} onChange={(v) => patch(i, { name: v })} />
+          <div className="w-24">
+            <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Price ($)</label>
+            <input
+              type="number"
+              value={t.price ?? ''}
+              placeholder="Custom"
+              onChange={(e) => patch(i, { price: e.target.value === '' ? null : Number(e.target.value) })}
+              className="w-full text-[13px] text-ink bg-cream-50 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50 transition-colors"/>
+          </div>
+          <div className="w-28">
+            <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Unit</label>
+            <input
+              type="text"
+              value={t.unit}
+              onChange={(e) => patch(i, { unit: e.target.value })}
+              className="w-full text-[13px] text-ink bg-cream-50 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50 transition-colors"/>
+          </div>
+          <Field label="Pitch (one line)" value={t.pitch} onChange={(v) => patch(i, { pitch: v })} className="col-span-3" />
+          <div className="col-span-3">
+            <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Features (one per line)</label>
+            <textarea
+              value={t.feats.join('\n')}
+              onChange={(e) => patch(i, { feats: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })}
+              rows={3}
+              className="w-full text-[12.5px] text-ink bg-cream-50 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50 transition-colors resize-y"
+            />
+          </div>
+          <Field label="CTA label" value={t.cta} onChange={(v) => patch(i, { cta: v })} className="col-span-2" />
+          <label className="flex items-center gap-2 text-[12px] text-ink-mute h-9 mt-5">
+            <input type="checkbox" checked={!!t.highlight} onChange={(e) => patch(i, { highlight: e.target.checked })} />
+            Highlight
+          </label>
+        </div>
+      ))}
+      <div className="flex gap-2">
+        {!editing && (
+          <button onClick={() => onChange(DEFAULTS.map((t) => ({ ...t })))}
+            className="text-[12px] bg-ink text-cream-50 rounded-lg px-3 py-2 hover:bg-ink/80 transition-colors">
+            Start editing
+          </button>
+        )}
+        {editing && (
+          <button onClick={() => onChange([])}
+            className="text-[12px] border border-ink/10 text-ink-mute rounded-lg px-3 py-2 hover:text-ink hover:border-ink/20 transition-colors">
+            Reset to defaults
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1612,8 +1727,13 @@ function InstitutionPanel() {
 // ─── All Institutions (Developer) ─────────────────────────────────────────────
 
 function InstitutionsPanel() {
+  const { user, role, impersonatedInstitutionId, setImpersonatedInstitution } = useAuth();
   const [institutions, setInstitutions] = useState<import('@/lib/firestore-db').FSInstitution[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [terminating, setTerminating] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const isDev = role === 'developer';
 
   useEffect(() => {
     const { onAllInstitutions } = require('@/lib/firestore-db');
@@ -1631,16 +1751,39 @@ function InstitutionsPanel() {
     return `mailto:hello@attendly.app?subject=${subject}&body=${body}`;
   };
 
+  const copyId = async (id: string) => {
+    try { await navigator.clipboard.writeText(id); setCopiedId(id); setTimeout(() => setCopiedId(null), 1500); } catch {}
+  };
+
+  const terminate = async (id: string) => {
+    if (!user) return;
+    setTerminating(id);
+    try {
+      const { terminateInstitution } = require('@/lib/firestore-db');
+      await terminateInstitution(id, user.uid, user.displayName ?? user.email ?? '');
+    } catch (e: unknown) {
+      alert('Terminate failed: ' + (e instanceof Error ? e.message : String(e)));
+    }
+    setTerminating(null);
+    setConfirmId(null);
+  };
+
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-5xl">
       <div className="flex items-center justify-between">
         <p className="text-[13px] text-ink-mute">
-          All institutions on the platform. Click <strong>Contact</strong> to open a pre-filled email for their owner.
+          All institutions on the platform.{isDev ? ' Developers can terminate any institution; audit row is written automatically.' : ' Click Contact to email the owner.'}
         </p>
         <span className="text-[12px] text-ink-mute bg-ink/6 rounded-full px-3 py-1">
           {institutions.length} total
         </span>
       </div>
+
+      {isDev && (
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-700/30 p-3 text-[12px] text-amber-800 dark:text-amber-300">
+          ⚠ Terminate detaches every member (their role drops to <code>student</code>, institution link cleared) and deletes the institution doc. Audit log is kept for 1 day (set a TTL on <code className="font-mono">auditLogs.createdAt</code> in Firebase console).
+        </div>
+      )}
 
       <Card className="overflow-hidden">
         {loading ? (
@@ -1654,7 +1797,7 @@ function InstitutionsPanel() {
                 <th className="text-left px-5 py-3">Institution</th>
                 <th className="text-left px-5 py-3">Code</th>
                 <th className="text-left px-5 py-3">Type</th>
-                <th className="text-left px-5 py-3">Owner ID</th>
+                <th className="text-left px-5 py-3">Owner</th>
                 <th className="text-left px-5 py-3">Actions</th>
               </tr>
             </thead>
@@ -1663,7 +1806,13 @@ function InstitutionsPanel() {
                 <tr key={inst.id} className="border-b border-ink/6 last:border-0 hover:bg-cream-100/50 transition-colors">
                   <td className="px-5 py-3">
                     <div className="font-medium">{inst.name}</div>
-                    <div className="text-[11px] text-ink-mute font-mono">{inst.id}</div>
+                    <div className="text-[11px] text-ink-mute font-mono flex items-center gap-1.5">
+                      <span className="truncate max-w-[180px]">{inst.id}</span>
+                      <button onClick={() => copyId(inst.id)}
+                        className="text-ink-mute hover:text-accent transition-colors text-[10px]">
+                        {copiedId === inst.id ? '✓' : '⧉'}
+                      </button>
+                    </div>
                   </td>
                   <td className="px-5 py-3">
                     <span className="font-mono font-bold tracking-widest text-accent">{inst.code ?? '—'}</span>
@@ -1673,10 +1822,31 @@ function InstitutionsPanel() {
                     <span className="font-mono text-[11px] text-ink-mute truncate max-w-[120px] block">{inst.ownerId ?? '—'}</span>
                   </td>
                   <td className="px-5 py-3">
-                    <a href={contactHref(inst)}
-                      className="text-[11px] border border-ink/15 rounded px-2 py-1 hover:border-accent hover:text-accent transition-colors">
-                      Contact owner
-                    </a>
+                    <div className="flex gap-2 flex-wrap">
+                      {isDev && (
+                        impersonatedInstitutionId === inst.id ? (
+                          <button onClick={() => setImpersonatedInstitution(null)}
+                            className="text-[11px] border border-purple-300 text-purple-600 rounded px-2 py-1 bg-purple-50 dark:bg-purple-900/20 transition-colors">
+                            Exit drill-in
+                          </button>
+                        ) : (
+                          <button onClick={() => setImpersonatedInstitution(inst.id)}
+                            className="text-[11px] border border-purple-300 text-purple-600 rounded px-2 py-1 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors">
+                            Drill in
+                          </button>
+                        )
+                      )}
+                      <a href={contactHref(inst)}
+                        className="text-[11px] border border-ink/15 rounded px-2 py-1 hover:border-accent hover:text-accent transition-colors">
+                        Contact
+                      </a>
+                      {isDev && (
+                        <button onClick={() => setConfirmId(inst.id)}
+                          className="text-[11px] border border-red-300 text-red-500 rounded px-2 py-1 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                          Terminate
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1684,6 +1854,33 @@ function InstitutionsPanel() {
           </table>
         )}
       </Card>
+
+      {/* Terminate confirm modal */}
+      {confirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm">
+          <div className="bg-cream-50 dark:bg-[#13161D] rounded-2xl border border-ink/10 p-7 max-w-md w-full mx-4 shadow-2xl">
+            <h2 className="font-display text-[1.4rem] mb-2">Terminate institution?</h2>
+            <p className="text-[13px] text-ink-mute mb-4">
+              This will:
+            </p>
+            <ul className="text-[13px] space-y-1 mb-5 pl-4">
+              <li className="list-disc text-ink-mute">Detach every member to <code className="font-mono text-[11px]">student</code> with no institution</li>
+              <li className="list-disc text-ink-mute">Delete the institution document and join code</li>
+              <li className="list-disc text-amber-600 font-medium">Write an append-only audit row that lives for 1 day</li>
+            </ul>
+            <div className="flex gap-3">
+              <button onClick={() => terminate(confirmId)} disabled={terminating === confirmId}
+                className="flex-1 rounded-xl bg-red-600 text-white py-2.5 text-[13px] font-medium hover:bg-red-700 transition-all disabled:opacity-50">
+                {terminating === confirmId ? 'Terminating…' : 'Terminate'}
+              </button>
+              <button onClick={() => setConfirmId(null)}
+                className="flex-1 rounded-xl border border-ink/10 py-2.5 text-[13px] text-ink-mute hover:text-ink transition-all">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1782,6 +1979,18 @@ function GodModePanel() {
               onChange={(v) => set('limitedOfferDiscountPct', Number(v))} type="number" />
           </div>
         )}
+      </Card>
+
+      {/* Per-tier price editor — devs can set any price (including 0) */}
+      <Card className="p-6 space-y-4">
+        <SectionTitle>Pricing tiers</SectionTitle>
+        <p className="text-[12px] text-ink-mute -mt-2">
+          Override the three landing-page pricing cards. Leave empty to keep the built-in defaults (Starter $0, Pro $99, Enterprise Custom). Set any price to 0 to make it free.
+        </p>
+        <PricingTierEditor
+          tiers={local.pricingTiers}
+          onChange={(tiers) => set('pricingTiers', tiers)}
+        />
       </Card>
 
       {/* Pricing confirm modal */}

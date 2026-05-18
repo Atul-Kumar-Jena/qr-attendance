@@ -200,6 +200,30 @@ export function onAllInstitutions(cb: (i: FSInstitution[]) => void): Unsub {
   }, () => cb([]));
 }
 
+// Developer-only terminate: marks institution terminated and detaches all
+// members (sets role to 'student' with no institutionId so they can rejoin
+// elsewhere). Audit row is written for the dev who pulled the trigger.
+export async function terminateInstitution(institutionId: string, actorUid: string, actorName?: string): Promise<void> {
+  if (!db) throw new Error('Firebase not configured');
+  const { doc, updateDoc, collection, query, where, getDocs, writeBatch, serverTimestamp, deleteDoc } = require('firebase/firestore');
+  // 1) detach members
+  const usersSnap = await getDocs(query(collection(db, 'users'), where('institutionId', '==', institutionId)));
+  const batch = writeBatch(db);
+  usersSnap.forEach((u: any) => {
+    batch.update(u.ref, { institutionId: null, role: 'student', updatedAt: serverTimestamp() });
+  });
+  await batch.commit();
+  // 2) write audit (one-day retention is a Firestore TTL policy you configure
+  //    in console on the auditLogs collection; documented in FIREBASE_SETUP.md)
+  await logAudit({
+    institutionId, actorId: actorUid, actorName: actorName ?? '',
+    action: 'INSTITUTION_TERMINATED', targetId: institutionId,
+    details: `Terminated by developer; ${usersSnap.size} members detached.`,
+  });
+  // 3) delete the institution doc itself
+  await deleteDoc(doc(db, 'institutions', institutionId));
+}
+
 // ── Join institution by code ──────────────────────────────────────────────────
 
 export async function joinInstitutionByCode(

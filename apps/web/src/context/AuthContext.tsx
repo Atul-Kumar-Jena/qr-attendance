@@ -19,7 +19,14 @@ const DEVELOPER_EMAILS: string[] = ['jenaatul8@gmail.com'];
 interface AuthState {
   user: User | null;
   role: Role | null;
+  // Effective institution context. For developers this returns the
+  // impersonated institution if one is active, otherwise the dev's own (if any).
   institutionId: string | null;
+  // The dev's actual institutionId (never the impersonation override).  Used
+  // by the admin page header to detect "real" vs "acting-as" state.
+  realInstitutionId: string | null;
+  impersonatedInstitutionId: string | null;
+  setImpersonatedInstitution: (id: string | null) => void;
   loading: boolean;
   needsOnboarding: boolean;
   markOnboardingDone: () => void;
@@ -28,10 +35,14 @@ interface AuthState {
 }
 
 const AuthContext = createContext<AuthState>({
-  user: null, role: null, institutionId: null, loading: false,
+  user: null, role: null, institutionId: null, realInstitutionId: null,
+  impersonatedInstitutionId: null, setImpersonatedInstitution: () => {},
+  loading: false,
   needsOnboarding: false, markOnboardingDone: () => {},
   signIn: async () => {}, signOut: async () => {},
 });
+
+const IMPERSONATION_KEY = 'atd_dev_impersonate_inst';
 
 export function AuthProvider({ children, onSignIn, onSignOut }: {
   children: ReactNode;
@@ -40,9 +51,31 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
 }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role | null>(null);
-  const [institutionId, setInstitutionId] = useState<string | null>(null);
+  const [realInstitutionId, setRealInstitutionId] = useState<string | null>(null);
+  const [impersonatedInstitutionId, setImpersonatedInstitutionIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(isConfigured);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+
+  // Hydrate impersonation from localStorage after mount (only takes effect for devs)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(IMPERSONATION_KEY);
+      if (stored) setImpersonatedInstitutionIdState(stored);
+    } catch {}
+  }, []);
+
+  const setImpersonatedInstitution = (id: string | null) => {
+    setImpersonatedInstitutionIdState(id);
+    try {
+      if (id) localStorage.setItem(IMPERSONATION_KEY, id);
+      else    localStorage.removeItem(IMPERSONATION_KEY);
+    } catch {}
+  };
+
+  // Effective institutionId — for devs, prefer impersonation; otherwise their own.
+  const institutionId = role === 'developer' && impersonatedInstitutionId
+    ? impersonatedInstitutionId
+    : realInstitutionId;
 
   useEffect(() => {
     if (!isConfigured || !auth) { setLoading(false); return; }
@@ -85,11 +118,11 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
           } catch { resolvedRole = 'student'; }
         }
         setRole(resolvedRole);
-        setInstitutionId(resolvedInstId);
+        setRealInstitutionId(resolvedInstId);
         setNeedsOnboarding(resolvedOnboarding);
       } else {
         setRole(null);
-        setInstitutionId(null);
+        setRealInstitutionId(null);
         setNeedsOnboarding(false);
       }
       setLoading(false);
@@ -127,7 +160,11 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, institutionId, loading, needsOnboarding, markOnboardingDone, signIn, signOut }}>
+    <AuthContext.Provider value={{
+      user, role, institutionId, realInstitutionId,
+      impersonatedInstitutionId, setImpersonatedInstitution,
+      loading, needsOnboarding, markOnboardingDone, signIn, signOut,
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -5,25 +5,25 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initGSAP } from '@/lib/gsap-init';
 import { Magnetic } from './Magnetic';
-import { useSiteConfig } from '@/context/SiteConfigContext';
+import { useSiteConfig, type PricingTier } from '@/context/SiteConfigContext';
 
 if (typeof window !== 'undefined') initGSAP();
 
-const BASE_TIERS = [
+const BASE_TIERS: PricingTier[] = [
   {
-    name: 'Starter', fullPrice: 0, unit: '/ month',
+    name: 'Starter', price: 0, unit: '/ month',
     pitch: 'For coaching centers up to 200 students.',
     feats: ['1 institution', '200 students', 'Dynamic QR', 'Email reports', 'Community support'],
     cta: 'Start free',
   },
   {
-    name: 'Pro', fullPrice: 99, unit: '/ month',
+    name: 'Pro', price: 99, unit: '/ month',
     pitch: 'Most schools and small colleges.',
     feats: ['Up to 5000 students', 'Geofence + device binding', 'PDF / Excel reports', 'Fraud queue', 'Priority support'],
     cta: 'Choose Pro', highlight: true,
   },
   {
-    name: 'Enterprise', fullPrice: null, unit: 'custom',
+    name: 'Enterprise', price: null, unit: 'custom',
     pitch: 'Universities, multi-campus, SSO.',
     feats: ['Unlimited students', 'Custom geofence policies', 'SAML SSO + audit export', 'Webhooks', 'Dedicated SLA'],
     cta: 'Talk to sales',
@@ -84,10 +84,13 @@ export function Pricing() {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-5">
-          {BASE_TIERS.map((t) => {
-            const displayPrice = (isLimitedOffer && t.fullPrice !== null && t.fullPrice > 0)
-              ? Math.round(t.fullPrice * discountMultiplier)
-              : t.fullPrice;
+          {/* Devs can override tiers globally via SiteConfig → pricingTiers.
+              If they leave it empty the built-in BASE_TIERS render — so the
+              section is never blank. */}
+          {(config.pricingTiers && config.pricingTiers.length > 0 ? config.pricingTiers : BASE_TIERS).map((t) => {
+            const displayPrice = (isLimitedOffer && t.price !== null && t.price > 0)
+              ? Math.round(t.price * discountMultiplier)
+              : t.price;
 
             return (
               <div
@@ -107,13 +110,13 @@ export function Pricing() {
                 </p>
 
                 <div className="mt-6 flex items-baseline gap-2">
-                  {t.fullPrice === null ? (
+                  {t.price === null ? (
                     <span className="font-display text-[3rem] leading-none">Custom</span>
                   ) : (
                     <div className="flex flex-col gap-0.5">
-                      {isLimitedOffer && t.fullPrice > 0 && (
+                      {isLimitedOffer && t.price > 0 && (
                         <span className={`text-[13px] line-through ${t.highlight ? 'text-cream-50/40' : 'text-ink/30'}`}>
-                          ${t.fullPrice}/mo
+                          ${t.price}/mo
                         </span>
                       )}
                       <div className="flex items-baseline gap-2">
@@ -148,7 +151,7 @@ export function Pricing() {
                         t.highlight ? 'bg-accent text-cream-50' : 'bg-ink dark:bg-[#1A2236] dark:border dark:border-white/10 text-cream-50'
                       }`}
                     >
-                      {isLimitedOffer && t.fullPrice !== null && t.fullPrice > 0
+                      {isLimitedOffer && t.price !== null && t.price > 0
                         ? `${t.cta} — limited offer`
                         : t.cta}
                     </a>

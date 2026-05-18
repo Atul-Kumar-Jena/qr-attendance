@@ -4,6 +4,19 @@ import { db } from '@/lib/firebase';
 
 export type PricingMode = 'LIMITED_OFFER' | 'PAID';
 
+// Per-tier pricing override — `price: null` keeps the tier label "Custom"
+// (used for Enterprise). Anything else is rendered as a dollar amount. Devs
+// can set 0 to make a plan free for everyone.
+export interface PricingTier {
+  name: string;
+  price: number | null;
+  unit: string;
+  pitch: string;
+  feats: string[];
+  cta: string;
+  highlight?: boolean;
+}
+
 export interface SiteConfig {
   siteTitle: string;
   tagline: string;
@@ -14,6 +27,7 @@ export interface SiteConfig {
   pricingMode: PricingMode;
   limitedOfferLabel: string;
   limitedOfferDiscountPct: number;
+  pricingTiers: PricingTier[];        // dev-editable; empty = use built-in defaults
   geofencingEnabled: boolean;
   deviceBindingEnabled: boolean;
   attestationEnabled: boolean;
@@ -35,6 +49,7 @@ export const DEFAULT_CONFIG: SiteConfig = {
   pricingMode: 'LIMITED_OFFER',
   limitedOfferLabel: 'Early access — 60% off',
   limitedOfferDiscountPct: 60,
+  pricingTiers: [],
   geofencingEnabled: true,
   deviceBindingEnabled: true,
   attestationEnabled: false,

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth, type Role } from '@/context/AuthContext';
+import type { FSInstitution } from '@/lib/firestore-db';
 
 const ROLE_BADGE: Record<Role, { label: string; color: string }> = {
   developer:   { label: 'Developer',   color: 'bg-red-500/15 text-red-400 border border-red-500/25' },
@@ -13,8 +14,10 @@ const ROLE_BADGE: Record<Role, { label: string; color: string }> = {
 };
 
 export function UserMenu() {
-  const { user, role, signOut } = useAuth();
+  const { user, role, institutionId, signOut } = useAuth();
   const [open, setOpen] = useState(false);
+  const [inst, setInst] = useState<FSInstitution | null>(null);
+  const [copied, setCopied] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -32,6 +35,13 @@ export function UserMenu() {
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
+  // Fetch institution info — gives users their institution name + code as a tag
+  useEffect(() => {
+    if (!institutionId) { setInst(null); return; }
+    const { onInstitution } = require('@/lib/firestore-db');
+    return onInstitution(institutionId, setInst);
+  }, [institutionId]);
+
   if (!user) return null;
 
   const initials = user.displayName
@@ -40,6 +50,10 @@ export function UserMenu() {
 
   const badge = role ? ROLE_BADGE[role] : null;
   const canAccessAdmin = role && ['developer', 'institution', 'admin', 'teacher'].includes(role);
+
+  const copyUid = async () => {
+    try { await navigator.clipboard.writeText(user.uid); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
+  };
 
   return (
     <div className="relative">
@@ -85,11 +99,30 @@ export function UserMenu() {
                 <div className="text-[11px] text-ink-mute truncate">{user.email}</div>
               </div>
             </div>
-            {badge && (
-              <span className={`mt-2 inline-block text-[10px] px-2 py-0.5 rounded-full font-medium ${badge.color}`}>
-                {badge.label}
-              </span>
-            )}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {badge && (
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${badge.color}`}>
+                  {badge.label}
+                </span>
+              )}
+              {inst && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-accent/10 text-accent border border-accent/20 truncate max-w-[140px]">
+                  {inst.name}
+                </span>
+              )}
+            </div>
+            {/* Unique user ID — copyable */}
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="text-[9.5px] tracking-wider text-ink-mute uppercase">Your ID</span>
+              <code className="text-[10px] font-mono text-ink/75 dark:text-white/65 truncate max-w-[120px]" title={user.uid}>
+                {user.uid.slice(0, 10)}…
+              </code>
+              <button onClick={copyUid}
+                className="text-ink-mute hover:text-accent transition-colors text-[10px]"
+                title="Copy full ID">
+                {copied ? '✓' : '⧉'}
+              </button>
+            </div>
           </div>
 
           {/* Menu items */}

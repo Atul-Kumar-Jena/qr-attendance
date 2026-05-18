@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { User } from 'firebase/auth';
 import { QRCodeSVG } from 'qrcode.react';
 
-type Step = 'choose' | 'institution' | 'student' | 'done-inst' | 'done-student';
+type Step = 'choose' | 'institution' | 'student' | 'professor-solo' | 'sudo-prof' | 'done-inst' | 'done-student' | 'done-solo';
 
 interface Props {
   user: User;
@@ -71,6 +71,35 @@ export function OnboardingFlow({ user, onComplete }: Props) {
     }
   };
 
+  // Individual professor: create a personal one-person "institution" so the
+  // dashboard, class creation, sessions and attendance reports all work the
+  // same as institution-bound flows — no special case needed downstream.
+  const handleCreateSolo = async () => {
+    setBusy(true); setError('');
+    try {
+      const { createInstitution } = await import('@/lib/firestore-db');
+      const displayName = (user.displayName ?? user.email ?? 'Professor').split('@')[0];
+      const id = await createInstitution({ name: `${displayName} — Personal`, type: 'other' }, user.uid);
+      // Demote role from auto-assigned 'institution' down to 'admin' — gives
+      // them admin-level control over their own personal institution but
+      // shows as a single-person workspace rather than a multi-tenant org.
+      const { db } = await import('@/lib/firebase');
+      if (db) {
+        const { doc, updateDoc, serverTimestamp } = await import('firebase/firestore');
+        await updateDoc(doc(db, 'users', user.uid), {
+          role: 'admin', institutionId: id, onboardingDone: true,
+          isIndividualProfessor: true, updatedAt: serverTimestamp(),
+        });
+      }
+      setCreatedId(id);
+      setStep('done-solo');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-ink/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-md rounded-2xl bg-cream-50 dark:bg-[#13161D] border border-ink/10 dark:border-white/10 shadow-2xl overflow-hidden">
@@ -110,21 +139,88 @@ export function OnboardingFlow({ user, onComplete }: Props) {
 
         <div className="px-8 pb-8 pt-2 space-y-4">
 
-          {/* Step: choose */}
+          {/* Step: choose — 4 roles per Phase 4 spec */}
           {step === 'choose' && (
             <div className="grid grid-cols-2 gap-3 pt-2">
+              <button onClick={() => { setStep('student'); setJoiningRole('student'); }}
+                className="group rounded-xl border-2 border-ink/10 hover:border-accent p-5 text-left transition-all hover:bg-accent/5">
+                <div className="text-2xl mb-2">🎓</div>
+                <div className="font-medium text-[14px]">I'm a student</div>
+                <div className="text-[11.5px] text-ink-mute mt-1">Join my institution with a code</div>
+              </button>
               <button onClick={() => setStep('institution')}
                 className="group rounded-xl border-2 border-ink/10 hover:border-accent p-5 text-left transition-all hover:bg-accent/5">
                 <div className="text-2xl mb-2">🏫</div>
                 <div className="font-medium text-[14px]">I run an institution</div>
                 <div className="text-[11.5px] text-ink-mute mt-1">School, college, or organisation</div>
               </button>
-              <button onClick={() => setStep('student')}
+              <button onClick={() => setStep('professor-solo')}
                 className="group rounded-xl border-2 border-ink/10 hover:border-accent p-5 text-left transition-all hover:bg-accent/5">
-                <div className="text-2xl mb-2">🎓</div>
-                <div className="font-medium text-[14px]">I'm a student</div>
-                <div className="text-[11.5px] text-ink-mute mt-1">Or teacher joining an institution</div>
+                <div className="text-2xl mb-2">👤</div>
+                <div className="font-medium text-[14px]">Individual professor</div>
+                <div className="text-[11.5px] text-ink-mute mt-1">Tutor / independent teacher</div>
               </button>
+              <button onClick={() => { setStep('sudo-prof'); setJoiningRole('teacher'); }}
+                className="group rounded-xl border-2 border-ink/10 hover:border-accent p-5 text-left transition-all hover:bg-accent/5">
+                <div className="text-2xl mb-2">📚</div>
+                <div className="font-medium text-[14px]">Sudo admin / Professor</div>
+                <div className="text-[11.5px] text-ink-mute mt-1">Join an institution as faculty</div>
+              </button>
+            </div>
+          )}
+
+          {/* Step: individual professor — confirm + auto-create personal institution */}
+          {step === 'professor-solo' && (
+            <div className="space-y-4 pt-2">
+              <div className="rounded-xl bg-accent/8 border border-accent/20 p-4 text-[12.5px] text-ink leading-relaxed">
+                <div className="font-medium mb-1">Personal workspace</div>
+                We&apos;ll set up a one-person workspace under your name. You can create classes,
+                share join codes with your students and run live QR sessions — no institution
+                membership required.
+              </div>
+              {error && <p className="text-[12px] text-red-500">{error}</p>}
+              <div className="flex gap-3 pt-1">
+                <button onClick={() => { setStep('choose'); setError(''); }}
+                  className="rounded-lg border border-ink/10 px-4 py-2 text-[13px] text-ink-mute hover:text-ink transition-all">
+                  Back
+                </button>
+                <button onClick={handleCreateSolo} disabled={busy}
+                  className="flex-1 rounded-lg bg-accent text-cream-50 px-4 py-2 text-[13px] font-medium hover:bg-accent/90 transition-all disabled:opacity-60">
+                  {busy ? 'Setting up…' : 'Create my workspace'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step: sudo admin / professor under institution — reuse the join form
+              but pre-locked to teacher role */}
+          {step === 'sudo-prof' && (
+            <div className="space-y-4 pt-2">
+              <div>
+                <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Institution code</label>
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  placeholder="e.g. A3KX72"
+                  maxLength={6}
+                  className="w-full text-[20px] font-mono tracking-[0.25em] text-center bg-cream-100 dark:bg-white/5 border border-ink/10 rounded-lg px-3 py-3 focus:outline-none focus:border-accent/50 transition-colors uppercase"
+                />
+                <p className="text-[11px] text-ink-mute mt-1.5">
+                  Ask your admin for the 6-character code. They can then promote you to
+                  sudo admin or fine-tune your permissions in Manage Users.
+                </p>
+              </div>
+              {error && <p className="text-[12px] text-red-500">{error}</p>}
+              <div className="flex gap-3 pt-1">
+                <button onClick={() => { setStep('choose'); setError(''); }}
+                  className="rounded-lg border border-ink/10 px-4 py-2 text-[13px] text-ink-mute hover:text-ink transition-all">
+                  Back
+                </button>
+                <button onClick={handleJoinInstitution} disabled={busy}
+                  className="flex-1 rounded-lg bg-accent text-cream-50 px-4 py-2 text-[13px] font-medium hover:bg-accent/90 transition-all disabled:opacity-60">
+                  {busy ? 'Joining…' : 'Join as professor'}
+                </button>
+              </div>
             </div>
           )}
 
@@ -165,36 +261,9 @@ export function OnboardingFlow({ user, onComplete }: Props) {
             </div>
           )}
 
-          {/* Step: join as student/teacher */}
+          {/* Step: join as student */}
           {step === 'student' && (
             <div className="space-y-4 pt-2">
-              {/* Role selector */}
-              <div>
-                <label className="block text-[11px] tracking-wide text-ink-mute mb-2">I am joining as…</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['student', 'teacher'] as const).map((r) => (
-                    <button key={r} type="button" onClick={() => setJoiningRole(r)}
-                      className={`rounded-lg border-2 py-2.5 text-[13px] font-medium transition-all ${
-                        joiningRole === r ? 'border-accent bg-accent/8 text-accent' : 'border-ink/10 text-ink-mute hover:border-ink/20'
-                      }`}>
-                      {r === 'student' ? '🎓 Student' : '📚 Teacher'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-[11px] tracking-wide text-ink-mute mb-2">I am joining as…</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['student', 'teacher'] as const).map((r) => (
-                    <button key={r} type="button" onClick={() => setJoiningRole(r)}
-                      className={`rounded-lg border-2 py-2.5 text-[13px] font-medium transition-all ${
-                        joiningRole === r ? 'border-accent bg-accent/8 text-accent' : 'border-ink/10 text-ink-mute hover:border-ink/20'
-                      }`}>
-                      {r === 'student' ? '🎓 Student' : '📚 Teacher'}
-                    </button>
-                  ))}
-                </div>
-              </div>
               <div>
                 <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Institution code</label>
                 <input
@@ -261,6 +330,31 @@ export function OnboardingFlow({ user, onComplete }: Props) {
               <button onClick={() => { onComplete(); window.location.reload(); }}
                 className="w-full rounded-lg bg-accent text-cream-50 px-4 py-2.5 text-[13px] font-medium hover:bg-accent/90 transition-all">
                 Go to dashboard →
+              </button>
+            </div>
+          )}
+
+          {/* Done: individual professor — personal workspace created */}
+          {step === 'done-solo' && (
+            <div className="space-y-5 pt-2">
+              <div className="rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 p-5 space-y-2">
+                <div className="text-[13px] font-medium text-green-800 dark:text-green-300">
+                  🎉 Personal workspace ready!
+                </div>
+                <p className="text-[12.5px] text-green-700 dark:text-green-400">
+                  You can now create classes and run live QR sessions. Your unique workspace ID:
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <code className="font-mono text-[11px] text-ink-mute truncate">{createdId}</code>
+                  <button onClick={() => navigator.clipboard.writeText(createdId)}
+                    className="text-[11px] text-ink-mute hover:text-ink border border-ink/10 rounded px-2 py-1 transition-colors">
+                    Copy
+                  </button>
+                </div>
+              </div>
+              <button onClick={() => { onComplete(); window.location.reload(); }}
+                className="w-full rounded-lg bg-accent text-cream-50 px-4 py-2.5 text-[13px] font-medium hover:bg-accent/90 transition-all">
+                Open my dashboard →
               </button>
             </div>
           )}
