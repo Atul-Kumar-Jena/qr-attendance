@@ -17,7 +17,6 @@ function useQrDemoTour() {
     const timer = setTimeout(async () => {
       try {
         const { driver } = await import('driver.js');
-        import('driver.js/dist/driver.css' as any).catch(() => {});
         const d = driver({
           animate: true,
           showProgress: true,
