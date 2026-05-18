@@ -9,46 +9,48 @@ import { AuthModal } from '@/components/AuthModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SkeletonTable } from '@/components/Skeleton';
 
+const TOUR_STEPS = [
+  { element: '#tour-overview',     popover: { title: 'Overview',        description: 'Your dashboard at a glance — sessions, students, attendance stats.' } },
+  { element: '#tour-students',     popover: { title: 'Students',         description: 'Add, search and manage students. Click a student to add remarks.' } },
+  { element: '#tour-manage-users', popover: { title: 'Manage Users',     description: 'Invite admins and teachers, change roles, suspend accounts.' } },
+  { element: '#tour-institution',  popover: { title: 'Institution',      description: 'Your institution code lives here — share it so others can join.' } },
+  { element: '#tour-qr-btn',       popover: { title: 'Start QR Session', description: 'Launch a live QR session. Codes rotate every second — impossible to fake.' } },
+];
+
+// Run the tour. Safe to call on demand — skips silently if elements not mounted.
+function runTour() {
+  if (typeof window === 'undefined') return;
+  import('driver.js').then(({ driver }) => {
+    try {
+      // driver.js v1 reads offsetWidth on every step element. A null element
+      // throws → React 18's global error handler routes it to RootCrashScreen.
+      // Pre-filter so we only pass steps whose elements are actually in DOM.
+      const steps = TOUR_STEPS.filter(s => !!document.querySelector(s.element));
+      if (steps.length === 0) return;
+      const d = driver({
+        animate: true,
+        smoothScroll: true,
+        showProgress: true,
+        allowClose: true,
+        overlayClickBehavior: 'close',
+        steps,
+        onDestroyStarted: () => { try { d.destroy(); } catch {} },
+      });
+      d.drive();
+    } catch { /* tour failure is non-fatal */ }
+  }).catch(() => {});
+}
+
 function useTourGuide(role: Role | null) {
   useEffect(() => {
     if (typeof window === 'undefined' || !role) return;
     const key = `atd_tour_${role}`;
     if (localStorage.getItem(key)) return;
     localStorage.setItem(key, '1');
-
-    const ALL_STEPS = [
-      { element: '#tour-overview',     popover: { title: 'Overview',        description: 'Your dashboard at a glance — sessions, students, attendance stats.' } },
-      { element: '#tour-students',     popover: { title: 'Students',         description: 'Add, search and manage students. Click a student to add remarks.' } },
-      { element: '#tour-manage-users', popover: { title: 'Manage Users',     description: 'Invite admins and teachers, change roles, suspend accounts.' } },
-      { element: '#tour-institution',  popover: { title: 'Institution',      description: 'Your institution code lives here — share it so others can join.' } },
-      { element: '#tour-qr-btn',       popover: { title: 'Start QR Session', description: 'Launch a live QR session. Codes rotate every second — impossible to fake.' } },
-    ];
-
-    let timer: ReturnType<typeof setTimeout>;
-    import('driver.js').then(({ driver }) => {
-      // Extra delay ensures React has committed the full sidebar DOM before
-      // driver.js reads offsetWidth/offsetHeight. Passing a null element
-      // to driver.js v1 throws "Cannot read properties of null (reading
-      // 'offsetWidth')" which React 18 catches globally → RootCrashScreen.
-      timer = setTimeout(() => {
-        try {
-          const steps = ALL_STEPS.filter(s => !!document.querySelector(s.element));
-          if (steps.length === 0) return;
-          const d = driver({
-            animate: true,
-            smoothScroll: true,
-            showProgress: true,
-            allowClose: true,
-            overlayClickBehavior: 'close',
-            steps,
-            onDestroyStarted: () => { try { d.destroy(); } catch {} },
-          });
-          d.drive();
-        } catch { /* tour failure is non-fatal */ }
-      }, 1500);
-    }).catch(() => {});
-
-    return () => { try { clearTimeout(timer); } catch {} };
+    // Delay so React has committed the full sidebar/main DOM before driver.js
+    // reads element dimensions.
+    const timer = setTimeout(runTour, 1500);
+    return () => clearTimeout(timer);
   }, [role]);
 }
 
@@ -211,6 +213,13 @@ export default function AdminHome() {
         })}
       </nav>
       <div className="mt-6 pt-6 border-t border-ink/8 dark:border-white/8 text-[11px] text-ink-mute space-y-2">
+        <button
+          type="button"
+          onClick={() => { setSidebarOpen(false); runTour(); }}
+          className="link-line block w-full text-left hover:text-ink dark:hover:text-white transition-colors"
+        >
+          Guide me
+        </button>
         <Link href="/profile" className="link-line block hover:text-ink dark:hover:text-white transition-colors">
           Profile
         </Link>

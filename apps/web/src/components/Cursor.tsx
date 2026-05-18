@@ -150,21 +150,21 @@ export function Cursor() {
 
   return (
     <>
-      {/* Ring — lags behind via RAF lerp */}
+      {/* Ring — lags behind via RAF lerp. z above all dialogs (Radix Dialog uses 9999). */}
       <div
         ref={ring}
-        className="pointer-events-none fixed left-0 top-0 z-[9998] w-8 h-8 rounded-full border border-ink/25 dark:border-white/20 hidden md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[100000] w-8 h-8 rounded-full border border-ink/25 dark:border-white/20 hidden md:block"
         style={{ willChange: 'transform', transition: 'border-color 0.3s, width 0.3s, height 0.3s' }}
       />
       {/* Dot — instant */}
       <div
         ref={dot}
-        className="pointer-events-none fixed left-0 top-0 z-[9999] w-2 h-2 rounded-full bg-ink dark:bg-[#F0EDE6] hidden md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[100001] w-2 h-2 rounded-full bg-ink dark:bg-[#F0EDE6] hidden md:block"
         style={{ willChange: 'transform', transition: 'transform 0.08s, background-color 0.3s' }}
       />
       {/* Hover tooltip */}
       <div
-        className={`pointer-events-none fixed z-[9997] hidden md:block px-2.5 py-1 rounded-lg text-[11.5px] font-medium bg-ink dark:bg-[#F0EDE6] text-cream-50 dark:text-ink shadow-lg whitespace-nowrap transition-opacity duration-200 ${
+        className={`pointer-events-none fixed z-[99999] hidden md:block px-2.5 py-1 rounded-lg text-[11.5px] font-medium bg-ink dark:bg-[#F0EDE6] text-cream-50 dark:text-ink shadow-lg whitespace-nowrap transition-opacity duration-200 ${
           tipVisible ? 'opacity-100' : 'opacity-0'
         }`}
         style={{ left: tipPos.x, top: tipPos.y }}

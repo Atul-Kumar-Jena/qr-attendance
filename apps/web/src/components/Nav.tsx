@@ -128,9 +128,9 @@ export function Nav() {
         className={cn('fixed inset-x-0 top-0 z-50 transition-all duration-500', scrolled ? 'py-2' : 'py-5')}
       >
         <div className={cn(
-          'container flex items-center justify-between transition-all duration-500',
+          'container flex items-center justify-between gap-4 transition-all duration-500',
           scrolled
-            ? 'rounded-2xl border border-ink/8 px-5 py-3 max-w-3xl backdrop-blur-xl bg-cream-50/80 shadow-[0_4px_32px_-4px_rgba(11,18,32,0.12)] dark:bg-[#0D0F14]/85 dark:border-white/8 dark:shadow-[0_4px_40px_-4px_rgba(0,0,0,0.6),0_0_0_1px_rgba(240,237,230,0.07)]'
+            ? 'rounded-2xl border border-ink/8 px-4 lg:px-6 py-3 max-w-5xl backdrop-blur-xl bg-cream-50/80 shadow-[0_4px_32px_-4px_rgba(11,18,32,0.12)] dark:bg-[#0D0F14]/85 dark:border-white/8 dark:shadow-[0_4px_40px_-4px_rgba(0,0,0,0.6),0_0_0_1px_rgba(240,237,230,0.07)]'
             : '',
         )}>
           <Link href="/" className="flex items-center gap-2.5 group">
@@ -138,8 +138,11 @@ export function Nav() {
             <span className="font-display text-[1.25rem] leading-none tracking-tight">Attendly</span>
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-7 text-[13px] tracking-wide text-ink-mute">
+          {/* Desktop nav — compresses gap when scrolled */}
+          <nav className={cn(
+            'hidden md:flex items-center text-[13px] tracking-wide text-ink-mute',
+            scrolled ? 'gap-5 lg:gap-6' : 'gap-7',
+          )}>
             {links.map((l) => (
               <Link key={l.href} href={l.href}
                 className="relative py-1 hover:text-ink dark:hover:text-white/90 transition-colors duration-200 after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full">
@@ -148,7 +151,7 @@ export function Nav() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 md:gap-3">
             {/* Desktop theme toggle */}
             <div className="hidden md:flex">
               <ThemeToggle />
@@ -169,7 +172,10 @@ export function Nav() {
 
             <Link
               href="#pricing"
-              className="hidden md:block rounded-xl bg-ink dark:bg-[#1A2236] px-4 py-2 text-[12.5px] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:hover:bg-[#222c3e] dark:border dark:border-white/15 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+              className={cn(
+                'hidden md:inline-block rounded-xl bg-ink dark:bg-[#1A2236] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:hover:bg-[#222c3e] dark:border dark:border-white/15 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] whitespace-nowrap',
+                scrolled ? 'px-3 py-1.5 text-[12px]' : 'px-4 py-2 text-[12.5px]',
+              )}
             >
               Request demo
             </Link>
