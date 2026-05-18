@@ -5,6 +5,8 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Magnetic } from './Magnetic';
 import { initGSAP } from '@/lib/gsap-init';
+import { LiveQrShowcase } from '@/components/LiveQrShowcase';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 
 if (typeof window !== 'undefined') {
   initGSAP();
@@ -184,18 +186,26 @@ export function Hero() {
               <Divider />
               <Stat label="Spoofed scans blocked" value={132984} format />
               <Divider />
-              <Stat label="QR rotation" value={7} suffix="s" />
+              <RotationStat />
             </div>
           </div>
 
-          {/* QR mosaic */}
-          <div ref={qr} className="relative mx-auto w-full max-w-[420px] aspect-square">
-            <QrMosaic />
+          {/* Live signed QR (real ECDSA, demo key — not scannable) */}
+          <div ref={qr} className="relative mx-auto w-full max-w-[420px] aspect-square flex items-center justify-center">
+            <div className="rounded-3xl bg-[#0B1220] p-8 shadow-[0_30px_80px_-20px_rgba(11,18,32,0.4)] dark:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] border border-ink/10 dark:border-white/10">
+              <LiveQrShowcase size={260} rounded showMeta className="text-cream-50" />
+            </div>
           </div>
         </div>
       </div>
     </section>
   );
+}
+
+function RotationStat() {
+  const { config } = useSiteConfig();
+  const ttl = Math.min(5, Math.max(0.8, Number(config.defaultQrRotationSec) || 1.5));
+  return <Stat label="QR rotation" value={ttl} suffix="s" decimals={ttl % 1 ? 1 : 0} />;
 }
 
 function Divider() {

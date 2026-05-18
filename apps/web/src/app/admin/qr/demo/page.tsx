@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import gsap from 'gsap';
 import { useAuth } from '@/context/AuthContext';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 import { QRCodeSVG } from 'qrcode.react';
 import { signQrToken, randomNonce, type QrClaims } from '@/lib/crypto';
 import { getOrCreateInstitutionKeys } from '@/lib/keystore';
@@ -61,6 +62,7 @@ function useQrDemoTour() {
 
 export default function QrDisplay() {
   const { user, institutionId } = useAuth();
+  const { config } = useSiteConfig();
   const router = useRouter();
   const [stage, setStage] = useState<Stage>('setup');
   const [sessionId, setSessionId] = useState('');
@@ -73,8 +75,11 @@ export default function QrDisplay() {
   const [liveCount, setLiveCount] = useState(0);
   const [qrPayload, setQrPayload] = useState('');
   const [signerFp, setSignerFp] = useState('');
-  const [maxScans, setMaxScans] = useState(0); // 0 = unlimited
-  const [ttlSec, setTtlSec] = useState(1.5);
+  const initialMaxScans = Math.max(0, Number(config.defaultQrMaxScans) || 0);
+  const [maxScans, setMaxScans] = useState(initialMaxScans); // 0 = unlimited
+  // Default rotation comes from admin SiteConfig; admin can still override per-session
+  const initialTtl = Math.min(3, Math.max(1, Number(config.defaultQrRotationSec) || 1.5));
+  const [ttlSec, setTtlSec] = useState(initialTtl);
   const qrRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const instPrivRef = useRef<string>('');

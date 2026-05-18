@@ -27,6 +27,7 @@ export interface SiteConfig {
   qrRotationEnabled: boolean;
   maintenanceMode: boolean;
   defaultQrRotationSec: number;
+  defaultQrMaxScans: number;
   loginRateLimitMax: number;
   scanRateLimitMax: number;
   siteStats: StatItem[];
@@ -51,7 +52,8 @@ export const DEFAULT_CONFIG: SiteConfig = {
   mockLocationDetection: true,
   qrRotationEnabled: true,
   maintenanceMode: false,
-  defaultQrRotationSec: 7,
+  defaultQrRotationSec: 1.5,
+  defaultQrMaxScans: 0,
   loginRateLimitMax: 5,
   scanRateLimitMax: 10,
   siteStats: [],

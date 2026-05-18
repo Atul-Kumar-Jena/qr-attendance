@@ -12,6 +12,7 @@ import { CookieConsent } from '@/components/CookieConsent';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { NetStatus } from '@/components/NetStatus';
 import { AutoSync } from '@/components/AutoSync';
+import { RootCrashScreen } from '@/components/RootCrashScreen';
 import type { User } from 'firebase/auth';
 
 function AuthWithToasts({ children }: { children: ReactNode }) {
@@ -52,7 +53,10 @@ function OnboardingGate({ children }: { children: ReactNode }) {
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <ErrorBoundary name="root">
+    <ErrorBoundary
+      name="root"
+      fallback={(err) => <RootCrashScreen error={err} />}
+    >
       <ThemeProvider>
         <ToastProvider>
           <SiteConfigProvider>

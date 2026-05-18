@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initGSAP } from '@/lib/gsap-init';
+import { LiveQrShowcase } from '@/components/LiveQrShowcase';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 
 if (typeof window !== 'undefined') initGSAP();
 
@@ -13,6 +15,8 @@ if (typeof window !== 'undefined') initGSAP();
  */
 export function MobilePreview() {
   const root = useRef<HTMLDivElement>(null);
+  const { config } = useSiteConfig();
+  const ttlSec = Math.min(5, Math.max(0.8, Number(config.defaultQrRotationSec) || 1.5));
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -64,24 +68,16 @@ export function MobilePreview() {
               <PhoneShell>
                 <div className="relative h-full w-full bg-gradient-to-b from-[#0F1A2D] to-[#0B1220] text-cream-50 p-5 flex flex-col">
                   <div className="text-[10px] text-cream-50/50 tracking-wider">CS-301 · Operating Systems</div>
-                  <div className="font-display text-[1.4rem] mt-1">Scan QR</div>
-                  <div className="mt-4 relative aspect-square rounded-2xl border border-cream-50/15 overflow-hidden">
-                    <div className="scan-line absolute left-0 right-0 h-[2px] bg-accent shadow-[0_0_18px_2px_rgba(255,107,61,0.7)]" />
-                    {/* corner marks */}
-                    {['top-2 left-2','top-2 right-2','bottom-2 left-2','bottom-2 right-2'].map((p) => (
-                      <span key={p} className={`absolute ${p} h-5 w-5 border-2 border-cream-50/70`} style={{
-                        borderTop: p.includes('top') ? undefined : 'none',
-                        borderBottom: p.includes('bottom') ? undefined : 'none',
-                        borderLeft: p.includes('left') ? undefined : 'none',
-                        borderRight: p.includes('right') ? undefined : 'none',
-                      }} />
-                    ))}
+                  <div className="font-display text-[1.4rem] mt-1">Live signed QR</div>
+                  <div className="mt-3 relative aspect-square rounded-2xl border border-cream-50/15 overflow-hidden flex items-center justify-center bg-black/20">
+                    <LiveQrShowcase size={200} rounded showMeta={false} />
+                    <div className="scan-line absolute left-0 right-0 h-[2px] bg-accent shadow-[0_0_18px_2px_rgba(255,107,61,0.7)] pointer-events-none" />
                   </div>
-                  <div className="mt-4 text-[12px] text-cream-50/60">
-                    Hold steady — token rotates every 7s.
+                  <div className="mt-3 text-[11.5px] text-cream-50/60 leading-snug">
+                    ECDSA-P256 signed · rotates every {ttlSec}s. Demo only — not scannable.
                   </div>
                   <div className="mt-auto flex items-center gap-2 text-[11px] text-cream-50/50">
-                    <span className="h-1.5 w-1.5 rounded-full bg-sage-500" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
                     Device bound · GPS OK · attestation OK
                   </div>
                 </div>

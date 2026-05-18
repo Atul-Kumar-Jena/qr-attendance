@@ -1970,15 +1970,73 @@ function GodModePanel() {
           checked={local.maintenanceMode} onChange={(v) => set('maintenanceMode', v)} danger />
       </Card>
 
+      {/* QR security defaults — live preview */}
+      <Card className="p-6 space-y-5">
+        <SectionTitle>QR security defaults</SectionTitle>
+        <p className="text-[11.5px] text-ink-mute">
+          Live across the landing page demo and every new QR session. Animates smoothly when changed.
+        </p>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-[12.5px] text-ink dark:text-cream-50 font-medium">Rotation interval</label>
+            <span className="text-[12px] font-mono tabular-nums text-accent">
+              {Number(local.defaultQrRotationSec).toFixed(1)}s
+            </span>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={3}
+            step={0.1}
+            value={local.defaultQrRotationSec}
+            onChange={(e) => set('defaultQrRotationSec', parseFloat(e.target.value))}
+            className="w-full accent-accent cursor-pointer"
+          />
+          <div className="flex justify-between text-[10.5px] font-mono text-ink-mute">
+            <span>1.0s · strict</span>
+            <span>1.5s · balanced</span>
+            <span>2.0s</span>
+            <span>3.0s · slow nets</span>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-[12.5px] text-ink dark:text-cream-50 font-medium">Max scans per token</label>
+            <span className="text-[12px] font-mono tabular-nums text-accent">
+              {local.defaultQrMaxScans === 0 ? 'unlimited' : local.defaultQrMaxScans}
+            </span>
+          </div>
+          <div className="grid grid-cols-5 gap-2">
+            {[0, 1, 5, 25, 100].map((n) => (
+              <button
+                key={n}
+                onClick={() => set('defaultQrMaxScans', n)}
+                className={`rounded-lg border px-2.5 py-2 text-[12px] font-medium transition-colors ${
+                  local.defaultQrMaxScans === n
+                    ? 'border-accent bg-accent/10 text-accent'
+                    : 'border-ink/10 dark:border-white/10 text-ink-mute hover:border-ink/20 dark:hover:border-white/20'
+                }`}
+              >
+                {n === 0 ? '∞' : n}
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-ink-mute">
+            <strong>1</strong> = strongest anti-replay (each token consumed after first valid scan).
+            <strong> ∞</strong> = unlimited within the TTL window.
+          </p>
+        </div>
+      </Card>
+
       {/* System config */}
       <Card className="p-6 space-y-4">
-        <SectionTitle>System config</SectionTitle>
+        <SectionTitle>Rate limits</SectionTitle>
         <p className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
-          Rate limit changes require API restart. QR rotation default applies to new sessions.
+          Rate limit changes require API restart on the server side.
         </p>
-        <div className="grid grid-cols-3 gap-4">
-          <Field label="Default QR rotation (sec)" value={String(local.defaultQrRotationSec)}
-            onChange={(v) => set('defaultQrRotationSec', Number(v))} type="number" />
+        <div className="grid grid-cols-2 gap-4">
           <Field label="Login rate limit (req/min)" value={String(local.loginRateLimitMax)}
             onChange={(v) => set('loginRateLimitMax', Number(v))} type="number" />
           <Field label="Scan rate limit (req/min)" value={String(local.scanRateLimitMax)}
