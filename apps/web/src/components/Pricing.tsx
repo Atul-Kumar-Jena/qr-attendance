@@ -37,26 +37,34 @@ export function Pricing() {
   const discountMultiplier = 1 - config.limitedOfferDiscountPct / 100;
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.from('.tier', {
-        opacity: 0, y: 50, rotateX: -8,
-        stagger: 0.12, duration: 1, ease: 'power3.out',
-        scrollTrigger: { trigger: root.current, start: 'top 75%' },
-      });
-      gsap.utils.toArray<HTMLElement>('.price-counter').forEach((el) => {
-        const v = Number(el.dataset.v);
-        if (!Number.isFinite(v)) return;
-        const o = { x: 0 };
-        ScrollTrigger.create({
-          trigger: el, start: 'top 85%',
-          onEnter: () => gsap.to(o, {
-            x: v, duration: 1.6, ease: 'expo.out',
-            onUpdate: () => (el.textContent = '$' + Math.floor(o.x)),
-          }),
+    if (typeof window === 'undefined') return;
+    let ctx: ReturnType<typeof gsap.context> | undefined;
+    try {
+      ctx = gsap.context(() => {
+        // Cards default visible in CSS. GSAP applies the "from" state only
+        // when the trigger fires (immediateRender: false) so a missed
+        // ScrollTrigger never strands them at opacity 0.
+        gsap.from('.tier', {
+          opacity: 0, y: 40, rotateX: -8,
+          stagger: 0.12, duration: 1, ease: 'power3.out',
+          immediateRender: false,
+          scrollTrigger: { trigger: root.current, start: 'top 95%' },
         });
-      });
-    }, root);
-    return () => ctx.revert();
+        gsap.utils.toArray<HTMLElement>('.price-counter').forEach((el) => {
+          const v = Number(el.dataset.v);
+          if (!Number.isFinite(v)) return;
+          const o = { x: 0 };
+          ScrollTrigger.create({
+            trigger: el, start: 'top 90%',
+            onEnter: () => gsap.to(o, {
+              x: v, duration: 1.6, ease: 'expo.out',
+              onUpdate: () => (el.textContent = '$' + Math.floor(o.x)),
+            }),
+          });
+        });
+      }, root);
+    } catch { /* GSAP failure must not crash the page */ }
+    return () => { try { ctx?.revert(); } catch {} };
   }, [isLimitedOffer]);
 
   return (

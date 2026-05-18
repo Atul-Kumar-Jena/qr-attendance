@@ -36,99 +36,31 @@ export function ParallaxColumns() {
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!root.current) return;
-    if (typeof window === 'undefined') return;
-
+    if (typeof window === 'undefined' || !root.current) return;
     gsap.registerPlugin(ScrollTrigger);
 
-    const ctx = gsap.context(() => {
-      // Left column scrolls up
-      gsap.to('.pcol-left .pcol-item', {
-        yPercent: -30,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: root.current,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: true,
-        },
-      });
+    let ctx: ReturnType<typeof gsap.context> | undefined;
+    try {
+      ctx = gsap.context(() => {
+        // Smooth parallax — same pattern as MobilePreview, no velocity jiggle
+        gsap.to('.pcol-left', {
+          y: -80, ease: 'none',
+          scrollTrigger: { trigger: root.current, start: 'top bottom', end: 'bottom top', scrub: 1 },
+        });
+        gsap.to('.pcol-right', {
+          y: 40, ease: 'none',
+          scrollTrigger: { trigger: root.current, start: 'top bottom', end: 'bottom top', scrub: 1 },
+        });
 
-      // Right column scrolls down
-      gsap.to('.pcol-right .pcol-item', {
-        yPercent: 30,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: root.current,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: true,
-        },
-      });
-
-      // Fade cards in on entrance
-      gsap.fromTo(
-        '.pcol-left .pcol-item',
-        { opacity: 0, x: -40 },
-        {
-          opacity: 1,
-          x: 0,
-          duration: 0.9,
-          ease: 'power3.out',
-          stagger: 0.12,
-          scrollTrigger: {
-            trigger: root.current,
-            start: 'top 85%',
-          },
-        }
-      );
-
-      gsap.fromTo(
-        '.pcol-right .pcol-item',
-        { opacity: 0, x: 40 },
-        {
-          opacity: 1,
-          x: 0,
-          duration: 0.9,
-          ease: 'power3.out',
-          stagger: 0.12,
-          scrollTrigger: {
-            trigger: root.current,
-            start: 'top 85%',
-          },
-        }
-      );
-
-      // Velocity-based jiggle
-      let lastVel = 0;
-      ScrollTrigger.create({
-        trigger: root.current,
-        start: 'top bottom',
-        end: 'bottom top',
-        onUpdate: (self) => {
-          const vel = self.getVelocity() / 1000;
-          if (Math.abs(vel - lastVel) > 0.01) {
-            gsap.to('.pcol-left .pcol-item', {
-              rotation: vel * -4,
-              skewY: vel * -1.5,
-              duration: 0.5,
-              ease: 'power2.out',
-              overwrite: 'auto',
-            });
-            gsap.to('.pcol-right .pcol-item', {
-              rotation: vel * 4,
-              skewY: vel * 1.5,
-              duration: 0.5,
-              ease: 'power2.out',
-              overwrite: 'auto',
-            });
-            lastVel = vel;
-          }
-        },
-      });
-    }, root);
-
-    return () => ctx.revert();
+        // Card stagger reveal on entrance (mirrors MobilePreview's .hist-row stagger)
+        gsap.from('.pcol-item', {
+          y: 30, opacity: 0,
+          stagger: 0.08, ease: 'power3.out', duration: 0.9,
+          scrollTrigger: { trigger: root.current, start: 'top 80%' },
+        });
+      }, root);
+    } catch { /* GSAP failure must not crash the page */ }
+    return () => { try { ctx?.revert(); } catch {} };
   }, []);
 
   return (

@@ -393,29 +393,28 @@ export function Features() {
         </h2>
       </div>
 
-      {/* Desktop — horizontal scroll carousel */}
+      {/* Desktop — horizontal scroll carousel.
+          Fixed card height so footer height differences don't squeeze the
+          illustration area. All illustrations have viewBox 280x180. */}
       <div className="hidden md:block overflow-hidden">
         <div ref={track} className="flex gap-5 pl-[8vw] will-change-transform">
           {FEATS.map((f, i) => (
             <article
               key={f.t}
-              className="feat-card relative shrink-0 w-[360px] rounded-3xl glass border border-ink/8 dark:border-white/10 flex flex-col overflow-hidden hover:border-accent/30 transition-colors duration-300 group"
+              className="feat-card relative shrink-0 w-[360px] h-[460px] rounded-3xl glass border border-ink/8 dark:border-white/10 flex flex-col overflow-hidden hover:border-accent/30 transition-colors duration-300 group"
             >
-              {/* Full-card illustration area */}
-              <div className="relative flex-1 min-h-[240px] flex items-center justify-center p-4 overflow-hidden">
-                {/* Subtle gradient bg */}
+              {/* Illustration: fixed height */}
+              <div className="relative h-[240px] flex items-center justify-center px-5 pt-5 overflow-hidden">
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  style={{background:'radial-gradient(ellipse at 50% 50%, rgba(255,107,61,0.04) 0%, transparent 70%)'}} />
+                  style={{ background:'radial-gradient(ellipse at 50% 50%, rgba(255,107,61,0.06) 0%, transparent 70%)' }} />
                 <f.Illu />
               </div>
-              {/* Card footer */}
-              <div className="p-6 pt-4 border-t border-ink/6 dark:border-white/6">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="font-mono text-[10px] text-ink-mute tracking-wider">
-                    {String(i + 1).padStart(2, '0')} / {FEATS.length}
-                  </div>
+              {/* Footer fills the rest */}
+              <div className="flex-1 px-7 pt-5 pb-7 border-t border-ink/6 dark:border-white/6 flex flex-col">
+                <div className="font-mono text-[10px] text-ink-mute tracking-wider mb-2">
+                  {String(i + 1).padStart(2, '0')} / {FEATS.length}
                 </div>
-                <h3 className="font-display text-[1.6rem] leading-tight text-ink dark:text-cream-50">{f.t}</h3>
+                <h3 className="font-display text-[1.55rem] leading-tight text-ink dark:text-cream-50">{f.t}</h3>
                 <p className="mt-2 text-[12.5px] text-ink-mute leading-relaxed">{f.d}</p>
               </div>
             </article>
@@ -423,16 +422,16 @@ export function Features() {
         </div>
       </div>
 
-      {/* Mobile grid */}
+      {/* Mobile grid — also fixed illustration height for consistency */}
       <div className="container grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
         {FEATS.map((f) => (
           <div key={f.t} className="rounded-2xl glass border border-ink/8 overflow-hidden">
-            <div className="h-[160px] flex items-center justify-center p-3">
+            <div className="h-[170px] flex items-center justify-center px-4 pt-4">
               <f.Illu />
             </div>
-            <div className="p-4 border-t border-ink/6">
+            <div className="p-5 border-t border-ink/6">
               <h3 className="font-display text-[1.3rem] leading-tight">{f.t}</h3>
-              <p className="mt-1.5 text-[12px] text-ink-mute">{f.d}</p>
+              <p className="mt-1.5 text-[12px] text-ink-mute leading-relaxed">{f.d}</p>
             </div>
           </div>
         ))}

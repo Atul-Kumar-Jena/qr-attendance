@@ -1,176 +1,220 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
-const RING_LERP = 0.09;   // ring chases at 9% per frame — buttery lag
-const SCALE_MAG = 2.5;    // ring scale on magnetic elements
+/**
+ * Performance-tuned custom cursor.
+ *
+ *  - No React state in the move path: every cursor render is direct DOM write.
+ *  - No MutationObserver scanning the document on every change. Hover/magnetic
+ *    detection uses document-level event delegation via target.closest().
+ *  - Mounts via Portal directly under <body> with the maximum safe z-index so
+ *    no dialog, popover, or error boundary can hide it.
+ *  - Hides on document mouseleave so the dot doesn't get stuck at the last
+ *    in-window position when you leave the tab/window.
+ */
+const RING_LERP = 0.18;   // ring chases at 18% per frame — still buttery, less lag
 
 export function Cursor() {
-  const dot  = useRef<HTMLDivElement>(null);
-  const ring = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<HTMLDivElement>(null);
+  const dotRef  = useRef<HTMLDivElement>(null);
+  const tipRef  = useRef<HTMLDivElement>(null);
+  // Gate portal render until after hydration — server outputs nothing, so we
+  // also output nothing on the first client render to avoid a mismatch.
+  const [mounted, setMounted] = useState(false);
 
-  // Tooltip state
-  const [tip, setTip] = useState('');
-  const [tipPos, setTipPos] = useState({ x: 0, y: 0 });
-  const [tipVisible, setTipVisible] = useState(false);
-  const tipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
+    if (!mounted) return;
     if (typeof window === 'undefined') return;
+    // touch devices get no cursor
     if (window.matchMedia('(pointer: coarse)').matches) return;
 
-    const _dot  = dot.current!;
-    const _ring = ring.current!;
+    const ring = ringRef.current!;
+    const dot  = dotRef.current!;
+    const tip  = tipRef.current!;
+    if (!ring || !dot || !tip) return;
 
-    // State held outside React to avoid re-renders
-    let cx = -200, cy = -200;   // cursor world position
-    let rx = -200, ry = -200;   // ring lerped position
-    let scale = 1;
-    let targetScale = 1;
-    let raf: number;
-    let clicked = false;
+    // Cursor state — held outside React
+    let cx = -200, cy = -200;
+    let rx = -200, ry = -200;
+    let scale = 1, targetScale = 1;
+    let visible = false;
+    let raf = 0;
+    let tipTimer: ReturnType<typeof setTimeout> | null = null;
+    let tipShown = false;
 
-    // Move ring off-screen until first move
-    _ring.style.transform = 'translate(-200px,-200px) scale(1)';
-    _dot.style.transform  = 'translate(-200px,-200px)';
+    const setVisible = (v: boolean) => {
+      if (visible === v) return;
+      visible = v;
+      ring.style.opacity = v ? '1' : '0';
+      dot.style.opacity  = v ? '1' : '0';
+    };
 
     const onMove = (e: MouseEvent) => {
       cx = e.clientX;
       cy = e.clientY;
-      // Dot is instant — direct style set (no GSAP, no lag)
-      _dot.style.transform = `translate(calc(${cx}px - 50%), calc(${cy}px - 50%))`;
-
-      // Update tooltip position
-      setTipPos({ x: cx + 16, y: cy + 8 });
+      // Direct style write — no React render
+      dot.style.transform = `translate3d(${cx - 4}px, ${cy - 4}px, 0)`;
+      if (tipShown) {
+        tip.style.transform = `translate3d(${cx + 16}px, ${cy + 8}px, 0)`;
+      }
+      if (!visible) setVisible(true);
     };
 
+    const onLeave = () => setVisible(false);
+    const onEnterWin = () => setVisible(true);
+
     const loop = () => {
-      // Exponential lerp towards cursor
       rx += (cx - rx) * RING_LERP;
       ry += (cy - ry) * RING_LERP;
-      scale += (targetScale - scale) * 0.1;
-      _ring.style.transform =
-        `translate(calc(${rx}px - 50%), calc(${ry}px - 50%)) scale(${scale})`;
+      scale += (targetScale - scale) * 0.18;
+      ring.style.transform =
+        `translate3d(${rx - 16}px, ${ry - 16}px, 0) scale(${scale})`;
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
 
-    // Click pulse
     const onDown = () => {
-      clicked = true;
-      _dot.style.transform = `translate(calc(${cx}px - 50%), calc(${cy}px - 50%)) scale(0.7)`;
+      dot.style.transform = `translate3d(${cx - 4}px, ${cy - 4}px, 0) scale(0.65)`;
+      ring.style.borderWidth = '2px';
     };
     const onUp = () => {
-      clicked = false;
-      _dot.style.transform = `translate(calc(${cx}px - 50%), calc(${cy}px - 50%)) scale(1)`;
+      dot.style.transform = `translate3d(${cx - 4}px, ${cy - 4}px, 0) scale(1)`;
+      ring.style.borderWidth = '1px';
     };
 
-    // Magnetic / interactive hover
-    const setupElement = (el: HTMLElement) => {
-      const isMag = el.hasAttribute('data-magnetic');
-      const onEnter = () => { targetScale = isMag ? SCALE_MAG : 1.6; };
-      const onLeave = () => { targetScale = 1; };
-      el.addEventListener('pointerenter', onEnter);
-      el.addEventListener('pointerleave', onLeave);
-      return () => {
-        el.removeEventListener('pointerenter', onEnter);
-        el.removeEventListener('pointerleave', onLeave);
-      };
-    };
-
-    // Tooltip — shows after 2 s on any element with data-tip or title
-    const setupTooltip = (el: HTMLElement) => {
-      const label = el.getAttribute('data-tip') || el.getAttribute('aria-label') || el.getAttribute('title');
-      if (!label) return () => {};
-
-      // Remove browser native tooltip
-      if (el.getAttribute('title')) {
-        el.setAttribute('data-native-title', el.getAttribute('title')!);
-        el.removeAttribute('title');
+    // Event-delegated hover detection (no MutationObserver scan)
+    const INTERACTIVE_SEL = '[data-magnetic], button, a, input, select, textarea, [role="button"], [data-tip], label';
+    let hoverEl: HTMLElement | null = null;
+    const onOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const interactive = target.closest(INTERACTIVE_SEL) as HTMLElement | null;
+      if (interactive === hoverEl) return;
+      hoverEl = interactive;
+      if (interactive) {
+        targetScale = interactive.hasAttribute('data-magnetic') ? 2.4 : 1.6;
+        // Tooltip — 2s delay
+        const label = interactive.getAttribute('data-tip')
+          || interactive.getAttribute('aria-label')
+          || interactive.getAttribute('title');
+        if (label) {
+          // Suppress native title tooltip
+          if (interactive.getAttribute('title')) {
+            interactive.setAttribute('data-orig-title', interactive.getAttribute('title')!);
+            interactive.removeAttribute('title');
+          }
+          if (tipTimer) clearTimeout(tipTimer);
+          tipTimer = setTimeout(() => {
+            tip.textContent = label;
+            tip.style.opacity = '1';
+            tip.style.transform = `translate3d(${cx + 16}px, ${cy + 8}px, 0)`;
+            tipShown = true;
+          }, 1200);
+        }
+      } else {
+        targetScale = 1;
+        if (tipTimer) { clearTimeout(tipTimer); tipTimer = null; }
+        tip.style.opacity = '0';
+        tipShown = false;
       }
-
-      const onEnter = (e: Event) => {
-        const me = e as MouseEvent;
-        setTipPos({ x: me.clientX + 16, y: me.clientY + 8 });
-        tipTimer.current = setTimeout(() => {
-          setTip(label);
-          setTipVisible(true);
-        }, 2000);
-      };
-      const onLeave = () => {
-        if (tipTimer.current) clearTimeout(tipTimer.current);
-        setTipVisible(false);
-        setTip('');
-      };
-      el.addEventListener('mouseenter', onEnter);
-      el.addEventListener('mouseleave', onLeave);
-      return () => {
-        el.removeEventListener('mouseenter', onEnter);
-        el.removeEventListener('mouseleave', onLeave);
-        if (el.getAttribute('data-native-title')) {
-          el.setAttribute('title', el.getAttribute('data-native-title')!);
-        }
-      };
     };
 
-    // Observe DOM for dynamic elements
-    const cleanups: (() => void)[] = [];
-    const attach = (el: Element) => {
-      if (!(el instanceof HTMLElement)) return;
-      if (el.matches('[data-magnetic], button, a, input, select, textarea, [role="button"], [data-tip], label'))
-        cleanups.push(setupElement(el));
-      cleanups.push(setupTooltip(el));
+    // Restore title when leaving an element that had one
+    const onOut = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const orig = target.getAttribute?.('data-orig-title');
+      if (orig) {
+        target.setAttribute('title', orig);
+        target.removeAttribute('data-orig-title');
+      }
     };
-    document.querySelectorAll<HTMLElement>('[data-magnetic], button, a, input, select, textarea, [role="button"], [data-tip], label').forEach(attach);
 
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((m) => m.addedNodes.forEach((n) => {
-        if (n instanceof HTMLElement) {
-          attach(n);
-          n.querySelectorAll('[data-magnetic], button, a, input, select, textarea, [data-tip], label').forEach(attach);
-        }
-      }));
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mousemove', onMove, { passive: true });
     window.addEventListener('mousedown', onDown);
     window.addEventListener('mouseup', onUp);
+    document.addEventListener('mouseleave', onLeave);
+    document.addEventListener('mouseenter', onEnterWin);
+    document.addEventListener('mouseover', onOver, { passive: true });
+    document.addEventListener('mouseout', onOut, { passive: true });
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mousedown', onDown);
       window.removeEventListener('mouseup', onUp);
-      observer.disconnect();
-      cleanups.forEach((fn) => fn());
-      if (tipTimer.current) clearTimeout(tipTimer.current);
+      document.removeEventListener('mouseleave', onLeave);
+      document.removeEventListener('mouseenter', onEnterWin);
+      document.removeEventListener('mouseover', onOver);
+      document.removeEventListener('mouseout', onOut);
+      if (tipTimer) clearTimeout(tipTimer);
     };
-  }, []);
+  }, [mounted]);
 
-  return (
+  // SSR + first client render: nothing. After hydration: portal under <body>.
+  if (!mounted || typeof window === 'undefined') return null;
+
+  const node = (
     <>
-      {/* Ring — lags behind via RAF lerp. z above all dialogs (Radix Dialog uses 9999). */}
       <div
-        ref={ring}
-        className="pointer-events-none fixed left-0 top-0 z-[100000] w-8 h-8 rounded-full border border-ink/25 dark:border-white/20 hidden md:block"
-        style={{ willChange: 'transform', transition: 'border-color 0.3s, width 0.3s, height 0.3s' }}
+        ref={ringRef}
+        className="atd-cursor-ring"
+        style={{
+          position: 'fixed',
+          left: 0, top: 0,
+          width: 32, height: 32,
+          borderRadius: '50%',
+          border: '1px solid currentColor',
+          opacity: 0,
+          pointerEvents: 'none',
+          zIndex: 2147483646,
+          willChange: 'transform',
+          transition: 'border-color 0.25s, border-width 0.15s, opacity 0.2s',
+        }}
       />
-      {/* Dot — instant */}
       <div
-        ref={dot}
-        className="pointer-events-none fixed left-0 top-0 z-[100001] w-2 h-2 rounded-full bg-ink dark:bg-[#F0EDE6] hidden md:block"
-        style={{ willChange: 'transform', transition: 'transform 0.08s, background-color 0.3s' }}
+        ref={dotRef}
+        className="atd-cursor-dot"
+        style={{
+          position: 'fixed',
+          left: 0, top: 0,
+          width: 8, height: 8,
+          borderRadius: '50%',
+          background: 'currentColor',
+          opacity: 0,
+          pointerEvents: 'none',
+          zIndex: 2147483647,
+          willChange: 'transform',
+          transition: 'transform 0.08s, opacity 0.2s',
+        }}
       />
-      {/* Hover tooltip */}
       <div
-        className={`pointer-events-none fixed z-[99999] hidden md:block px-2.5 py-1 rounded-lg text-[11.5px] font-medium bg-ink dark:bg-[#F0EDE6] text-cream-50 dark:text-ink shadow-lg whitespace-nowrap transition-opacity duration-200 ${
-          tipVisible ? 'opacity-100' : 'opacity-0'
-        }`}
-        style={{ left: tipPos.x, top: tipPos.y }}
-      >
-        {tip}
-      </div>
+        ref={tipRef}
+        className="atd-cursor-tip"
+        style={{
+          position: 'fixed',
+          left: 0, top: 0,
+          padding: '4px 10px',
+          borderRadius: 8,
+          fontSize: 11.5,
+          fontWeight: 500,
+          background: 'currentColor',
+          color: 'var(--cream, #FAFAF7)',
+          opacity: 0,
+          pointerEvents: 'none',
+          zIndex: 2147483647,
+          whiteSpace: 'nowrap',
+          willChange: 'transform',
+          transition: 'opacity 0.18s',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+        }}
+      />
     </>
   );
+
+  return createPortal(node, document.body);
 }

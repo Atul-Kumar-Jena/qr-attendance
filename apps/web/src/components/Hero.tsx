@@ -156,11 +156,14 @@ export function Hero() {
               ))}
             </h1>
 
-            {/* Subtitle */}
-            <p
-              ref={sub}
-              className="mt-8 max-w-[480px] text-[13.5px] leading-[1.75] text-ink-mute font-mono tracking-wide"
-            />
+            {/* Subtitle — fixed width + min-height keeps scramble inside its box */}
+            <div className="mt-8 max-w-[480px] min-h-[88px]">
+              <p
+                ref={sub}
+                className="text-[13.5px] leading-[1.75] text-ink-mute font-mono tracking-wide"
+                style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}
+              />
+            </div>
 
             {/* CTAs */}
             <div className="mt-10 flex flex-wrap items-center gap-4">
@@ -242,11 +245,11 @@ function isFinder(x: number, y: number) {
 }
 
 function finderOn(x: number, y: number) {
+  // Standard QR finder: 7x7 outer ring on, 5x5 inside off, 3x3 core on.
   const lx = x >= N - 7 ? x - (N - 7) : x;
   const ly = y >= N - 7 ? y - (N - 7) : y;
-  const fx = Math.min(lx, 6 - lx);
-  const fy = Math.min(ly, 6 - ly);
-  return Math.min(fx, fy) === 0 || Math.min(fx, fy) === 2;
+  const d = Math.min(lx, 6 - lx, ly, 6 - ly);
+  return d === 0 || d >= 2;
 }
 
 function rng(seed: number, i: number) {
@@ -299,88 +302,65 @@ function QrMosaic() {
 
   return (
     <div className="relative h-full w-full">
-      {/* Dark card — looks like a secure terminal */}
-      <div className="absolute inset-0 rounded-[28px] bg-[#0B1220] shadow-[0_40px_100px_-20px_rgba(11,18,32,0.5),0_0_0_1px_rgba(255,107,61,0.12)] overflow-hidden">
-        {/* Subtle noise texture overlay */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{
-          backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\'/%3E%3C/filter%3E%3Crect width=\'256\' height=\'256\' filter=\'url(%23n)\' opacity=\'1\'/%3E%3C/svg%3E")',
-          backgroundSize: '128px',
-        }} />
-      </div>
+      {/* Glass card — works in both light and dark mode via .glass */}
+      <div className="absolute inset-0 rounded-[28px] glass shadow-[0_40px_100px_-20px_rgba(11,18,32,0.2)]" />
 
-      {/* Orbital rings — SVG, counter-rotating arcs */}
-      <svg className="absolute inset-0 pointer-events-none z-10 w-full h-full" viewBox="0 0 100 100" aria-hidden>
-        {/* Outer dashed orbit */}
-        <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(255,107,61,0.1)" strokeWidth="0.4" strokeDasharray="1 4" />
-        {/* Clockwise countdown arc */}
-        <circle cx="50" cy="50" r="44" fill="none" stroke="#FF6B3D" strokeWidth="1.2"
-          strokeOpacity="0.55" strokeDasharray="276.46" strokeDashoffset="0" strokeLinecap="round"
+      {/* Live QR token timer ring */}
+      <svg
+        className="absolute inset-0 pointer-events-none z-10 w-full h-full"
+        viewBox="0 0 100 100"
+        aria-hidden
+      >
+        {/* Static dashed orbit */}
+        <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(11,18,32,0.06)" strokeDasharray="2 5" />
+        {/* Countdown arc — depletes over 1 second */}
+        <circle
+          cx="50" cy="50" r="44"
+          fill="none"
+          stroke="#FF6B3D"
+          strokeWidth="1.5"
+          strokeOpacity="0.55"
+          strokeDasharray="276.46"
+          strokeDashoffset="0"
+          strokeLinecap="round"
           transform="rotate(-90 50 50)"
           style={{ animation: 'qrCountdown 1s linear infinite' }}
         />
-        {/* Counter-clockwise accent arc */}
-        <circle cx="50" cy="50" r="48.5" fill="none" stroke="rgba(255,107,61,0.3)" strokeWidth="0.6"
-          strokeDasharray="30 280" strokeLinecap="round"
-          transform="rotate(-90 50 50)"
-          style={{ animation: 'qrOrbitCCW 3s linear infinite' }}
-        />
-        {/* Inner secondary orbit */}
-        <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.3" strokeDasharray="2 6" />
       </svg>
-
-      {/* Scan beam that sweeps vertically */}
-      <div className="absolute inset-[5%] z-30 pointer-events-none overflow-hidden rounded-[20px]">
-        <div
-          className="absolute left-0 right-0 h-[2px] pointer-events-none"
-          style={{
-            background: 'linear-gradient(to right, transparent, rgba(255,107,61,0.7) 30%, rgba(255,107,61,0.9) 50%, rgba(255,107,61,0.7) 70%, transparent)',
-            boxShadow: '0 0 12px rgba(255,107,61,0.5)',
-            animation: 'qrScanBeam 2.5s ease-in-out infinite',
-          }}
-        />
-      </div>
 
       {/* QR cell grid */}
       <div
-        className="absolute inset-[14%] grid z-20"
-        style={{ gridTemplateColumns: `repeat(${N}, 1fr)`, gap: '3px' }}
+        className="absolute inset-6 grid"
+        style={{ gridTemplateColumns: `repeat(${N}, 1fr)`, gap: '2.5px' }}
       >
         {cells.map((c, i) => {
           const changed = !c.isFnd && prevCells[i] && prevCells[i].on !== c.on;
           return (
             <div
               key={i}
-              className="aspect-square rounded-[1.5px]"
+              className="qr-cell aspect-square"
               style={{
-                background: c.isFnd
-                  ? (c.on ? '#FF6B3D' : 'transparent')
-                  : (c.on ? '#F0EDE6' : 'transparent'),
                 opacity: c.on ? 1 : 0,
                 transform: c.on ? 'scale(1)' : 'scale(0)',
                 transition: changed && flipping
-                  ? `opacity 0.3s ease ${(i % 13) * 0.007}s, transform 0.3s cubic-bezier(0.34,1.56,0.64,1) ${(i % 13) * 0.007}s`
+                  ? `opacity 0.28s ease ${(i % 11) * 0.008}s, transform 0.28s ease ${(i % 11) * 0.008}s`
                   : 'none',
-                boxShadow: c.on && c.isFnd ? '0 0 4px rgba(255,107,61,0.4)' : undefined,
+                visibility: 'visible',
               }}
             />
           );
         })}
       </div>
 
-      {/* Center logo badge */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-12 w-12 rounded-xl bg-[#0B1220] border border-accent/30 grid place-items-center shadow-[0_0_16px_rgba(255,107,61,0.3)] z-40">
-        <div className="h-5 w-5 rounded-lg bg-accent icon-pulse" />
+      {/* Center logo */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-14 w-14 rounded-2xl bg-cream-50 dark:bg-[#13161D] grid place-items-center shadow-lg z-20">
+        <div className="h-6 w-6 rounded-lg bg-accent icon-pulse" />
       </div>
 
       {/* Tick label */}
-      <div className="absolute bottom-3 right-4 z-40 font-mono text-[9px] text-accent/50 tracking-widest select-none">
+      <div className="absolute bottom-3 right-4 z-20 font-mono text-[9px] text-accent/60 tracking-widest select-none">
         #{tick.toString().padStart(4, '0')} · 1s
       </div>
-
-      {/* Corner accent dots */}
-      <div className="absolute top-4 left-4 w-1.5 h-1.5 rounded-full bg-accent/40 z-40" />
-      <div className="absolute top-4 right-4 w-1.5 h-1.5 rounded-full bg-accent/40 z-40" />
-      <div className="absolute bottom-4 left-4 w-1.5 h-1.5 rounded-full bg-accent/20 z-40" />
     </div>
   );
 }

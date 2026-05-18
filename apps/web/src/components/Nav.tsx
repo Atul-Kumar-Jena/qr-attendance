@@ -130,7 +130,7 @@ export function Nav() {
         <div className={cn(
           'container flex items-center justify-between gap-4 transition-all duration-500',
           scrolled
-            ? 'rounded-2xl border border-ink/8 px-4 lg:px-6 py-3 max-w-5xl backdrop-blur-xl bg-cream-50/80 shadow-[0_4px_32px_-4px_rgba(11,18,32,0.12)] dark:bg-[#0D0F14]/85 dark:border-white/8 dark:shadow-[0_4px_40px_-4px_rgba(0,0,0,0.6),0_0_0_1px_rgba(240,237,230,0.07)]'
+            ? 'nav-pill rounded-2xl px-4 lg:px-6 py-3 max-w-5xl backdrop-blur-xl'
             : '',
         )}>
           <Link href="/" className="flex items-center gap-2.5 group">

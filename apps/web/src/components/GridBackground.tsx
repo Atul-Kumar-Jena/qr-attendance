@@ -23,12 +23,12 @@ export function GridBackground() {
     const tick = () => {
       t += 0.004;
       // Primary glow — lazily follows cursor
-      cx += (mx - cx) * 0.04;
-      cy += (my - cy) * 0.04;
+      cx += (mx - cx) * 0.08;
+      cy += (my - cy) * 0.08;
       glow.style.background =
-        `radial-gradient(900px circle at ${cx}px ${cy}px,`
-        + ` rgba(255,107,61,0.035) 0%,`
-        + ` rgba(255,107,61,0.015) 40%,`
+        `radial-gradient(560px circle at ${cx}px ${cy}px,`
+        + ` rgba(255,107,61,0.20) 0%,`
+        + ` rgba(255,107,61,0.08) 35%,`
         + ` transparent 70%)`;
 
       // Secondary ambient glow — breathes slowly without cursor
@@ -36,7 +36,7 @@ export function GridBackground() {
       const by = window.innerHeight * (0.3 + 0.06 * Math.cos(t * 0.7));
       glowB.style.background =
         `radial-gradient(700px circle at ${bx}px ${by}px,`
-        + ` rgba(100,130,255,0.025) 0%,`
+        + ` rgba(100,130,255,0.06) 0%,`
         + ` transparent 65%)`;
 
       raf = requestAnimationFrame(tick);

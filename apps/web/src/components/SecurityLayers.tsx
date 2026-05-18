@@ -28,42 +28,59 @@ export function SecurityLayers() {
   const path = useRef<SVGPathElement>(null);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      // Draw the connector path
-      const p = path.current;
-      if (!p || !rings.current) return;
-      const len = p.getTotalLength();
-      gsap.set(p, { strokeDasharray: len, strokeDashoffset: len });
-      gsap.to(p, {
-        strokeDashoffset: 0,
-        ease: 'none',
-        scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'bottom 30%', scrub: 1 },
-      });
+    if (typeof window === 'undefined' || !root.current) return;
+    let ctx: ReturnType<typeof gsap.context> | undefined;
+    try {
+      ctx = gsap.context(() => {
+        // Draw the central connector path
+        const p = path.current;
+        if (p && rings.current) {
+          const len = p.getTotalLength();
+          gsap.set(p, { strokeDasharray: len, strokeDashoffset: len });
+          gsap.to(p, {
+            strokeDashoffset: 0,
+            ease: 'none',
+            scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'bottom 30%', scrub: 1 },
+          });
+        }
 
-      // Stagger expand rings
-      gsap.from(rings.current.querySelectorAll('circle'), {
-        scale: 0,
-        opacity: 0,
-        transformOrigin: '50% 50%',
-        duration: 1,
-        ease: 'expo.out',
-        stagger: 0.08,
-        scrollTrigger: { trigger: root.current, start: 'top 65%' },
-      });
+        // Eight radial connector lines — each draws as you scroll past its layer
+        const lines = gsap.utils.toArray<SVGLineElement>('.sec-radial');
+        lines.forEach((line, i) => {
+          const totalLen = 200;
+          gsap.set(line, { strokeDasharray: totalLen, strokeDashoffset: totalLen });
+          gsap.to(line, {
+            strokeDashoffset: 0,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: '.sec-list',
+              start: `top+=${i * 80} 80%`,
+              end: `top+=${i * 80 + 200} 60%`,
+              scrub: 1,
+            },
+          });
+        });
 
-      // Layer cards: stagger in with rotation
-      gsap.from('.sec-row', {
-        opacity: 0,
-        y: 40,
-        rotateX: -10,
-        skewY: 1.5,
-        duration: 0.9,
-        ease: 'power3.out',
-        stagger: 0.08,
-        scrollTrigger: { trigger: '.sec-list', start: 'top 80%' },
-      });
-    }, root);
-    return () => ctx.revert();
+        // Stagger expand rings
+        if (rings.current) {
+          gsap.from(rings.current.querySelectorAll('circle'), {
+            scale: 0, opacity: 0,
+            transformOrigin: '50% 50%',
+            duration: 1, ease: 'expo.out', stagger: 0.08,
+            scrollTrigger: { trigger: root.current, start: 'top 65%' },
+          });
+        }
+
+        // Layer cards stagger reveal
+        gsap.from('.sec-row', {
+          opacity: 0, y: 30,
+          duration: 0.7, ease: 'power3.out', stagger: 0.06,
+          immediateRender: false,
+          scrollTrigger: { trigger: '.sec-list', start: 'top 90%' },
+        });
+      }, root);
+    } catch { /* GSAP failure must not crash the page */ }
+    return () => { try { ctx?.revert(); } catch {} };
   }, []);
 
   return (
@@ -89,6 +106,29 @@ export function SecurityLayers() {
                   />
                 ))}
               </g>
+
+              {/* 8 radial lines — each draws on scroll, one per security layer */}
+              {LAYERS.map((_, i) => {
+                const angle = (i * 45 - 90) * (Math.PI / 180);
+                const r1 = 25;
+                const r2 = 198;
+                const x1 = 200 + Math.cos(angle) * r1;
+                const y1 = 200 + Math.sin(angle) * r1;
+                const x2 = 200 + Math.cos(angle) * r2;
+                const y2 = 200 + Math.sin(angle) * r2;
+                return (
+                  <line
+                    key={i}
+                    className="sec-radial"
+                    x1={x1} y1={y1} x2={x2} y2={y2}
+                    stroke="#FF6B3D"
+                    strokeWidth="0.8"
+                    strokeOpacity="0.45"
+                    strokeLinecap="round"
+                  />
+                );
+              })}
+
               <path
                 ref={path}
                 d="M 20 380 Q 100 250, 200 240 T 380 60"
