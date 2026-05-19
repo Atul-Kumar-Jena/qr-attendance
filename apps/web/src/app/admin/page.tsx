@@ -242,7 +242,7 @@ export default function AdminHome() {
   );
 
   return (
-    <div className="min-h-screen flex bg-cream-100 dark:bg-[#0D0F14] relative">
+    <div className="min-h-screen flex relative">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -260,7 +260,7 @@ export default function AdminHome() {
         <SidebarContent />
       </aside>
 
-      <main className="flex-1 p-4 sm:p-6 lg:p-10 overflow-auto min-w-0">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 overflow-auto min-w-0 relative z-10">
         <div className="flex items-center justify-between mb-6 lg:mb-8 gap-3">
           <div className="flex items-center gap-3">
             {/* Mobile sidebar toggle */}

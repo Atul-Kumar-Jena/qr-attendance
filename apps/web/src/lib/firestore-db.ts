@@ -233,6 +233,15 @@ export async function joinInstitutionByCode(
   return inst;
 }
 
+// ── Leave institution (resets role & institutionId so user can re-onboard) ────
+
+export async function leaveInstitution(userId: string): Promise<void> {
+  if (!db) throw new Error('Firebase not configured');
+  await updateDoc(doc(db, 'users', userId), {
+    institutionId: null, role: null, onboardingDone: false, updatedAt: serverTimestamp(),
+  });
+}
+
 // ── Check if user already owns an institution ─────────────────────────────────
 
 export async function getOwnedInstitution(ownerId: string): Promise<FSInstitution | null> {

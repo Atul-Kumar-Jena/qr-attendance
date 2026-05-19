@@ -13,13 +13,11 @@ import { CTA } from '@/components/CTA';
 import { Footer } from '@/components/Footer';
 import { ScrollProgress } from '@/components/ScrollProgress';
 import { SmoothScroll } from '@/components/SmoothScroll';
-import { GridBackground } from '@/components/GridBackground';
 import { DarkModeNudge } from '@/components/DarkModeNudge';
 
 export default function Page() {
   return (
     <main className="relative">
-      <GridBackground />
       <SmoothScroll />
       <ScrollProgress />
       <DarkModeNudge />

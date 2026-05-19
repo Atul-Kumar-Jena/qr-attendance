@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import type { User } from 'firebase/auth';
 import { QRCodeSVG } from 'qrcode.react';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { createInstitution, getOwnedInstitution, joinInstitutionByCode } from '@/lib/firestore-db';
 
 type Step = 'choose' | 'institution' | 'student' | 'professor-solo' | 'sudo-prof' | 'done-inst' | 'done-student' | 'done-solo';
 
@@ -31,7 +34,6 @@ export function OnboardingFlow({ user, onComplete }: Props) {
     if (!instName.trim()) { setError('Please enter your institution name.'); return; }
     setBusy(true); setError('');
     try {
-      const { createInstitution, getOwnedInstitution } = await import('@/lib/firestore-db');
       const existing = await getOwnedInstitution(user.uid);
       if (existing) {
         setError('You already own an institution. Contact us to add more.');
@@ -39,9 +41,6 @@ export function OnboardingFlow({ user, onComplete }: Props) {
         return;
       }
       const id = await createInstitution({ name: instName.trim(), type: instType }, user.uid);
-      // Fetch the generated code
-      const { doc, getDoc } = await import('firebase/firestore');
-      const { db } = await import('@/lib/firebase');
       if (db) {
         const snap = await getDoc(doc(db, 'institutions', id));
         setCreatedCode(snap.data()?.code ?? '');
@@ -59,7 +58,6 @@ export function OnboardingFlow({ user, onComplete }: Props) {
     if (code.trim().length < 6) { setError('Enter a valid 6-character code.'); return; }
     setBusy(true); setError('');
     try {
-      const { joinInstitutionByCode } = await import('@/lib/firestore-db');
       const inst = await joinInstitutionByCode(user.uid, code.trim(), joiningRole);
       if (!inst) { setError('No institution found with that code. Double-check and try again.'); setBusy(false); return; }
       setJoinedName(inst.name);
@@ -77,15 +75,9 @@ export function OnboardingFlow({ user, onComplete }: Props) {
   const handleCreateSolo = async () => {
     setBusy(true); setError('');
     try {
-      const { createInstitution } = await import('@/lib/firestore-db');
       const displayName = (user.displayName ?? user.email ?? 'Professor').split('@')[0];
       const id = await createInstitution({ name: `${displayName} — Personal`, type: 'other' }, user.uid);
-      // Demote role from auto-assigned 'institution' down to 'admin' — gives
-      // them admin-level control over their own personal institution but
-      // shows as a single-person workspace rather than a multi-tenant org.
-      const { db } = await import('@/lib/firebase');
       if (db) {
-        const { doc, updateDoc, serverTimestamp } = await import('firebase/firestore');
         await updateDoc(doc(db, 'users', user.uid), {
           role: 'admin', institutionId: id, onboardingDone: true,
           isIndividualProfessor: true, updatedAt: serverTimestamp(),
