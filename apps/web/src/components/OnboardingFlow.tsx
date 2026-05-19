@@ -106,26 +106,19 @@ export function OnboardingFlow({ user, onComplete }: Props) {
 
         {/* Header */}
         <div className="px-8 pt-8 pb-4">
-          {/* Step progress dots */}
-          {step !== 'done-inst' && step !== 'done-student' && (
+          {/* Step progress dots — hide on every done-* terminal */}
+          {!step.startsWith('done-') && (
             <div className="flex items-center gap-1.5 mb-5">
-              {['choose', 'institution', 'student', 'done'].map((s, i) => {
-                const active =
-                  (s === 'choose' && step === 'choose') ||
-                  (s === 'institution' && step === 'institution') ||
-                  (s === 'student' && step === 'student');
-                // Inside this block step is already narrowed away from done-* states
-                const done = s === 'choose' && step !== 'choose';
-                if (s === 'done') return null;
-                return (
-                  <span
-                    key={i}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      active ? 'w-6 bg-accent' : done ? 'w-3 bg-accent/40' : 'w-3 bg-ink/10'
-                    }`}
-                  />
-                );
-              })}
+              {[1, 2].map((i) => (
+                <span
+                  key={i}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    (i === 1)
+                      ? (step === 'choose' ? 'w-6 bg-accent' : 'w-3 bg-accent/40')
+                      : (step !== 'choose' ? 'w-6 bg-accent' : 'w-3 bg-ink/10')
+                  }`}
+                />
+              ))}
             </div>
           )}
           <div className="font-display text-[2rem] leading-none mb-1">Welcome to Attendly</div>
@@ -133,7 +126,9 @@ export function OnboardingFlow({ user, onComplete }: Props) {
             {step === 'choose' && "Let's get you set up. Who are you?"}
             {step === 'institution' && 'Tell us about your institution.'}
             {step === 'student' && 'Enter your institution code.'}
-            {(step === 'done-inst' || step === 'done-student') && 'You\'re all set!'}
+            {step === 'sudo-prof' && 'Enter your institution code.'}
+            {step === 'professor-solo' && 'One-person workspace setup.'}
+            {step.startsWith('done-') && "You're all set!"}
           </div>
         </div>
 
