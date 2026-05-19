@@ -55,7 +55,7 @@ export function Pricing() {
           if (!Number.isFinite(v)) return;
           const o = { x: 0 };
           ScrollTrigger.create({
-            trigger: el, start: 'top 90%',
+            trigger: el, start: 'top 95%',
             onEnter: () => gsap.to(o, {
               x: v, duration: 1.6, ease: 'expo.out',
               onUpdate: () => (el.textContent = '$' + Math.floor(o.x)),

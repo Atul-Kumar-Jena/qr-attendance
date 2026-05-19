@@ -406,15 +406,66 @@ function IlluAuditTrail() {
   );
 }
 
-const FEATS = [
-  { t: 'Multi-tenant SaaS',  d: 'Fully isolated workspaces per institution. No data bleeds between tenants — ever.', Illu: IlluMultiTenant },
-  { t: 'Dynamic signed QR',  d: 'HMAC-signed tokens rotate every 7 s with a single-use nonce. Screenshots are useless.', Illu: IlluDynamicQR },
-  { t: 'Geofencing',         d: 'Server-side Haversine with accuracy thresholds blocks anyone outside the classroom.', Illu: IlluGeofence },
-  { t: 'Device binding',     d: 'Lock each student to their registered device. Only admins can rebind.', Illu: IlluDeviceBinding },
-  { t: 'App attestation',    d: 'Play Integrity, DeviceCheck and App Attest verify the app is genuine and unmodified.', Illu: IlluAppAttestation },
-  { t: 'Fraud detection',    d: 'Weighted signals feed a suspicious-scan queue for human review.', Illu: IlluFraudDetection },
-  { t: 'PDF / Excel reports', d: 'Branded async exports with signed download URLs. Ready in seconds.', Illu: IlluReports },
-  { t: 'Audit trail',        d: 'Append-only, hash-chained log. Any tampering breaks every subsequent record.', Illu: IlluAuditTrail },
+const FEATS: Array<{
+  t: string; d: string; Illu: () => JSX.Element;
+  tags: string[]; bullets: string[];
+}> = [
+  {
+    t: 'Multi-tenant SaaS',
+    d: 'Fully isolated workspaces per institution. No data bleeds between tenants — ever.',
+    Illu: IlluMultiTenant,
+    tags: ['Firestore rules', 'Per-tenant index', 'No data leak'],
+    bullets: ['Row-level security via Firestore', 'Separate audit + reports per inst', 'Owner-scoped role hierarchy'],
+  },
+  {
+    t: 'Dynamic signed QR',
+    d: 'HMAC-signed tokens rotate every 7 s with a single-use nonce. Screenshots are useless.',
+    Illu: IlluDynamicQR,
+    tags: ['HMAC-SHA256', '7s TTL', 'single-use'],
+    bullets: ['Tokens carry sid, nonce, exp, prev-hash', 'Rolling hash chain (tamper-evident)', 'Server-held signing key'],
+  },
+  {
+    t: 'Geofencing',
+    d: 'Server-side Haversine with accuracy thresholds blocks anyone outside the classroom.',
+    Illu: IlluGeofence,
+    tags: ['Haversine', '±50m radius', 'GPS-accuracy gated'],
+    bullets: ['Per-class lat/lon + radius', 'Reject low-accuracy fixes (>50m)', 'Mock-location detection'],
+  },
+  {
+    t: 'Device binding',
+    d: 'Lock each student to their registered device. Only admins can rebind.',
+    Illu: IlluDeviceBinding,
+    tags: ['1:1 binding', 'Admin reset', 'Hardware ID'],
+    bullets: ['One student ↔ one device fingerprint', 'Audit trail on every rebind', 'Stops scanning for absent friends'],
+  },
+  {
+    t: 'App attestation',
+    d: 'Play Integrity, DeviceCheck and App Attest verify the app is genuine and unmodified.',
+    Illu: IlluAppAttestation,
+    tags: ['Play Integrity', 'App Attest', 'DeviceCheck'],
+    bullets: ['Verify build hasn\'t been tampered with', 'Reject rooted / jailbroken devices', 'Cryptographic device evidence'],
+  },
+  {
+    t: 'Fraud detection',
+    d: 'Weighted signals feed a suspicious-scan queue for human review.',
+    Illu: IlluFraudDetection,
+    tags: ['Heuristics', 'Review queue', 'Auto-flag'],
+    bullets: ['Velocity > 90mph between scans', 'Duplicate scans on same nonce', 'Spoofed GPS signal patterns'],
+  },
+  {
+    t: 'PDF / Excel reports',
+    d: 'Branded async exports with signed download URLs. Ready in seconds.',
+    Illu: IlluReports,
+    tags: ['PDF', 'XLSX', 'CSV'],
+    bullets: ['Per-class, per-month, per-student', 'Signed time-limited download URLs', 'Background queue, no UI blocking'],
+  },
+  {
+    t: 'Audit trail',
+    d: 'Append-only, hash-chained log. Any tampering breaks every subsequent record.',
+    Illu: IlluAuditTrail,
+    tags: ['Append-only', 'SHA-256', 'Tamper-evident'],
+    bullets: ['Every action: who, what, when, hash', 'Hash-chain like a mini-blockchain', 'TTL-configurable retention'],
+  },
 ];
 
 export function Features() {
@@ -430,7 +481,8 @@ export function Features() {
       ctx = gsap.context(() => {
         const cards = gsap.utils.toArray<HTMLElement>('.feat-card');
         if (cards.length === 0 || !track.current || !root.current) return;
-        const total = (cards.length - 1) * 380;
+        // Card width 380px + gap-5 (20px) = 400px slot
+        const total = (cards.length - 1) * 400;
 
         // Horizontal pin-scrub carousel
         gsap.to(track.current, {
@@ -446,29 +498,11 @@ export function Features() {
           },
         });
 
-        // NEW — each card lifts + tilts slightly as it passes the centre
-        // line.  Drives off the same scroll progress, no extra ScrollTriggers.
-        cards.forEach((card, i) => {
-          gsap.fromTo(card,
-            { y: 30, rotate: 1.2, scale: 0.97 },
-            {
-              y: 0, rotate: 0, scale: 1,
-              ease: 'power2.out',
-              scrollTrigger: {
-                trigger: root.current,
-                start: () => `top+=${i * 220} top`,
-                end: () => `top+=${(i + 1) * 220} top`,
-                scrub: 1,
-              },
-            },
-          );
-        });
-
-        // NEW — section heading subtle fade-up (safe: default state is visible)
+        // Section heading subtle fade-up (safe: default state is visible)
         gsap.from('.feat-head h2', {
-          opacity: 0, y: 20, duration: 1.0, ease: 'power3.out',
+          opacity: 0, y: 20, duration: 0.8, ease: 'power3.out',
           immediateRender: false,
-          scrollTrigger: { trigger: '.feat-head', start: 'top 85%' },
+          scrollTrigger: { trigger: '.feat-head', start: 'top 95%' },
         });
       }, root);
     } catch { /* GSAP failure must not crash the page */ }
@@ -492,21 +526,38 @@ export function Features() {
           {FEATS.map((f, i) => (
             <article
               key={f.t}
-              className="feat-card relative shrink-0 w-[360px] h-[460px] rounded-3xl glass border border-ink/8 dark:border-white/10 flex flex-col overflow-hidden hover:border-accent/30 transition-colors duration-300 group"
+              className="feat-card relative shrink-0 w-[380px] h-[560px] rounded-3xl glass border border-ink/8 dark:border-white/10 flex flex-col overflow-hidden hover:border-accent/30 transition-colors duration-300 group"
             >
               {/* Illustration: fixed height */}
-              <div className="relative h-[240px] flex items-center justify-center px-5 pt-5 overflow-hidden">
+              <div className="relative h-[220px] flex items-center justify-center px-5 pt-5 overflow-hidden flex-shrink-0">
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  style={{ background:'radial-gradient(ellipse at 50% 50%, rgba(255,107,61,0.06) 0%, transparent 70%)' }} />
+                  style={{ background:'radial-gradient(ellipse at 50% 50%, rgba(255,107,61,0.08) 0%, transparent 70%)' }} />
                 <f.Illu />
               </div>
               {/* Footer fills the rest */}
               <div className="flex-1 px-7 pt-5 pb-7 border-t border-ink/6 dark:border-white/6 flex flex-col">
-                <div className="font-mono text-[10px] text-ink-mute tracking-wider mb-2">
-                  {String(i + 1).padStart(2, '0')} / {FEATS.length}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-mono text-[10px] text-ink-mute tracking-wider">
+                    {String(i + 1).padStart(2, '0')} / {FEATS.length}
+                  </span>
+                  <div className="flex flex-wrap gap-1 justify-end">
+                    {f.tags.slice(0, 2).map((t) => (
+                      <span key={t} className="text-[9.5px] tracking-wider uppercase font-mono px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">{t}</span>
+                    ))}
+                  </div>
                 </div>
                 <h3 className="font-display text-[1.55rem] leading-tight text-ink dark:text-cream-50">{f.t}</h3>
                 <p className="mt-2 text-[12.5px] text-ink-mute leading-relaxed">{f.d}</p>
+                <ul className="mt-3 space-y-1.5 text-[12px] text-ink-mute/90">
+                  {f.bullets.map((b) => (
+                    <li key={b} className="flex items-start gap-2">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF6B3D" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="mt-1 flex-shrink-0">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      <span className="leading-snug">{b}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </article>
           ))}
@@ -521,8 +572,21 @@ export function Features() {
               <f.Illu />
             </div>
             <div className="p-5 border-t border-ink/6">
+              <div className="flex flex-wrap gap-1 mb-2">
+                {f.tags.slice(0, 2).map((t) => (
+                  <span key={t} className="text-[9.5px] tracking-wider uppercase font-mono px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">{t}</span>
+                ))}
+              </div>
               <h3 className="font-display text-[1.3rem] leading-tight">{f.t}</h3>
               <p className="mt-1.5 text-[12px] text-ink-mute leading-relaxed">{f.d}</p>
+              <ul className="mt-2.5 space-y-1 text-[11.5px] text-ink-mute/90">
+                {f.bullets.slice(0, 3).map((b) => (
+                  <li key={b} className="flex items-start gap-1.5">
+                    <span className="text-accent mt-0.5">›</span>
+                    <span className="leading-snug">{b}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         ))}

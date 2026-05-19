@@ -29,7 +29,7 @@ export function Faq() {
     const ctx = gsap.context(() => {
       gsap.from('.faq-row', {
         opacity: 0, y: 30, stagger: 0.06, ease: 'power3.out', duration: 0.8,
-        scrollTrigger: { trigger: root.current, start: 'top 80%' },
+        scrollTrigger: { trigger: root.current, start: 'top 92%' },
       });
     }, root);
     return () => ctx.revert();

@@ -47,6 +47,23 @@ function ThemeToggle({ compact }: { compact?: boolean }) {
   );
 }
 
+function MobileSignOutButton({ onClose }: { onClose: () => void }) {
+  const { signOut } = useAuth();
+  return (
+    <button
+      onClick={() => { signOut(); onClose(); }}
+      className="w-full flex items-center justify-center gap-2 rounded-xl border border-ink/10 dark:border-white/10 text-ink-mute dark:text-white/60 py-2.5 text-[13px] hover:text-red-500 hover:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16,17 21,12 16,7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      Sign out
+    </button>
+  );
+}
+
 function MobileUserHeader() {
   const { user, role } = useAuth();
   if (!user) return null;
@@ -175,15 +192,41 @@ export function Nav() {
               } />
             )}
 
-            <Link
-              href="#pricing"
-              className={cn(
-                'hidden md:inline-block rounded-xl bg-ink dark:bg-[#1A2236] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:hover:bg-[#222c3e] dark:border dark:border-white/15 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] whitespace-nowrap',
-                scrolled ? 'px-3 py-1.5 text-[12px]' : 'px-4 py-2 text-[12.5px]',
-              )}
-            >
-              Request demo
-            </Link>
+            {/* Signed-in: prominent Dashboard CTA. Signed-out: Request demo. */}
+            {user && canAccessAdmin ? (
+              <Link
+                href="/admin"
+                className={cn(
+                  'hidden md:inline-flex items-center gap-1.5 rounded-xl bg-accent text-cream-50 font-medium tracking-wide hover:bg-accent/90 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] whitespace-nowrap',
+                  scrolled ? 'px-3 py-1.5 text-[12px]' : 'px-4 py-2 text-[12.5px]',
+                )}
+              >
+                Dashboard
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+                  <path d="M5 12h14M13 6l6 6-6 6"/>
+                </svg>
+              </Link>
+            ) : user ? (
+              <Link
+                href="/admin"
+                className={cn(
+                  'hidden md:inline-flex items-center gap-1.5 rounded-xl bg-accent text-cream-50 font-medium tracking-wide hover:bg-accent/90 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] whitespace-nowrap',
+                  scrolled ? 'px-3 py-1.5 text-[12px]' : 'px-4 py-2 text-[12.5px]',
+                )}
+              >
+                My Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="#pricing"
+                className={cn(
+                  'hidden md:inline-block rounded-xl bg-ink dark:bg-[#1A2236] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:hover:bg-[#222c3e] dark:border dark:border-white/15 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] whitespace-nowrap',
+                  scrolled ? 'px-3 py-1.5 text-[12px]' : 'px-4 py-2 text-[12.5px]',
+                )}
+              >
+                Request demo
+              </Link>
+            )}
 
             {/* Mobile: avatar preview + hamburger */}
             <div className="flex md:hidden items-center gap-2">
@@ -229,15 +272,25 @@ export function Nav() {
           {/* Signed-in user header */}
           <MobileUserHeader />
 
-          {/* Dashboard CTA — only if user can access admin */}
-          {user && canAccessAdmin && (
-            <Link
-              href="/admin"
-              onClick={() => setMenuOpen(false)}
-              className="block w-full text-center rounded-xl bg-ink dark:bg-white/10 text-cream-50 dark:text-white py-2.5 text-[13px] font-medium hover:bg-ink-soft dark:hover:bg-white/15 transition-all"
-            >
-              Open Dashboard
-            </Link>
+          {/* Dashboard CTA — every signed-in user gets a dashboard
+              (students get their own "My Dashboard" view) */}
+          {user && (
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                href="/admin"
+                onClick={() => setMenuOpen(false)}
+                className="block text-center rounded-xl bg-accent text-cream-50 py-2.5 text-[13px] font-medium hover:bg-accent/90 transition-all"
+              >
+                {canAccessAdmin ? 'Dashboard' : 'My Dashboard'}
+              </Link>
+              <Link
+                href="/profile"
+                onClick={() => setMenuOpen(false)}
+                className="block text-center rounded-xl border border-ink/10 dark:border-white/10 text-ink-mute dark:text-white/60 py-2.5 text-[13px] font-medium hover:text-ink dark:hover:text-white transition-all"
+              >
+                Profile
+              </Link>
+            </div>
           )}
 
           {/* Nav links */}
@@ -270,6 +323,11 @@ export function Nav() {
                 Request demo
               </Link>
             </div>
+          )}
+
+          {/* Sign out (if signed in) */}
+          {user && (
+            <MobileSignOutButton onClose={() => setMenuOpen(false)} />
           )}
 
           {/* Theme toggle row */}

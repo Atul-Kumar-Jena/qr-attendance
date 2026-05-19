@@ -37,7 +37,7 @@ export function MobilePreview() {
       gsap.from('.hist-row', {
         y: 30, opacity: 0,
         stagger: 0.08, ease: 'power3.out', duration: 0.9,
-        scrollTrigger: { trigger: '.phone-b', start: 'top 80%' },
+        scrollTrigger: { trigger: '.phone-b', start: 'top 92%' },
       });
     }, root);
     return () => ctx.revert();

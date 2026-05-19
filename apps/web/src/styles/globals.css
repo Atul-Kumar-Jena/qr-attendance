@@ -134,10 +134,17 @@ h1, h2, h3 {
 .reveal-line  { display: block; will-change: transform; }
 
 /* ─── Section entrance — used by GSAP for scroll-triggered items ─────────── */
+/* Tiny initial offset + safety fallback animation: even if GSAP misses or
+   trigger fires late, content reveals automatically in 1.6s. GSAP's inline
+   styles override the fallback keyframe whenever it does fire. */
 .section-fade {
-  opacity: 0;
-  transform: translateY(28px);
+  opacity: 0.001;
+  transform: translateY(18px);
   will-change: opacity, transform;
+  animation: sectionFadeFallback 1.6s ease-out 0.3s forwards;
+}
+@keyframes sectionFadeFallback {
+  to { opacity: 1; transform: none; }
 }
 
 /* ─── Animated icon containers ───────────────────────────────────────────── */

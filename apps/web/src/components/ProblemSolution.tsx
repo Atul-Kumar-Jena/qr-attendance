@@ -48,7 +48,7 @@ export function ProblemSolution() {
               transformOrigin: 'center top',
               duration: 0.9, ease: 'power3.out',
               immediateRender: false,
-              scrollTrigger: { trigger: el, start: 'top 88%' },
+              scrollTrigger: { trigger: el, start: 'top 92%' },
               delay: i * 0.05,
             },
           );
@@ -60,7 +60,7 @@ export function ProblemSolution() {
           {
             yPercent: 0, rotateZ: 0, duration: 1.1, ease: 'expo.out', stagger: 0.09,
             immediateRender: false,
-            scrollTrigger: { trigger: '.ps-head', start: 'top 90%' },
+            scrollTrigger: { trigger: '.ps-head', start: 'top 95%' },
           },
         );
 
@@ -70,7 +70,7 @@ export function ProblemSolution() {
             { scaleX: 0 },
             { scaleX: 1, transformOrigin: 'left center', duration: 0.65, ease: 'power3.inOut',
               immediateRender: false,
-              scrollTrigger: { trigger: s, start: 'top 85%' } },
+              scrollTrigger: { trigger: s, start: 'top 92%' } },
           );
         });
 
@@ -80,7 +80,7 @@ export function ProblemSolution() {
           if (!Number.isFinite(target)) return;
           const obj = { v: 0 };
           ScrollTrigger.create({
-            trigger: el, start: 'top 90%',
+            trigger: el, start: 'top 95%',
             onEnter: () => {
               gsap.to(obj, {
                 v: target, duration: 1.8, ease: 'expo.out',
@@ -109,7 +109,7 @@ export function ProblemSolution() {
               rotate: 0, scale: 1, opacity: 1,
               duration: 0.8, ease: 'back.out(2)',
               immediateRender: false,
-              scrollTrigger: { trigger: el, start: 'top 90%' },
+              scrollTrigger: { trigger: el, start: 'top 95%' },
               delay: i * 0.08,
             },
           );

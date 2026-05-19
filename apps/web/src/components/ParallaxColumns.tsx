@@ -56,7 +56,7 @@ export function ParallaxColumns() {
         gsap.from('.pcol-item', {
           y: 30, opacity: 0,
           stagger: 0.08, ease: 'power3.out', duration: 0.9,
-          scrollTrigger: { trigger: root.current, start: 'top 80%' },
+          scrollTrigger: { trigger: root.current, start: 'top 92%' },
         });
       }, root);
     } catch { /* GSAP failure must not crash the page */ }
