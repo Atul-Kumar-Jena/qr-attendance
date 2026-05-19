@@ -198,8 +198,7 @@ export default function AdminHome() {
         )}
       </div>
       <nav className="flex-1 space-y-0.5">
-        {(Object.keys(TAB_LABELS) as Tab[]).map((t) => {
-          const allowed = allowedTabs.includes(t);
+        {allowedTabs.map((t) => {
           const isGod = t === 'god-mode';
           const tourMap: Partial<Record<Tab, string>> = {
             overview: 'tour-overview', students: 'tour-students',
@@ -208,14 +207,12 @@ export default function AdminHome() {
           const tourId = tourMap[t];
           return (
             <button key={t} id={tourId}
-              onClick={() => { if (allowed) { setTab(t); setSidebarOpen(false); } }}
-              disabled={!allowed}
+              onClick={() => { setTab(t); setSidebarOpen(false); }}
               className={`block w-full text-left px-3 py-2 rounded-md text-[13px] transition-colors ${
-                isGod && allowed
+                isGod
                   ? currentTab === t ? 'bg-red-600 text-white font-semibold' : 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium'
                   : currentTab === t ? 'bg-ink text-cream-50 dark:bg-white/10 dark:border dark:border-white/10'
-                  : allowed ? 'text-ink-mute hover:text-ink dark:hover:text-white hover:bg-cream-100 dark:hover:bg-white/5'
-                  : 'text-ink/20 dark:text-white/20 cursor-not-allowed'
+                  : 'text-ink-mute hover:text-ink dark:hover:text-white hover:bg-cream-100 dark:hover:bg-white/5'
               }`}
             >
               {TAB_LABELS[t]}
@@ -1713,7 +1710,7 @@ function InstitutionPanel() {
     return (
       <Card className="p-8 text-center space-y-3">
         <div className="text-ink-mute text-[13px]">You are not linked to any institution yet.</div>
-        <p className="text-[12px] text-ink-mute">Create one in God Mode or ask your admin to assign you.</p>
+        <p className="text-[12px] text-ink-mute">Contact your administrator to be assigned to an institution.</p>
       </Card>
     );
   }
@@ -2153,13 +2150,24 @@ function StudentHomePanel() {
 // ─── God Mode ─────────────────────────────────────────────────────────────────
 
 function GodModePanel() {
-  const { config, save } = useSiteConfig();
+  const { config, save, loading } = useSiteConfig();
   const [local, setLocal] = useState<SiteConfig>({ ...config });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [savedMsg, setSavedMsg] = useState('');
   const [showPricingConfirm, setShowPricingConfirm] = useState(false);
   const pendingPricingMode = useRef<PricingMode | null>(null);
+  const configLoadedRef = useRef(false);
+
+  // Sync local state once — after Firestore sends the real config (loading→false).
+  // Without this, GodMode opens with DEFAULT_CONFIG before Firestore responds,
+  // and a premature "Save all changes" would overwrite the real Firestore data.
+  useEffect(() => {
+    if (!loading && !configLoadedRef.current) {
+      configLoadedRef.current = true;
+      setLocal({ ...config });
+    }
+  }, [loading, config]);
 
   const set = useCallback(<K extends keyof SiteConfig>(k: K, v: SiteConfig[K]) => {
     setLocal((c) => ({ ...c, [k]: v }));
@@ -2402,6 +2410,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     match /classes/{id} {
+      allow read, write: if request.auth != null;
+    }
+    match /classMembers/{id} {
+      allow read, write: if request.auth != null;
+    }
+    match /attendanceRecords/{id} {
       allow read, write: if request.auth != null;
     }
   }
