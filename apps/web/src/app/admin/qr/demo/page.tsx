@@ -4,12 +4,27 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import gsap from 'gsap';
 import { useAuth } from '@/context/AuthContext';
+import { auth } from '@/lib/firebase';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   onClasses, onSession, createSession,
   endSession as fsEndSession, logAudit,
   type FSClass, type FSSession,
 } from '@/lib/firestore-db';
+
+// Cloud Functions base URL. Override with NEXT_PUBLIC_FUNCTIONS_BASE for
+// local emulator (e.g. http://localhost:5001/attendly-the-solution/us-central1/attendlyApi).
+const FUNCTIONS_BASE =
+  process.env.NEXT_PUBLIC_FUNCTIONS_BASE ||
+  'https://us-central1-attendly-the-solution.cloudfunctions.net/attendlyApi';
+
+// Default refresh cadence in seconds (must match server qrTtlSeconds).
+const QR_TTL_SECONDS_DEFAULT = 15;
+
+async function getIdToken(): Promise<string> {
+  if (!auth?.currentUser) throw new Error('Not signed in');
+  return auth.currentUser.getIdToken();
+}
 
 type Stage = 'setup' | 'live' | 'ended';
 
@@ -91,57 +106,65 @@ export default function QrDisplay() {
     });
   }, [sessionId, stage]);
 
-  // QR rotation interval — only while live. 1s rotation rule.
-  useEffect(() => {
-    if (stage !== 'live') return;
-    timerRef.current = setInterval(() => {
-      setTick((t) => t + 1);
-      gsap.fromTo(qrRef.current, { rotateY: 90, opacity: 0 },
-        { rotateY: 0, opacity: 1, duration: 0.35, ease: 'expo.out' });
-    }, 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [stage]);
-
-  // ── Crypto: HMAC-SHA256 over header.payload, plus a rolling hash-chain
-  // (each token's signature feeds into the next, so any tampering in the
-  // middle invalidates every downstream block — same property a blockchain
-  // ledger relies on). Real production key lives server-side; this is a
-  // visual-correctness demo of the algorithm.
-  const [token, setToken] = useState<{ header: string; payload: string; sig: string }>({ header: '', payload: '', sig: '' });
-  const [chain, setChain] = useState<string[]>([]);
+  // ── Server-issued QR tokens ─────────────────────────────────────────────
+  // The signing key lives in Cloud Functions secret storage. We poll
+  // GET /sessions/:sessionId/qr every TTL seconds for a fresh token. No
+  // crypto runs in the browser.
+  const [qrTokenStr, setQrTokenStr] = useState<string>('');
+  const [qrError, setQrError] = useState<string>('');
+  const [qrExp, setQrExp] = useState<number>(0); // epoch seconds
+  const ttlSecRef = useRef<number>(QR_TTL_SECONDS_DEFAULT);
   const sessionStartRef = useRef<number>(Date.now());
+
+  // QR rotation interval — fetches a fresh token every ttlSec.
   useEffect(() => {
-    if (stage !== 'live') return;
+    if (stage !== 'live' || !sessionId) return;
     let cancelled = false;
-    (async () => {
-      const enc = new TextEncoder();
-      const keyBuf = enc.encode('attendly-demo-key-not-secret');
-      const key = await crypto.subtle.importKey('raw', keyBuf, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-      const header  = btoa(JSON.stringify({ alg: 'HS256', typ: 'AQR', v: 1 })).replace(/=+$/, '');
-      const issued  = Math.floor(Date.now() / 1000);
-      const payload = btoa(JSON.stringify({
-        sid: sessionId,                        // session id
-        inst: institutionId || 'demo',         // institution
-        iat: issued, exp: issued + 7,          // 7s TTL window
-        n: tick,                                // monotonic nonce
-        prev: chain[chain.length - 1] || null,  // hash-chain previous link
-      })).replace(/=+$/, '');
-      const data = enc.encode(`${header}.${payload}`);
-      const sigBuf = await crypto.subtle.sign('HMAC', key, data);
-      const sig = Array.from(new Uint8Array(sigBuf))
-        .map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 22);
-      if (cancelled) return;
-      setToken({ header, payload, sig });
-      setChain((c) => [...c.slice(-5), sig]);
-    })();
-    return () => { cancelled = true; };
-  }, [tick, stage, sessionId, institutionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const fetchToken = async () => {
+      try {
+        const idToken = await getIdToken();
+        const res = await fetch(`${FUNCTIONS_BASE}/sessions/${encodeURIComponent(sessionId)}/qr`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.reason || body.code || `HTTP ${res.status}`);
+        }
+        const data: { qrToken: string; exp: number; ttlSec: number } = await res.json();
+        if (cancelled) return;
+        setQrTokenStr(data.qrToken);
+        setQrExp(data.exp);
+        if (data.ttlSec) ttlSecRef.current = data.ttlSec;
+        setQrError('');
+        setTick((t) => t + 1);
+        gsap.fromTo(
+          qrRef.current,
+          { rotateY: 90, opacity: 0 },
+          { rotateY: 0, opacity: 1, duration: 0.35, ease: 'expo.out' },
+        );
+      } catch (e: unknown) {
+        if (cancelled) return;
+        setQrError(e instanceof Error ? e.message : String(e));
+      }
+    };
+
+    // Immediate fetch + recurring refresh.
+    fetchToken();
+    timerRef.current = setInterval(fetchToken, ttlSecRef.current * 1000);
+    return () => {
+      cancelled = true;
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [stage, sessionId]);
 
   const startSession = async () => {
     if (!subjectName.trim() || !className.trim()) return;
     if (!institutionId || !user) return;
     setStarting(true);
     try {
+      // 1) Create the Firestore session doc (legacy schema — keeps the
+      //    existing dashboards working).
       const id = await createSession({
         institutionId,
         teacherId: user.uid,
@@ -151,13 +174,58 @@ export default function QrDisplay() {
         status: 'OPEN',
         attendanceCount: 0,
       });
+
+      // 2) Create the secure attendanceSessions doc via Cloud Function so the
+      //    server has the geofence + TTL parameters and we can mint signed
+      //    QR tokens.
+      // TODO: replace the hardcoded 0,0 / 100m with a real lat/lng + radius
+      //       picker in a follow-up. For the demo, the geofence is effectively
+      //       disabled (any coord ≤ ~110km from null island would pass).
+      try {
+        const idToken = await getIdToken();
+        const nowMs = Date.now();
+        const startsAt = nowMs;
+        const expiresAt = nowMs + 4 * 60 * 60 * 1000; // 4-hour window
+        const res = await fetch(`${FUNCTIONS_BASE}/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            institutionId,
+            classId: className.trim(),
+            subjectId: subjectName.trim(),
+            teacherId: user.uid,
+            centerLat: 0,
+            centerLng: 0,
+            radiusMeters: 100,
+            qrTtlSeconds: QR_TTL_SECONDS_DEFAULT,
+            startsAt,
+            expiresAt,
+          }),
+        });
+        if (res.ok) {
+          const data: { sessionId: string } = await res.json();
+          setSessionId(data.sessionId);
+        } else {
+          // Server session creation failed; fall back to legacy id so the
+          // UI still renders, but signed QR rotation will fail.
+          setSessionId(id);
+          const body = await res.json().catch(() => ({}));
+          setQrError(`server session: ${body.reason || body.code || res.status}`);
+        }
+      } catch (e: unknown) {
+        setSessionId(id);
+        setQrError(e instanceof Error ? e.message : String(e));
+      }
+
       await logAudit({
         institutionId, actorId: user.uid,
         actorName: user.displayName ?? user.email ?? '',
         action: 'SESSION_STARTED', targetId: id,
         details: `${subjectName.trim()} · ${className.trim()}`,
       });
-      setSessionId(id);
       setStage('live');
     } catch (e: unknown) {
       alert('Failed to start session: ' + (e instanceof Error ? e.message : String(e)));
@@ -186,10 +254,8 @@ export default function QrDisplay() {
     setEnding(false);
   };
 
-  // Build the QR payload — a real JWT-style token: header.payload.signature
-  const qrPayload = sessionId && token.sig
-    ? `attendly://scan?t=${token.header}.${token.payload}.${token.sig}`
-    : '';
+  // Build the QR payload from the server-issued token.
+  const qrPayload = sessionId && qrTokenStr ? `attendly://scan?t=${qrTokenStr}` : '';
 
   // ── Setup screen ─────────────────────────────────────────────────────────────
   if (stage === 'setup') {
@@ -312,6 +378,12 @@ export default function QrDisplay() {
                 <div className="w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] flex items-center justify-center">
                   <QRCodeSVG value={qrPayload} size={280} bgColor="#FAFAF7" fgColor="#0B1220" level="M" className="w-full h-full" />
                 </div>
+              ) : qrError ? (
+                <div className="w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] flex flex-col items-center justify-center text-center p-6 bg-cream-100 rounded-2xl">
+                  <div className="text-[12px] text-red-600 font-medium mb-2">QR temporarily unavailable</div>
+                  <div className="text-[10px] text-ink/60 font-mono break-all">{qrError}</div>
+                  <div className="text-[10px] text-ink/40 mt-3">retrying…</div>
+                </div>
               ) : (
                 <div className="w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] bg-cream-100 rounded-2xl animate-pulse" />
               )}
@@ -320,50 +392,33 @@ export default function QrDisplay() {
           {/* Rotation countdown */}
           <div className="mt-5 flex items-center gap-3">
             <div className="h-1 w-44 rounded-full bg-cream-50/15 overflow-hidden">
-              <div key={tick} className="h-full w-full bg-accent" style={{ animation: 'shrink 1s linear forwards' }} />
+              <div
+                key={tick}
+                className="h-full w-full bg-accent"
+                style={{ animation: `shrink ${ttlSecRef.current}s linear forwards` }}
+              />
             </div>
-            <span className="font-mono text-[11px] text-cream-50/55">rotates · 1s · n={tick}</span>
+            <span className="font-mono text-[11px] text-cream-50/55">
+              rotates · {ttlSecRef.current}s · n={tick}
+            </span>
           </div>
-          <div className="mt-3 text-[12px] text-cream-50/55">Open the Attendly app. Token rotates every second.</div>
+          <div className="mt-3 text-[12px] text-cream-50/55">
+            Open the Attendly app. Token rotates every {ttlSecRef.current}s.
+          </div>
         </div>
 
-        {/* Security panel — right side: token decomposition + hash chain + binding pills */}
+        {/* Security panel — right side: server signing badge + binding pills */}
         <div className="w-full max-w-md space-y-5 lg:pl-4">
-          {/* Token structure */}
           <div className="rounded-xl border border-cream-50/8 bg-cream-50/[0.025] p-4">
-            <div className="text-[10px] tracking-[0.22em] text-cream-50/40 uppercase mb-3">token · HS256</div>
-            <div className="space-y-1.5">
-              <div className="flex items-baseline gap-2">
-                <span className="text-[9.5px] text-cream-50/40 w-12 font-mono tracking-wide">HEADER</span>
-                <code className="text-[10.5px] font-mono text-cream-50/75 break-all">{token.header || '—'}</code>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-[9.5px] text-cream-50/40 w-12 font-mono tracking-wide">PAYLD</span>
-                <code className="text-[10.5px] font-mono text-cream-50/75 break-all">{token.payload || '—'}</code>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-[9.5px] text-accent w-12 font-mono tracking-wide">SIG</span>
-                <code className="text-[10.5px] font-mono text-accent break-all">{token.sig || '—'}</code>
-              </div>
+            <div className="text-[10px] tracking-[0.22em] text-cream-50/40 uppercase mb-2">security</div>
+            <div className="font-mono text-[12px] text-cream-50/85">
+              Signed by server · HMAC-SHA256 · kid=k1
             </div>
-          </div>
-
-          {/* Hash chain — last 5 signatures */}
-          <div className="rounded-xl border border-cream-50/8 bg-cream-50/[0.025] p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] tracking-[0.22em] text-cream-50/40 uppercase">hash chain · tamper-evident</span>
-              <span className="text-[9.5px] text-cream-50/35 font-mono">last {chain.length}</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {chain.map((h, i) => (
-                <span key={i} className="font-mono text-[10px] px-2 py-1 rounded bg-accent/10 text-accent border border-accent/20">
-                  {h.slice(0, 8)}
-                </span>
-              )).reduce((acc: React.ReactNode[], chip, i) => {
-                if (i > 0) acc.push(<span key={`a${i}`} className="text-cream-50/30 text-[10px]">→</span>);
-                acc.push(chip);
-                return acc;
-              }, [])}
+            <div className="mt-2 text-[10.5px] text-cream-50/50">
+              Tokens are minted in Cloud Functions and rotate every {ttlSecRef.current}s.
+              {qrExp ? (
+                <> · exp in {Math.max(0, qrExp - Math.floor(Date.now() / 1000))}s</>
+              ) : null}
             </div>
           </div>
 
@@ -371,25 +426,27 @@ export default function QrDisplay() {
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-xl border border-cream-50/8 bg-cream-50/[0.025] px-3 py-2.5">
               <div className="text-[9.5px] tracking-[0.18em] text-cream-50/40 uppercase">bound device</div>
-              <div className="mt-1 font-mono text-[12px] text-cream-50/85">DEV-7A2F·G3</div>
+              <div className="mt-1 font-mono text-[12px] text-cream-50/85">TOFU</div>
             </div>
             <div className="rounded-xl border border-cream-50/8 bg-cream-50/[0.025] px-3 py-2.5">
               <div className="text-[9.5px] tracking-[0.18em] text-cream-50/40 uppercase">roll bound</div>
               <div className="mt-1 font-mono text-[12px] text-cream-50/85">per-scan ✓</div>
             </div>
             <div className="rounded-xl border border-cream-50/8 bg-cream-50/[0.025] px-3 py-2.5">
-              <div className="text-[9.5px] tracking-[0.18em] text-cream-50/40 uppercase">attestation</div>
-              <div className="mt-1 font-mono text-[12px] text-cream-50/85">Play Integrity</div>
+              <div className="text-[9.5px] tracking-[0.18em] text-cream-50/40 uppercase">accuracy</div>
+              <div className="mt-1 font-mono text-[12px] text-cream-50/85">≤ 50m</div>
             </div>
             <div className="rounded-xl border border-cream-50/8 bg-cream-50/[0.025] px-3 py-2.5">
               <div className="text-[9.5px] tracking-[0.18em] text-cream-50/40 uppercase">geofence</div>
-              <div className="mt-1 font-mono text-[12px] text-cream-50/85">≤ 50m</div>
+              <div className="mt-1 font-mono text-[12px] text-cream-50/85">haversine</div>
             </div>
           </div>
 
           <div className="text-[10.5px] text-cream-50/40 leading-relaxed pt-1">
-            Every QR encodes a fresh HMAC-SHA256 signature over <span className="text-cream-50/65 font-mono">{`{header.payload}`}</span> with a server-held key.
-            Each signature references the previous one, forming an append-only chain — any tamper invalidates every downstream token.
+            The QR encodes a server-signed HMAC-SHA256 token bound to the
+            session, class, and a short expiry. Scans are verified with the
+            student&apos;s device fingerprint, GPS accuracy gate, and Haversine
+            geofence against the session radius.
           </div>
         </div>
       </div>
