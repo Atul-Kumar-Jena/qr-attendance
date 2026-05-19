@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 
+// Theme accent color: #FF6B3D (rgb 255, 107, 61) — same as --accent token
 export function GridBackground() {
   const revealRef = useRef<HTMLDivElement>(null);
   const spotRef = useRef<HTMLDivElement>(null);
@@ -30,8 +31,8 @@ export function GridBackground() {
 
       const isDark = document.documentElement.classList.contains('dark');
       spot.style.background = isDark
-        ? `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(139,92,246,0.13) 0%, rgba(99,102,241,0.05) 45%, transparent 70%)`
-        : `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(139,92,246,0.09) 0%, rgba(99,102,241,0.03) 45%, transparent 70%)`;
+        ? `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(255,107,61,0.14) 0%, rgba(255,107,61,0.05) 45%, transparent 70%)`
+        : `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(255,107,61,0.10) 0%, rgba(255,107,61,0.03) 45%, transparent 70%)`;
 
       raf = requestAnimationFrame(tick);
     };
@@ -51,21 +52,22 @@ export function GridBackground() {
       {/* Dim base grid lines */}
       <div className="absolute inset-0" style={{
         backgroundImage: [
-          'linear-gradient(rgba(139,92,246,0.04) 1px, transparent 1px)',
-          'linear-gradient(90deg, rgba(139,92,246,0.04) 1px, transparent 1px)',
+          'linear-gradient(rgba(255,107,61,0.045) 1px, transparent 1px)',
+          'linear-gradient(90deg, rgba(255,107,61,0.045) 1px, transparent 1px)',
         ].join(', '),
         backgroundSize: G,
       }} />
 
       {/* Dim intersection dots */}
       <div className="absolute inset-0" style={{
-        backgroundImage: 'radial-gradient(circle, rgba(139,92,246,0.14) 0.9px, transparent 0.9px)',
+        backgroundImage: 'radial-gradient(circle, rgba(255,107,61,0.16) 0.9px, transparent 0.9px)',
         backgroundSize: G,
       }} />
 
       {/* Cursor-revealed bright layer (masked, hidden off-screen until hover) */}
       <div
         ref={revealRef}
+        data-grid-reveal
         className="absolute inset-0"
         style={{
           WebkitMaskImage: 'radial-gradient(380px circle at -9999px -9999px, black 0%, transparent 68%)',
@@ -75,21 +77,21 @@ export function GridBackground() {
         {/* Vivid lines */}
         <div className="absolute inset-0" style={{
           backgroundImage: [
-            'linear-gradient(rgba(139,92,246,0.6) 1px, transparent 1px)',
-            'linear-gradient(90deg, rgba(139,92,246,0.6) 1px, transparent 1px)',
+            'linear-gradient(rgba(255,107,61,0.6) 1px, transparent 1px)',
+            'linear-gradient(90deg, rgba(255,107,61,0.6) 1px, transparent 1px)',
           ].join(', '),
           backgroundSize: G,
         }} />
         {/* Vivid dots */}
         <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle, rgba(167,139,250,0.95) 1.1px, transparent 1.1px)',
+          backgroundImage: 'radial-gradient(circle, rgba(255,140,100,0.95) 1.1px, transparent 1.1px)',
           backgroundSize: G,
         }} />
         {/* Bloom behind lines */}
         <div className="absolute inset-0" style={{
           backgroundImage: [
-            'linear-gradient(rgba(167,139,250,0.15) 3px, transparent 3px)',
-            'linear-gradient(90deg, rgba(167,139,250,0.15) 3px, transparent 3px)',
+            'linear-gradient(rgba(255,140,100,0.18) 3px, transparent 3px)',
+            'linear-gradient(90deg, rgba(255,140,100,0.18) 3px, transparent 3px)',
           ].join(', '),
           backgroundSize: G,
           filter: 'blur(2px)',

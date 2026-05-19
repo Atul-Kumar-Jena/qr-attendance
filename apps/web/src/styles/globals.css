@@ -568,17 +568,27 @@ html.theme-transitioning *::after {
 
 /* ─── Mobile layout & performance ───────────────────────────────────────── */
 @media (max-width: 767px) {
+  /* Tighter base typography on small screens */
+  html, body { font-size: 15px; line-height: 1.55; }
+  body, p, span, li { line-height: 1.55; }
+
   /* Hero headline: ensure readable on small screens */
-  .hero-headline { font-size: 2.8rem !important; }
+  .hero-headline {
+    font-size: clamp(2.2rem, 9vw, 3rem) !important;
+    line-height: 1.06 !important;
+    letter-spacing: -0.02em !important;
+  }
 
   /* Stats: allow wrapping on very small screens */
   .hero-stat { min-width: 80px; }
 
   /* Section headings: clamp to screen width */
-  .section-heading-xl {
-    font-size: clamp(1.8rem, 8vw, 3rem) !important;
-    line-height: 1.08 !important;
+  .section-heading-xl,
+  h1.font-display, h2.font-display {
+    font-size: clamp(1.8rem, 7.5vw, 2.8rem) !important;
+    line-height: 1.1 !important;
   }
+  h3.font-display { font-size: clamp(1.4rem, 5.5vw, 2rem) !important; }
 
   /* Performance: skip heavy glass blur on mobile */
   .glass {
@@ -590,12 +600,91 @@ html.theme-transitioning *::after {
     background: rgba(13, 15, 20, 0.97) !important;
   }
 
+  /* Skip backdrop-blur — it's expensive on phone GPUs */
+  .backdrop-blur-sm, .backdrop-blur, .backdrop-blur-md,
+  .backdrop-blur-lg, .backdrop-blur-xl, .backdrop-blur-2xl {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
   /* Disable GPU-heavy will-change on small screens */
   * { will-change: auto !important; }
 
   /* Ensure animated sections are always readable (GSAP fallback) */
   .reveal-line  { transform: none !important; }
   .section-fade { opacity: 1 !important; transform: none !important; }
+
+  /* Grain overlay is expensive on phones — make it lighter */
+  body::before { opacity: 0.2; }
+  html.dark body::before { opacity: 0.025; }
+
+  /* Touch-friendly tap targets: ensure buttons/links are at least 40x40 */
+  button, a[role="button"], [role="menuitem"], .tap-target {
+    min-height: 40px;
+  }
+
+  /* Tables: allow horizontal scroll inside a wrapper */
+  .admin-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-left: -1rem; margin-right: -1rem;
+    padding: 0 1rem;
+  }
+  .admin-table-wrap table { min-width: 540px; }
+
+  /* Auto-scroll tables on mobile (admin panels) — thead+tbody align as
+     synced sub-tables inside a scrollable block container */
+  table.w-full {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  table.w-full thead,
+  table.w-full tbody {
+    display: table;
+    width: 100%;
+    min-width: 540px;
+    table-layout: auto;
+  }
+  table.w-full th, table.w-full td {
+    white-space: nowrap;
+    font-size: 12.5px !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  /* Admin cards: tighter padding so content fits */
+  main h1.font-display { font-size: 1.5rem !important; }
+
+  /* Make modal dialogs full-width on small screens */
+  .atd-modal { padding-left: 1rem !important; padding-right: 1rem !important; }
+
+  /* Profile / admin: lighter shadows on mobile (perf) */
+  .shadow-2xl { box-shadow: 0 4px 12px rgba(0,0,0,0.10) !important; }
+  .shadow-xl  { box-shadow: 0 3px 8px rgba(0,0,0,0.08) !important; }
+
+  /* Driver.js popovers: scale down on mobile */
+  .atd-popover.driver-popover {
+    max-width: calc(100vw - 32px) !important;
+    padding: 14px 16px 12px !important;
+  }
+  .atd-popover .driver-popover-title { font-size: 14px !important; }
+  .atd-popover .driver-popover-description { font-size: 12.5px !important; }
+}
+
+/* ─── Even smaller screens (≤ 380px) ─────────────────────────────────────── */
+@media (max-width: 380px) {
+  html, body { font-size: 14.5px; }
+  .hero-headline { font-size: clamp(1.9rem, 9vw, 2.6rem) !important; }
+  /* Tighten admin sidebar slightly on tiny screens */
+  aside { width: 14rem !important; }
+}
+
+/* ─── Touch device (any size): hide system cursor reveal layer ──────────── */
+@media (pointer: coarse) {
+  /* Hide the cursor-reveal layer of the GridBackground (it's invisible anyway,
+     but removing it saves a paint layer) */
+  body * [data-grid-reveal] { display: none !important; }
 }
 
 /* ─── Admin sidebar mobile ───────────────────────────────────────────────── */
@@ -608,4 +697,13 @@ html.theme-transitioning *::after {
     transform: translateX(0);
     transition: transform 0.3s ease;
   }
+}
+
+/* ─── Smooth tap feedback for touch devices ─────────────────────────────── */
+@media (hover: none) {
+  /* Disable hover styles that linger after tap on touch */
+  *:hover { transition-duration: 150ms !important; }
+  /* No "cursor: none" on touch (was inside the pointer: fine media query, but
+     adding belt-and-suspenders here) */
+  * { cursor: auto !important; }
 }

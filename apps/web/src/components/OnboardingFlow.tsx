@@ -93,11 +93,11 @@ export function OnboardingFlow({ user, onComplete }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-ink/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-2xl bg-cream-50 dark:bg-[#13161D] border border-ink/10 dark:border-white/10 shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-ink/60 backdrop-blur-sm p-3 sm:p-4">
+      <div className="w-full max-w-md rounded-2xl bg-cream-50 dark:bg-[#13161D] border border-ink/10 dark:border-white/10 shadow-2xl overflow-hidden max-h-[92vh] overflow-y-auto">
 
         {/* Header */}
-        <div className="px-8 pt-8 pb-4">
+        <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-3 sm:pb-4">
           {/* Step progress dots — hide on every done-* terminal */}
           {!step.startsWith('done-') && (
             <div className="flex items-center gap-1.5 mb-5">
@@ -113,8 +113,8 @@ export function OnboardingFlow({ user, onComplete }: Props) {
               ))}
             </div>
           )}
-          <div className="font-display text-[2rem] leading-none mb-1">Welcome to Attendly</div>
-          <div className="text-[13px] text-ink-mute">
+          <div className="font-display text-[1.6rem] sm:text-[2rem] leading-none mb-1">Welcome to Attendly</div>
+          <div className="text-[12.5px] sm:text-[13px] text-ink-mute">
             {step === 'choose' && "Let's get you set up. Who are you?"}
             {step === 'institution' && 'Tell us about your institution.'}
             {step === 'student' && 'Enter your institution code.'}
@@ -124,34 +124,34 @@ export function OnboardingFlow({ user, onComplete }: Props) {
           </div>
         </div>
 
-        <div className="px-8 pb-8 pt-2 space-y-4">
+        <div className="px-5 sm:px-8 pb-6 sm:pb-8 pt-2 space-y-4">
 
           {/* Step: choose — 4 roles per Phase 4 spec */}
           {step === 'choose' && (
-            <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-2">
               <button onClick={() => { setStep('student'); setJoiningRole('student'); }}
-                className="group rounded-xl border-2 border-ink/10 hover:border-accent p-5 text-left transition-all hover:bg-accent/5">
-                <div className="text-2xl mb-2">🎓</div>
-                <div className="font-medium text-[14px]">I'm a student</div>
-                <div className="text-[11.5px] text-ink-mute mt-1">Join my institution with a code</div>
+                className="group rounded-xl border-2 border-ink/10 hover:border-accent p-3.5 sm:p-5 text-left transition-all hover:bg-accent/5 active:scale-[0.98]">
+                <div className="text-xl sm:text-2xl mb-1.5 sm:mb-2">🎓</div>
+                <div className="font-medium text-[13px] sm:text-[14px]">I&apos;m a student</div>
+                <div className="text-[11px] sm:text-[11.5px] text-ink-mute mt-1">Join with a code</div>
               </button>
               <button onClick={() => setStep('institution')}
-                className="group rounded-xl border-2 border-ink/10 hover:border-accent p-5 text-left transition-all hover:bg-accent/5">
-                <div className="text-2xl mb-2">🏫</div>
-                <div className="font-medium text-[14px]">I run an institution</div>
-                <div className="text-[11.5px] text-ink-mute mt-1">School, college, or organisation</div>
+                className="group rounded-xl border-2 border-ink/10 hover:border-accent p-3.5 sm:p-5 text-left transition-all hover:bg-accent/5 active:scale-[0.98]">
+                <div className="text-xl sm:text-2xl mb-1.5 sm:mb-2">🏫</div>
+                <div className="font-medium text-[13px] sm:text-[14px]">Run an institution</div>
+                <div className="text-[11px] sm:text-[11.5px] text-ink-mute mt-1">School / college / org</div>
               </button>
               <button onClick={() => setStep('professor-solo')}
-                className="group rounded-xl border-2 border-ink/10 hover:border-accent p-5 text-left transition-all hover:bg-accent/5">
-                <div className="text-2xl mb-2">👤</div>
-                <div className="font-medium text-[14px]">Individual professor</div>
-                <div className="text-[11.5px] text-ink-mute mt-1">Tutor / independent teacher</div>
+                className="group rounded-xl border-2 border-ink/10 hover:border-accent p-3.5 sm:p-5 text-left transition-all hover:bg-accent/5 active:scale-[0.98]">
+                <div className="text-xl sm:text-2xl mb-1.5 sm:mb-2">👤</div>
+                <div className="font-medium text-[13px] sm:text-[14px]">Individual professor</div>
+                <div className="text-[11px] sm:text-[11.5px] text-ink-mute mt-1">Tutor / independent</div>
               </button>
               <button onClick={() => { setStep('sudo-prof'); setJoiningRole('teacher'); }}
-                className="group rounded-xl border-2 border-ink/10 hover:border-accent p-5 text-left transition-all hover:bg-accent/5">
-                <div className="text-2xl mb-2">📚</div>
-                <div className="font-medium text-[14px]">Sudo admin / Professor</div>
-                <div className="text-[11.5px] text-ink-mute mt-1">Join an institution as faculty</div>
+                className="group rounded-xl border-2 border-ink/10 hover:border-accent p-3.5 sm:p-5 text-left transition-all hover:bg-accent/5 active:scale-[0.98]">
+                <div className="text-xl sm:text-2xl mb-1.5 sm:mb-2">📚</div>
+                <div className="font-medium text-[13px] sm:text-[14px]">Sudo admin / Prof</div>
+                <div className="text-[11px] sm:text-[11.5px] text-ink-mute mt-1">Join as faculty</div>
               </button>
             </div>
           )}

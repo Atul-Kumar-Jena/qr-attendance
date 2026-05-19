@@ -284,34 +284,36 @@ export default function QrDisplay() {
   // ── Live QR screen ───────────────────────────────────────────────────────────
   const elapsedSec = Math.floor((Date.now() - sessionStartRef.current) / 1000);
   return (
-    <div className="min-h-screen bg-ink text-cream-50 flex flex-col p-6 lg:p-8 relative overflow-hidden">
+    <div className="min-h-screen bg-ink text-cream-50 flex flex-col p-4 sm:p-6 lg:p-8 relative overflow-hidden">
       {/* Header bar */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <div className="text-[11px] tracking-[0.22em] text-cream-50/40 uppercase">[ live class ]</div>
-          <div className="mt-1 font-display text-[1.6rem] leading-none">{subjectName}</div>
-          <div className="mt-0.5 text-[12px] text-cream-50/55">{className}</div>
+      <div className="flex items-start justify-between mb-4 sm:mb-6 gap-3">
+        <div className="min-w-0">
+          <div className="text-[10.5px] sm:text-[11px] tracking-[0.22em] text-cream-50/40 uppercase">[ live class ]</div>
+          <div className="mt-1 font-display text-[1.3rem] sm:text-[1.6rem] leading-none truncate">{subjectName}</div>
+          <div className="mt-0.5 text-[11.5px] sm:text-[12px] text-cream-50/55 truncate">{className}</div>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-2 text-[12px] text-cream-50/60">
+        <div className="flex flex-col items-end gap-1.5 sm:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 text-[11px] sm:text-[12px] text-cream-50/60">
             <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
             LIVE · {Math.floor(elapsedSec / 60)}m {elapsedSec % 60}s
           </div>
-          <div className="text-[11px] text-cream-50/50 font-mono">{liveCount} scanned</div>
+          <div className="text-[10.5px] sm:text-[11px] text-cream-50/50 font-mono">{liveCount} scanned</div>
         </div>
       </div>
 
       {/* Main grid: QR on left, security panel on right (collapses to stack on mobile) */}
-      <div className="flex-1 grid lg:grid-cols-[auto_1fr] gap-8 lg:gap-12 items-center justify-items-center">
+      <div className="flex-1 grid lg:grid-cols-[auto_1fr] gap-6 lg:gap-12 items-center justify-items-center">
         {/* QR */}
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center w-full">
           <div style={{ perspective: '1200px' }}>
-            <div ref={qrRef} className="bg-cream-50 p-5 lg:p-6 rounded-3xl shadow-[0_30px_80px_-20px_rgba(255,107,61,0.25)]"
+            <div ref={qrRef} className="bg-cream-50 p-4 sm:p-5 lg:p-6 rounded-3xl shadow-[0_30px_80px_-20px_rgba(255,107,61,0.25)]"
               style={{ transformStyle: 'preserve-3d' }}>
               {qrPayload ? (
-                <QRCodeSVG value={qrPayload} size={290} bgColor="#FAFAF7" fgColor="#0B1220" level="M" />
+                <div className="w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] flex items-center justify-center">
+                  <QRCodeSVG value={qrPayload} size={280} bgColor="#FAFAF7" fgColor="#0B1220" level="M" className="w-full h-full" />
+                </div>
               ) : (
-                <div className="w-[290px] h-[290px] bg-cream-100 rounded-2xl animate-pulse" />
+                <div className="w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] bg-cream-100 rounded-2xl animate-pulse" />
               )}
             </div>
           </div>
