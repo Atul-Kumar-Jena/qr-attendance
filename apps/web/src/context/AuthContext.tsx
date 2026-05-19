@@ -31,7 +31,7 @@ interface AuthState {
   setImpersonatedInstitution: (id: string | null) => void;
   loading: boolean;
   needsOnboarding: boolean;
-  markOnboardingDone: () => void;
+  markOnboardingDone: () => Promise<void>;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -40,7 +40,7 @@ const AuthContext = createContext<AuthState>({
   user: null, role: null, institutionId: null, realInstitutionId: null,
   impersonatedInstitutionId: null, setImpersonatedInstitution: () => {},
   loading: false,
-  needsOnboarding: false, markOnboardingDone: () => {},
+  needsOnboarding: false, markOnboardingDone: async () => {},
   signIn: async () => {}, signOut: async () => {},
 });
 
@@ -87,7 +87,7 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
       unsub = onAuthStateChanged(auth!, async (u: User | null) => {
       setUser(u);
       if (u) {
-        let resolvedRole: Role = 'student';
+        let resolvedRole: Role | null = null;  // null = signed in but no role yet
         let resolvedInstId: string | null = null;
         let resolvedOnboarding = false;
 
@@ -103,18 +103,21 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
                 developer: 'developer', sudo_admin: 'institution', institution: 'institution',
                 admin: 'admin', enterprise: 'institution', teacher: 'teacher', student: 'student',
               };
-              resolvedRole = mapped[data?.role as string] ?? 'student';
+              // Only assign a role if the user has completed onboarding
+              const hasRole = data?.role && mapped[data.role as string];
+              resolvedRole = hasRole ? mapped[data.role as string] : null;
               resolvedInstId = data?.institutionId ?? null;
-              // Show onboarding if not done and user has no institution assigned
+              // Show onboarding if not explicitly marked done AND no institutionId assigned
               resolvedOnboarding = !data?.onboardingDone && !data?.institutionId;
             } else {
+              // Brand-new user: create stub WITHOUT a role — onboarding assigns it
               await setDoc(ref, {
                 uid: u.uid, email: u.email, displayName: u.displayName,
-                photoURL: u.photoURL, role: 'student', createdAt: serverTimestamp(),
+                photoURL: u.photoURL, role: null, createdAt: serverTimestamp(),
               });
               resolvedOnboarding = true;
             }
-          } catch { resolvedRole = 'student'; }
+          } catch { /* Firestore failed — keep role null, skip onboarding */ }
         }
         setRole(resolvedRole);
         setRealInstitutionId(resolvedInstId);
@@ -149,11 +152,25 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
 
   const signOut = async () => { await signOutUser(); onSignOut?.(); };
 
-  const markOnboardingDone = () => {
+  const markOnboardingDone = async () => {
     setNeedsOnboarding(false);
-    if (user && db) {
-      updateDoc(doc(db, 'users', user.uid), { onboardingDone: true }).catch(() => {});
-    }
+    if (!user || !db) return;
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { onboardingDone: true });
+      // Re-fetch role so it reflects the role assigned during onboarding
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (snap.exists()) {
+        const data = snap.data();
+        const mapped: Record<string, Role> = {
+          developer: 'developer', sudo_admin: 'institution', institution: 'institution',
+          admin: 'admin', enterprise: 'institution', teacher: 'teacher', student: 'student',
+        };
+        if (data?.role && mapped[data.role as string]) {
+          setRole(mapped[data.role as string]);
+        }
+        setRealInstitutionId(data?.institutionId ?? null);
+      }
+    } catch { /* silent */ }
   };
 
   return (
