@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth, type Role } from '@/context/AuthContext';
-import type { FSInstitution } from '@/lib/firestore-db';
+import { onInstitution, type FSInstitution } from '@/lib/firestore-db';
 
 const ROLE_BADGE: Record<Role, { label: string; color: string }> = {
   developer:   { label: 'Developer',   color: 'bg-red-500/15 text-red-400 border border-red-500/25' },
@@ -38,7 +38,6 @@ export function UserMenu() {
   // Fetch institution info — gives users their institution name + code as a tag
   useEffect(() => {
     if (!institutionId) { setInst(null); return; }
-    const { onInstitution } = require('@/lib/firestore-db');
     return onInstitution(institutionId, setInst);
   }, [institutionId]);
 

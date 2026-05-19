@@ -8,6 +8,15 @@ import { useSiteConfig, type SiteConfig, type PricingMode } from '@/context/Site
 import { AuthModal } from '@/components/AuthModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SkeletonTable } from '@/components/Skeleton';
+import {
+  addRemark, createClass, createInstitution, createPendingUser, createStudent,
+  deleteClass, endSession, getOwnedInstitution, joinClassByCode, joinInstitutionByCode,
+  logAudit, onAllInstitutions, onAuditLogs, onClasses, onInstitution, onRemarks,
+  onSessions, onStudents, onStudentAttendance, onStudentClasses,
+  onTeacherPerm, onUsers, patchClass, patchStudent, patchUser, saveInstitution,
+  saveTeacherPerm, terminateInstitution,
+  type FSAttendanceRecord,
+} from '@/lib/firestore-db';
 
 const TOUR_STEPS = [
   { element: '#tour-overview',     popover: { title: 'Overview',        description: 'Your dashboard at a glance — sessions, students, attendance stats.' } },
@@ -68,7 +77,8 @@ type Tab =
   | 'teacher-perms'
   | 'institution'
   | 'institutions'
-  | 'god-mode';
+  | 'god-mode'
+  | 'student-home';
 
 const ROLE_META: Record<Role, { label: string; dot: string; access: Tab[] }> = {
   developer: {
@@ -94,7 +104,7 @@ const ROLE_META: Record<Role, { label: string; dot: string; access: Tab[] }> = {
   student: {
     label: 'Student',
     dot: 'bg-gray-400',
-    access: [],
+    access: ['student-home'],
   },
 };
 
@@ -110,6 +120,7 @@ const TAB_LABELS: Record<Tab, string> = {
   'institution':   'Institution',
   'institutions':  '🌐 All Institutions',
   'god-mode':      '⚡ God Mode',
+  'student-home':  'My Dashboard',
 };
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
@@ -119,7 +130,6 @@ function useLiveSessionCount() {
   const [count, setCount] = useState(0);
   useEffect(() => {
     if (!institutionId) return;
-    const { onSessions } = require('@/lib/firestore-db');
     return onSessions(institutionId, (list: import('@/lib/firestore-db').FSSession[]) => {
       setCount(list.filter((s) => s.status === 'OPEN').length);
     });
@@ -304,6 +314,7 @@ export default function AdminHome() {
               {currentTab === 'institution'   && <InstitutionPanel />}
               {currentTab === 'institutions'  && <InstitutionsPanel />}
               {currentTab === 'god-mode'      && <GodModePanel />}
+              {currentTab === 'student-home'  && <StudentHomePanel />}
             </ErrorBoundary>
           </motion.div>
         </AnimatePresence>
@@ -319,7 +330,6 @@ function ImpersonationBanner() {
   const [name, setName] = useState<string>('');
   useEffect(() => {
     if (!impersonatedInstitutionId) { setName(''); return; }
-    const { onInstitution } = require('@/lib/firestore-db');
     return onInstitution(impersonatedInstitutionId, (i: import('@/lib/firestore-db').FSInstitution | null) => {
       setName(i?.name ?? impersonatedInstitutionId);
     });
@@ -520,7 +530,6 @@ function OverviewPanel({ role }: { role: Role }) {
 
   useEffect(() => {
     if (!institutionId) return;
-    const { onStudents, onUsers, onSessions } = require('@/lib/firestore-db');
     const u1 = onStudents(institutionId, setStudents);
     const u2 = onUsers(institutionId, setUsers);
     const u3 = onSessions(institutionId, setSessions);
@@ -529,7 +538,6 @@ function OverviewPanel({ role }: { role: Role }) {
 
   useEffect(() => {
     if (!roleAtLeast(role, 'developer')) return;
-    const { onAllInstitutions, onUsers } = require('@/lib/firestore-db');
     const u1 = onAllInstitutions(setAllInstitutions);
     // Load all users globally for developer stats (no institutionId filter)
     const u2 = onUsers(null, (all: import('@/lib/firestore-db').FSUser[]) => {
@@ -596,7 +604,6 @@ function SessionsPanel() {
 
   useEffect(() => {
     if (!institutionId) { setLoading(false); return; }
-    const { onSessions } = require('@/lib/firestore-db');
     const unsub = onSessions(institutionId, (list: import('@/lib/firestore-db').FSSession[]) => {
       setSessions(list);
       setLoading(false);
@@ -606,7 +613,6 @@ function SessionsPanel() {
 
   const endSess = async (id: string, s: import('@/lib/firestore-db').FSSession) => {
     setEnding(id);
-    const { endSession, logAudit } = require('@/lib/firestore-db');
     await endSession(id);
     await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'SESSION_ENDED', targetId: id, details: `${s.subjectName} · ${s.className}` });
     setEnding(null);
@@ -723,14 +729,12 @@ function StudentsPanel({ role }: { role: Role }) {
 
   useEffect(() => {
     if (!institutionId) return;
-    const { onStudents } = require('@/lib/firestore-db');
     const unsub = onStudents(institutionId, setStudents);
     return () => unsub();
   }, [institutionId]);
 
   useEffect(() => {
     if (!selected) { setRemarks([]); return; }
-    const { onRemarks } = require('@/lib/firestore-db');
     const unsub = onRemarks(selected.id, canAdmin, setRemarks);
     return () => unsub();
   }, [selected?.id, canAdmin]);
@@ -744,7 +748,6 @@ function StudentsPanel({ role }: { role: Role }) {
     if (!remarkText.trim() || !selected || !me || !institutionId) return;
     setRemarkSaving(true);
     try {
-      const { addRemark } = require('@/lib/firestore-db');
       await addRemark({
         teacherId: me.uid, teacherName: me.displayName ?? me.email ?? 'Unknown',
         studentId: selected.id, content: remarkText, isPrivate,
@@ -761,7 +764,6 @@ function StudentsPanel({ role }: { role: Role }) {
   const addStudent = async () => {
     if (!newStudent.fullName || !newStudent.rollNo || !institutionId) return;
     try {
-      const { createStudent } = require('@/lib/firestore-db');
       await createStudent({ ...newStudent, suspended: false, institutionId });
       setNewStudent({ rollNo: '', fullName: '', email: '', klassName: '' });
       setShowAddStudent(false);
@@ -780,7 +782,6 @@ function StudentsPanel({ role }: { role: Role }) {
     if (!selected || !editForm.fullName || !editForm.rollNo) return;
     setEditSaving(true);
     try {
-      const { patchStudent } = require('@/lib/firestore-db');
       await patchStudent(selected.id, { rollNo: editForm.rollNo, fullName: editForm.fullName, email: editForm.email, klassName: editForm.klassName });
       setSelected((s) => s ? { ...s, ...editForm } : null);
       setEditingStudent(false);
@@ -790,6 +791,20 @@ function StudentsPanel({ role }: { role: Role }) {
       setEditSaving(false);
     }
   };
+
+  if (!institutionId) {
+    return (
+      <Card className="p-10 text-center space-y-3">
+        <div className="text-[2rem]">👥</div>
+        <div className="text-[15px] font-medium text-ink dark:text-white">No institution selected</div>
+        <p className="text-[13px] text-ink-mute max-w-xs mx-auto">
+          {role === 'developer'
+            ? 'Go to "🌐 All Institutions" and click "Drill in" on an institution to manage its students.'
+            : 'You are not linked to an institution yet.'}
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -885,7 +900,6 @@ function StudentsPanel({ role }: { role: Role }) {
                           ✎ Edit
                         </button>
                         <button onClick={async () => {
-                          const { patchStudent, logAudit } = require('@/lib/firestore-db');
                           await patchStudent(selected.id, { suspended: !selected.suspended });
                           await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: selected.suspended ? 'STUDENT_UNSUSPENDED' : 'STUDENT_SUSPENDED', targetId: selected.id, targetName: selected.fullName });
                           setSelected((s) => s ? { ...s, suspended: !s.suspended } : null);
@@ -951,7 +965,7 @@ function StudentsPanel({ role }: { role: Role }) {
 // ─── Classes ─────────────────────────────────────────────────────────────────
 
 function ClassesPanel() {
-  const { institutionId, user: me } = useAuth();
+  const { institutionId, role, user: me } = useAuth();
   const [classes, setClasses] = useState<import('@/lib/firestore-db').FSClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -960,10 +974,10 @@ function ClassesPanel() {
   const [editForm, setEditForm] = useState({ name: '', section: '', description: '' });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!institutionId) { setLoading(false); return; }
-    const { onClasses } = require('@/lib/firestore-db');
     const unsub = onClasses(institutionId, (list: import('@/lib/firestore-db').FSClass[]) => {
       setClasses(list);
       setLoading(false);
@@ -975,7 +989,6 @@ function ClassesPanel() {
     if (!form.name.trim() || !institutionId) return;
     setSaving(true);
     try {
-      const { createClass, logAudit } = require('@/lib/firestore-db');
       await createClass({ institutionId, name: form.name.trim(), section: form.section.trim() || undefined, description: form.description.trim() || undefined });
       await logAudit({ institutionId, actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'CLASS_CREATED', details: form.name.trim() });
       setForm({ name: '', section: '', description: '' });
@@ -995,7 +1008,6 @@ function ClassesPanel() {
   const saveEdit = async (id: string) => {
     setSaving(true);
     try {
-      const { patchClass } = require('@/lib/firestore-db');
       await patchClass(id, { name: editForm.name.trim(), section: editForm.section.trim() || undefined, description: editForm.description.trim() || undefined });
       setEditingId(null);
     } catch (e: unknown) {
@@ -1008,11 +1020,29 @@ function ClassesPanel() {
   const remove = async (id: string, name: string) => {
     if (!confirm(`Delete class "${name}"? This cannot be undone.`)) return;
     setDeleting(id);
-    const { deleteClass, logAudit } = require('@/lib/firestore-db');
     await deleteClass(id);
     await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'CLASS_DELETED', details: name });
     setDeleting(null);
   };
+
+  const copyJoinCode = async (code: string) => {
+    try { await navigator.clipboard.writeText(code); setCopiedCode(code); setTimeout(() => setCopiedCode(null), 1500); } catch {}
+  };
+
+  // Hierarchy guard: developers must drill-in to an institution first
+  if (!institutionId) {
+    return (
+      <Card className="p-10 text-center space-y-3">
+        <div className="text-[2rem]">🏫</div>
+        <div className="text-[15px] font-medium text-ink dark:text-white">No institution selected</div>
+        <p className="text-[13px] text-ink-mute max-w-xs mx-auto">
+          {role === 'developer'
+            ? 'Go to "🌐 All Institutions" and click "Drill in" on an institution to manage its classes.'
+            : 'You are not linked to an institution yet. Ask your institution admin for a join code.'}
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -1059,7 +1089,8 @@ function ClassesPanel() {
               <tr className="border-b border-ink/8 text-[10.5px] tracking-[0.15em] text-ink-mute uppercase">
                 <th className="text-left px-5 py-3">Class name</th>
                 <th className="text-left px-5 py-3">Section</th>
-                <th className="text-left px-5 py-3">Description</th>
+                <th className="text-left px-5 py-3">Join code</th>
+                <th className="text-left px-5 py-3">Students</th>
                 <th className="text-left px-5 py-3">Actions</th>
               </tr>
             </thead>
@@ -1076,10 +1107,8 @@ function ClassesPanel() {
                         <input value={editForm.section} onChange={(e) => setEditForm((f) => ({ ...f, section: e.target.value }))}
                           className="w-full text-[13px] text-ink bg-cream-100 border border-ink/10 rounded px-2 py-1 focus:outline-none" />
                       </td>
-                      <td className="px-5 py-2">
-                        <input value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
-                          className="w-full text-[13px] text-ink bg-cream-100 border border-ink/10 rounded px-2 py-1 focus:outline-none" />
-                      </td>
+                      <td className="px-5 py-2 text-ink-mute text-[11px] font-mono">{c.joinCode ?? '—'}</td>
+                      <td className="px-5 py-2 text-ink-mute">{c.studentCount ?? 0}</td>
                       <td className="px-5 py-2">
                         <div className="flex items-center gap-2">
                           <button onClick={() => saveEdit(c.id)} disabled={saving || !editForm.name.trim()}
@@ -1095,9 +1124,20 @@ function ClassesPanel() {
                     </>
                   ) : (
                     <>
-                      <td className="px-5 py-3 font-medium">{c.name}</td>
+                      <td className="px-5 py-3 font-medium">{c.name}{c.section ? <span className="text-ink-mute font-normal ml-1.5">· {c.section}</span> : null}</td>
                       <td className="px-5 py-3 text-ink-mute">{c.section ?? '—'}</td>
-                      <td className="px-5 py-3 text-ink-mute text-[12px]">{c.description ?? '—'}</td>
+                      <td className="px-5 py-3">
+                        {c.joinCode ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-bold tracking-widest text-accent text-[13px]">{c.joinCode}</span>
+                            <button onClick={() => copyJoinCode(c.joinCode!)}
+                              className="text-ink-mute hover:text-accent transition-colors text-[10px]">
+                              {copiedCode === c.joinCode ? '✓' : '⧉'}
+                            </button>
+                          </div>
+                        ) : <span className="text-ink-mute">—</span>}
+                      </td>
+                      <td className="px-5 py-3 text-ink-mute">{c.studentCount ?? 0}</td>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2">
                           <button onClick={() => startEdit(c)}
@@ -1133,7 +1173,6 @@ function ReportsPanel() {
 
   useEffect(() => {
     if (!institutionId) { setLoading(false); return; }
-    const { onSessions, onStudents } = require('@/lib/firestore-db');
     const u1 = onSessions(institutionId, (list: import('@/lib/firestore-db').FSSession[]) => { setSessions(list); setLoading(false); });
     const u2 = onStudents(institutionId, setStudents);
     return () => { u1(); u2(); };
@@ -1296,7 +1335,6 @@ function AuditPanel({ role }: { role: Role }) {
 
   useEffect(() => {
     if (!institutionId) { setLoading(false); return; }
-    const { onAuditLogs } = require('@/lib/firestore-db');
     const unsub = onAuditLogs(institutionId, (list: import('@/lib/firestore-db').FSAuditLog[]) => {
       setLogs(list);
       setLoading(false);
@@ -1392,7 +1430,6 @@ function ManageUsersPanel({ role }: { role: Role }) {
   };
 
   useEffect(() => {
-    const { onUsers } = require('@/lib/firestore-db');
     const unsub = onUsers(role === 'developer' ? null : institutionId, (list: import('@/lib/firestore-db').FSUser[]) => {
       setUsers(list);
       setLoading(false);
@@ -1401,21 +1438,18 @@ function ManageUsersPanel({ role }: { role: Role }) {
   }, [institutionId, role]);
 
   const changeRole = async (uid: string, newRole: string, targetName?: string) => {
-    const { patchUser, logAudit } = require('@/lib/firestore-db');
     await patchUser(uid, { role: newRole.toLowerCase() as import('@/lib/firestore-db').UserRole });
     await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'ROLE_CHANGED', targetId: uid, targetName, details: `→ ${newRole}` });
     setEditingId(null);
   };
 
   const toggleSuspend = async (u: import('@/lib/firestore-db').FSUser) => {
-    const { patchUser, logAudit } = require('@/lib/firestore-db');
     await patchUser(u.uid, { suspended: !u.suspended });
     await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: u.suspended ? 'USER_UNSUSPENDED' : 'USER_SUSPENDED', targetId: u.uid, targetName: u.displayName ?? u.email ?? '' });
   };
 
   const createUser = async () => {
     if (!form.email || !form.fullName) return;
-    const { createPendingUser } = require('@/lib/firestore-db');
     await createPendingUser({
       email: form.email, displayName: form.fullName,
       role: form.role.toLowerCase() as import('@/lib/firestore-db').UserRole,
@@ -1571,7 +1605,6 @@ function TeacherPermsPanel() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const { onUsers } = require('@/lib/firestore-db');
     const unsub = onUsers(institutionId, (users: import('@/lib/firestore-db').FSUser[]) => {
       setTeachers(users.filter((u) => u.role === 'teacher'));
     });
@@ -1580,7 +1613,6 @@ function TeacherPermsPanel() {
 
   useEffect(() => {
     if (!selectedTeacher || !institutionId) return;
-    const { onTeacherPerm } = require('@/lib/firestore-db');
     const unsub = onTeacherPerm(selectedTeacher, institutionId, (p: import('@/lib/firestore-db').FSTeacherPerm) => {
       setPerms({
         canCreateSessions: p.canCreateSessions, canEndSessions: p.canEndSessions,
@@ -1595,7 +1627,6 @@ function TeacherPermsPanel() {
   const savePerms = async () => {
     if (!selectedTeacher || !institutionId) return;
     setSaving(true);
-    const { saveTeacherPerm, logAudit } = require('@/lib/firestore-db');
     await saveTeacherPerm(selectedTeacher, { ...perms, institutionId });
     const enabledPerms = Object.entries(perms).filter(([, v]) => v).map(([k]) => k).join(', ');
     await logAudit({ institutionId, actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'PERMS_UPDATED', targetId: selectedTeacher, details: enabledPerms });
@@ -1656,7 +1687,6 @@ function InstitutionPanel() {
 
   useEffect(() => {
     if (!institutionId) return;
-    const { onInstitution } = require('@/lib/firestore-db');
     return onInstitution(institutionId, (i: import('@/lib/firestore-db').FSInstitution | null) => {
       setInst(i);
       if (i && !name) setName(i.name);
@@ -1673,7 +1703,6 @@ function InstitutionPanel() {
   const saveSettings = async () => {
     if (!institutionId) return;
     setSaving(true);
-    const { saveInstitution } = require('@/lib/firestore-db');
     await saveInstitution(institutionId, { name });
     setSaving(false);
     setSaved(true);
@@ -1733,10 +1762,12 @@ function InstitutionsPanel() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [terminating, setTerminating] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newInstForm, setNewInstForm] = useState({ name: '', type: 'University' });
   const isDev = role === 'developer';
 
   useEffect(() => {
-    const { onAllInstitutions } = require('@/lib/firestore-db');
     return onAllInstitutions((list: import('@/lib/firestore-db').FSInstitution[]) => {
       setInstitutions(list);
       setLoading(false);
@@ -1759,7 +1790,6 @@ function InstitutionsPanel() {
     if (!user) return;
     setTerminating(id);
     try {
-      const { terminateInstitution } = require('@/lib/firestore-db');
       await terminateInstitution(id, user.uid, user.displayName ?? user.email ?? '');
     } catch (e: unknown) {
       alert('Terminate failed: ' + (e instanceof Error ? e.message : String(e)));
@@ -1768,16 +1798,70 @@ function InstitutionsPanel() {
     setConfirmId(null);
   };
 
+  const createInst = async () => {
+    if (!newInstForm.name.trim() || !user) return;
+    setCreating(true);
+    try {
+      const id = await createInstitution({ name: newInstForm.name.trim(), type: newInstForm.type }, user.uid);
+      await logAudit({ institutionId: id, actorId: user.uid, actorName: user.displayName ?? user.email ?? '', action: 'INSTITUTION_CREATED', details: newInstForm.name.trim() });
+      setNewInstForm({ name: '', type: 'University' });
+      setShowCreate(false);
+    } catch (e: unknown) {
+      alert('Failed to create institution: ' + (e instanceof Error ? e.message : String(e)));
+    }
+    setCreating(false);
+  };
+
   return (
     <div className="space-y-6 max-w-5xl">
       <div className="flex items-center justify-between">
         <p className="text-[13px] text-ink-mute">
           All institutions on the platform.{isDev ? ' Developers can terminate any institution; audit row is written automatically.' : ' Click Contact to email the owner.'}
         </p>
-        <span className="text-[12px] text-ink-mute bg-ink/6 rounded-full px-3 py-1">
-          {institutions.length} total
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[12px] text-ink-mute bg-ink/6 rounded-full px-3 py-1">
+            {institutions.length} total
+          </span>
+          {isDev && (
+            <button onClick={() => setShowCreate((x) => !x)}
+              className="rounded-xl bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all">
+              + Create institution
+            </button>
+          )}
+        </div>
       </div>
+
+      {isDev && showCreate && (
+        <Card className="p-5 space-y-3 border-accent/30">
+          <SectionTitle>New institution</SectionTitle>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Institution name *" value={newInstForm.name} onChange={(v) => setNewInstForm((f) => ({ ...f, name: v }))} placeholder="e.g. MIT" />
+            <div>
+              <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Type</label>
+              <select value={newInstForm.type} onChange={(e) => setNewInstForm((f) => ({ ...f, type: e.target.value }))}
+                className="w-full text-[13px] text-ink bg-cream-100 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50 transition-colors">
+                <option>University</option>
+                <option>College</option>
+                <option>School</option>
+                <option>Coaching</option>
+                <option>Corporate</option>
+                <option>Other</option>
+              </select>
+            </div>
+          </div>
+          <p className="text-[11px] text-ink-mute">A 6-character join code will be auto-generated for this institution.</p>
+          <div className="flex gap-3">
+            <button onClick={createInst} disabled={creating || !newInstForm.name.trim()}
+              className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all disabled:opacity-50">
+              {creating ? 'Creating…' : 'Create institution'}
+            </button>
+            <button onClick={() => setShowCreate(false)}
+              className="rounded-lg border border-ink/10 px-4 py-2 text-[12.5px] text-ink-mute hover:text-ink transition-all">
+              Cancel
+            </button>
+          </div>
+        </Card>
+      )}
 
       {isDev && (
         <div className="rounded-xl bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-700/30 p-3 text-[12px] text-amber-800 dark:text-amber-300">
@@ -1881,6 +1965,187 @@ function InstitutionsPanel() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Student Home ─────────────────────────────────────────────────────────────
+
+function StudentHomePanel() {
+  const { user, institutionId, role } = useAuth();
+  const [inst, setInst] = useState<import('@/lib/firestore-db').FSInstitution | null>(null);
+  const [myClasses, setMyClasses] = useState<import('@/lib/firestore-db').FSClass[]>([]);
+  const [attendance, setAttendance] = useState<FSAttendanceRecord[]>([]);
+  const [joinInstCode, setJoinInstCode] = useState('');
+  const [joinClassCode, setJoinClassCode] = useState('');
+  const [joiningInst, setJoiningInst] = useState(false);
+  const [joiningClass, setJoiningClass] = useState(false);
+  const [joinInstMsg, setJoinInstMsg] = useState('');
+  const [joinClassMsg, setJoinClassMsg] = useState('');
+
+  useEffect(() => {
+    if (!institutionId) { setInst(null); return; }
+    return onInstitution(institutionId, setInst);
+  }, [institutionId]);
+
+  useEffect(() => {
+    if (!user) return;
+    return onStudentClasses(user.uid, setMyClasses);
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user || !institutionId) return;
+    return onStudentAttendance(user.uid, institutionId, setAttendance);
+  }, [user?.uid, institutionId]);
+
+  const joinInstitution = async () => {
+    if (!joinInstCode.trim() || !user) return;
+    setJoiningInst(true); setJoinInstMsg('');
+    try {
+      const result = await joinInstitutionByCode(user.uid, joinInstCode.trim());
+      if (result) {
+        setJoinInstMsg(`✓ Joined ${result.name}! Refresh to see your dashboard.`);
+      } else {
+        setJoinInstMsg('Institution not found. Check the code and try again.');
+      }
+    } catch (e: unknown) {
+      setJoinInstMsg('Error: ' + (e instanceof Error ? e.message : String(e)));
+    }
+    setJoiningInst(false);
+  };
+
+  const joinClass = async () => {
+    if (!joinClassCode.trim() || !user || !institutionId) return;
+    setJoiningClass(true); setJoinClassMsg('');
+    try {
+      const result = await joinClassByCode(user.uid, joinClassCode.trim(), institutionId);
+      if (result) {
+        setJoinClassMsg(`✓ Joined class: ${result.name}${result.section ? ' · ' + result.section : ''}!`);
+        setJoinClassCode('');
+      } else {
+        setJoinClassMsg('Class not found. Check the code and try again.');
+      }
+    } catch (e: unknown) {
+      setJoinClassMsg('Error: ' + (e instanceof Error ? e.message : String(e)));
+    }
+    setJoiningClass(false);
+  };
+
+  const fmtTime = (ts: unknown) => {
+    if (!ts) return '—';
+    try { return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date((ts as any).seconds * 1000)); } catch { return '—'; }
+  };
+
+  if (!institutionId) {
+    return (
+      <div className="space-y-6 max-w-lg">
+        <Card className="p-6 space-y-4 border-accent/30">
+          <div className="text-[2rem]">👋</div>
+          <div className="text-[15px] font-medium text-ink dark:text-white">Welcome! Join your institution</div>
+          <p className="text-[13px] text-ink-mute">Enter the 6-character code your institution admin shared with you.</p>
+          <div className="flex gap-2">
+            <input value={joinInstCode} onChange={(e) => setJoinInstCode(e.target.value.toUpperCase())}
+              placeholder="e.g. ABC123"
+              className="flex-1 text-[14px] text-ink bg-cream-100 border border-ink/10 rounded-lg px-3 py-2.5 focus:outline-none focus:border-accent/50 font-mono tracking-widest" />
+            <button onClick={joinInstitution} disabled={joiningInst || !joinInstCode.trim()}
+              className="rounded-lg bg-accent text-cream-50 px-4 py-2.5 text-[13px] font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
+              {joiningInst ? 'Joining…' : 'Join'}
+            </button>
+          </div>
+          {joinInstMsg && (
+            <p className={`text-[12px] ${joinInstMsg.startsWith('✓') ? 'text-green-600' : 'text-red-500'}`}>{joinInstMsg}</p>
+          )}
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      {/* Institution info */}
+      {inst && (
+        <Card className="p-5 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center text-accent text-[18px]">🏫</div>
+          <div>
+            <div className="text-[14px] font-medium text-ink dark:text-white">{inst.name}</div>
+            <div className="text-[11px] text-ink-mute mt-0.5">
+              Code: <span className="font-mono font-bold text-accent">{inst.code}</span>
+              {inst.type && <span className="ml-2 text-ink-mute">· {inst.type}</span>}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Join a class */}
+      <Card className="p-5 space-y-3">
+        <SectionTitle>Join a class</SectionTitle>
+        <p className="text-[12.5px] text-ink-mute -mt-2">Ask your teacher for the class join code.</p>
+        <div className="flex gap-2">
+          <input value={joinClassCode} onChange={(e) => setJoinClassCode(e.target.value.toUpperCase())}
+            placeholder="Class code (e.g. XY7K3P)"
+            className="flex-1 text-[14px] text-ink bg-cream-100 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50 font-mono tracking-widest" />
+          <button onClick={joinClass} disabled={joiningClass || !joinClassCode.trim()}
+            className="rounded-lg bg-accent text-cream-50 px-4 py-2 text-[13px] font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
+            {joiningClass ? '…' : 'Join'}
+          </button>
+        </div>
+        {joinClassMsg && (
+          <p className={`text-[12px] ${joinClassMsg.startsWith('✓') ? 'text-green-600' : 'text-red-500'}`}>{joinClassMsg}</p>
+        )}
+      </Card>
+
+      {/* My classes */}
+      <div>
+        <SectionTitle>My classes ({myClasses.length})</SectionTitle>
+        {myClasses.length === 0 ? (
+          <Card className="p-6 text-center text-[13px] text-ink-mute">
+            No classes joined yet. Ask your teacher for a join code above.
+          </Card>
+        ) : (
+          <div className="grid gap-3">
+            {myClasses.map((c) => (
+              <Card key={c.id} className="p-4 flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[14px] font-medium text-ink dark:text-white">{c.name}{c.section ? <span className="text-ink-mute font-normal ml-1.5">· {c.section}</span> : null}</div>
+                  {c.description && <div className="text-[12px] text-ink-mute mt-0.5">{c.description}</div>}
+                </div>
+                <span className="text-[10.5px] px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium flex-shrink-0">Enrolled</span>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* My attendance */}
+      <div>
+        <SectionTitle>My attendance history ({attendance.length} records)</SectionTitle>
+        {attendance.length === 0 ? (
+          <Card className="p-6 text-center text-[13px] text-ink-mute">
+            No attendance records yet. Once you scan a QR in class, records appear here.
+          </Card>
+        ) : (
+          <Card className="overflow-hidden">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-ink/8 text-[10.5px] tracking-[0.15em] text-ink-mute uppercase">
+                  <th className="text-left px-5 py-3">Session</th>
+                  <th className="text-left px-5 py-3">Class</th>
+                  <th className="text-left px-5 py-3">Scanned at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {attendance.slice(0, 30).map((r) => (
+                  <tr key={r.id} className="border-b border-ink/6 last:border-0">
+                    <td className="px-5 py-3 font-mono text-[11px] text-ink-mute truncate max-w-[100px]">{r.sessionId.slice(0, 10)}…</td>
+                    <td className="px-5 py-3 text-ink-mute">{r.studentName ?? '—'}</td>
+                    <td className="px-5 py-3 text-ink-mute">{fmtTime(r.scannedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
@@ -2174,7 +2439,6 @@ function CreateUserForm() {
     if (!form.email || !form.fullName) return;
     setSaving(true);
     try {
-      const { createPendingUser } = require('@/lib/firestore-db');
       await createPendingUser({
         email: form.email, displayName: form.fullName,
         role: form.role.toLowerCase() as import('@/lib/firestore-db').UserRole,
@@ -2227,7 +2491,6 @@ function CreateInstitutionForm() {
     if (!name.trim()) return;
     setSaving(true);
     try {
-      const { createInstitution, getOwnedInstitution } = require('@/lib/firestore-db');
       if (user) {
         const existing = await getOwnedInstitution(user.uid);
         if (existing) {

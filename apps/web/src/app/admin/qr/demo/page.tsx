@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation';
 import gsap from 'gsap';
 import { useAuth } from '@/context/AuthContext';
 import { QRCodeSVG } from 'qrcode.react';
+import {
+  onClasses, onSession, createSession,
+  endSession as fsEndSession, logAudit,
+  type FSClass, type FSSession,
+} from '@/lib/firestore-db';
 
 type Stage = 'setup' | 'live' | 'ended';
 
@@ -62,7 +67,7 @@ export default function QrDisplay() {
   const [sessionId, setSessionId] = useState('');
   const [subjectName, setSubjectName] = useState('');
   const [className, setClassName] = useState('');
-  const [classes, setClasses] = useState<import('@/lib/firestore-db').FSClass[]>([]);
+  const [classes, setClasses] = useState<FSClass[]>([]);
   const [starting, setStarting] = useState(false);
   const [ending, setEnding] = useState(false);
   const [tick, setTick] = useState(0);
@@ -75,15 +80,13 @@ export default function QrDisplay() {
   // Load classes for the class picker
   useEffect(() => {
     if (!institutionId) return;
-    const { onClasses } = require('@/lib/firestore-db');
     return onClasses(institutionId, setClasses);
   }, [institutionId]);
 
   // Live attendance count subscription
   useEffect(() => {
     if (!sessionId || stage !== 'live') return;
-    const { onSession } = require('@/lib/firestore-db');
-    return onSession(sessionId, (s: import('@/lib/firestore-db').FSSession | null) => {
+    return onSession(sessionId, (s: FSSession | null) => {
       if (s) setLiveCount(s.attendanceCount);
     });
   }, [sessionId, stage]);
@@ -139,7 +142,6 @@ export default function QrDisplay() {
     if (!institutionId || !user) return;
     setStarting(true);
     try {
-      const { createSession, logAudit } = await import('@/lib/firestore-db');
       const id = await createSession({
         institutionId,
         teacherId: user.uid,
@@ -168,7 +170,6 @@ export default function QrDisplay() {
     if (!sessionId) { router.push('/admin'); return; }
     setEnding(true);
     try {
-      const { endSession: fsEndSession, logAudit } = await import('@/lib/firestore-db');
       await fsEndSession(sessionId);
       if (user && institutionId) {
         await logAudit({

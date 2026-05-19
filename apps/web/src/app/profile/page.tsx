@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth, type Role } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { db } from '@/lib/firebase';
+import { doc, getDoc, collection, onSnapshot } from 'firebase/firestore';
 
 const ROLE_BADGE: Record<Role, { label: string; color: string }> = {
   developer:   { label: 'Developer',   color: 'bg-red-500/15 text-red-400 border border-red-500/25' },
@@ -51,18 +52,17 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!user || !db) return;
-    const { doc, getDoc } = require('firebase/firestore');
-    getDoc(doc(db, 'users', user.uid)).then((snap: { exists: () => boolean; data: () => Record<string, unknown> }) => {
+    getDoc(doc(db, 'users', user.uid)).then((snap) => {
       if (!snap.exists()) return;
-      const data = snap.data();
+      const data = snap.data() as Record<string, unknown>;
       const createdAt = data.createdAt as { toDate?: () => Date } | undefined;
       if (createdAt?.toDate) {
         setMemberSince(new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(createdAt.toDate()));
       }
       if (data.institutionId) {
-        getDoc(doc(db, 'institutions', data.institutionId)).then((iSnap: { exists: () => boolean; data: () => Record<string, unknown> }) => {
+        getDoc(doc(db!, 'institutions', String(data.institutionId))).then((iSnap) => {
           if (iSnap.exists()) {
-            const id = iSnap.data();
+            const id = iSnap.data() as Record<string, unknown>;
             setInst({ name: String(id.name || ''), code: String(id.code || '') });
           }
         }).catch(() => {});
@@ -70,8 +70,7 @@ export default function ProfilePage() {
     }).catch(() => {});
 
     if (role === 'developer') {
-      const { collection, onSnapshot } = require('firebase/firestore');
-      const unsub = onSnapshot(collection(db, 'interests'), (snap: { size: number }) => {
+      const unsub = onSnapshot(collection(db, 'interests'), (snap) => {
         setInterestCount(snap.size);
       });
       return () => unsub();
