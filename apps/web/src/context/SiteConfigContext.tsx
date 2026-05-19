@@ -1,6 +1,9 @@
 'use client';
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { db } from '@/lib/firebase';
+import {
+  doc, onSnapshot, setDoc, serverTimestamp,
+} from 'firebase/firestore';
 
 export type PricingMode = 'LIMITED_OFFER' | 'PAID';
 
@@ -120,15 +123,10 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
     }
     let unsub: (() => void) | undefined;
     try {
-      const { doc, onSnapshot } = require('firebase/firestore');
-      if (!doc || typeof doc !== 'function') {
-        setLoading(false);
-        return;
-      }
       const ref = doc(db, 'config', 'site');
       unsub = onSnapshot(
         ref,
-        (snap: { exists: () => boolean; data: () => Record<string, unknown> }) => {
+        (snap) => {
           if (snap.exists()) {
             const next = { ...DEFAULT_CONFIG, ...snap.data() } as SiteConfig;
             setConfig(next);
@@ -136,7 +134,7 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
           }
           setLoading(false);
         },
-        (_err: unknown) => {
+        (_err) => {
           // Firestore read failed — use localStorage fallback silently
           setLoading(false);
         },
@@ -176,7 +174,6 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { doc, setDoc, serverTimestamp } = require('firebase/firestore');
       await setDoc(
         doc(db, 'config', 'site'),
         { ...next, updatedAt: serverTimestamp() },

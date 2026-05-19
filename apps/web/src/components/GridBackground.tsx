@@ -2,70 +2,142 @@
 
 import { useEffect, useRef } from 'react';
 
+const CELL = 72;
+const GLOW_R = 260;
+
 export function GridBackground() {
-  const glowRef   = useRef<HTMLDivElement>(null);
-  const glowBRef  = useRef<HTMLDivElement>(null); // secondary drifting glow
-  const glowCRef  = useRef<HTMLDivElement>(null); // tertiary breathing glow
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const glow  = glowRef.current;
-    const glowB = glowBRef.current;
-    const glowC = glowCRef.current;
-    if (!glow || !glowB || !glowC) return;
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(pointer: coarse)').matches) return;
 
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d', { alpha: true });
+    if (!ctx) return;
+
+    let w = 0, h = 0;
+    let mx = -9999, my = -9999;
     let raf = 0;
-    let mx = window.innerWidth  * 0.5;
-    let my = window.innerHeight * 0.4;
-    let cx = mx, cy = my;
     let t = 0;
 
-    const onMove = (e: MouseEvent) => { mx = e.clientX; my = e.clientY; };
+    const isDark = () => document.documentElement.classList.contains('dark');
 
-    const tick = () => {
-      t += 0.004;
-      // Primary cursor glow — soft, multi-stop natural falloff
-      cx += (mx - cx) * 0.07;
-      cy += (my - cy) * 0.07;
-      glow.style.background =
-        `radial-gradient(620px circle at ${cx}px ${cy}px,`
-        + ` rgba(255,107,61,0.14) 0%,`
-        + ` rgba(255,107,61,0.10) 14%,`
-        + ` rgba(255,107,61,0.06) 30%,`
-        + ` rgba(255,107,61,0.025) 50%,`
-        + ` transparent 75%)`;
-
-      // Secondary ambient blue — slow drift, very soft
-      const bx = window.innerWidth  * (0.7 + 0.08 * Math.sin(t));
-      const by = window.innerHeight * (0.3 + 0.06 * Math.cos(t * 0.7));
-      glowB.style.background =
-        `radial-gradient(760px circle at ${bx}px ${by}px,`
-        + ` rgba(100,130,255,0.05) 0%,`
-        + ` rgba(100,130,255,0.025) 35%,`
-        + ` transparent 70%)`;
-
-      // Tertiary warm glow — breathes in opposite phase, opposite corner
-      const px = window.innerWidth  * (0.18 + 0.06 * Math.cos(t * 0.6));
-      const py = window.innerHeight * (0.78 + 0.05 * Math.sin(t * 0.9));
-      const breathe = 0.5 + 0.5 * Math.sin(t * 1.6);
-      glowC.style.background =
-        `radial-gradient(540px circle at ${px}px ${py}px,`
-        + ` rgba(255,180,140,${0.025 + 0.025 * breathe}) 0%,`
-        + ` rgba(255,180,140,${0.012 + 0.012 * breathe}) 35%,`
-        + ` transparent 70%)`;
-
-      raf = requestAnimationFrame(tick);
+    const resize = () => {
+      w = canvas.width  = window.innerWidth;
+      h = canvas.height = window.innerHeight;
     };
 
-    window.addEventListener('mousemove', onMove, { passive: true });
-    raf = requestAnimationFrame(tick);
+    const onMove  = (e: MouseEvent) => { mx = e.clientX; my = e.clientY; };
+    const onLeave = () => { mx = -9999; my = -9999; };
+
+    const glowRSq = GLOW_R * GLOW_R;
+
+    const draw = () => {
+      t += 0.007;
+      ctx.clearRect(0, 0, w, h);
+
+      const dark = isDark();
+      const [ir, ig, ib] = dark ? [240, 237, 230] : [11, 18, 32];
+      const lineA   = dark ? 0.028 : 0.036;
+      const dotBase = dark ? 0.20  : 0.13;
+      const cols = Math.ceil(w / CELL) + 1;
+      const rows = Math.ceil(h / CELL) + 1;
+
+      // Grid lines
+      ctx.beginPath();
+      ctx.strokeStyle = `rgba(${ir},${ig},${ib},${lineA})`;
+      ctx.lineWidth = 1;
+      for (let c = 0; c <= cols; c++) {
+        const x = c * CELL + 0.5; ctx.moveTo(x, 0); ctx.lineTo(x, h);
+      }
+      for (let r = 0; r <= rows; r++) {
+        const y = r * CELL + 0.5; ctx.moveTo(0, y); ctx.lineTo(w, y);
+      }
+      ctx.stroke();
+
+      const cursorActive = mx > -999;
+
+      // Ambient cursor gradient
+      if (cursorActive) {
+        const grad = ctx.createRadialGradient(mx, my, 0, mx, my, 460);
+        grad.addColorStop(0,   'rgba(255,107,61,0.10)');
+        grad.addColorStop(0.4, 'rgba(255,107,61,0.045)');
+        grad.addColorStop(1,   'rgba(255,107,61,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      // Glow halos (first pass — beneath dots)
+      if (cursorActive) {
+        for (let c = 0; c <= cols; c++) {
+          for (let r = 0; r <= rows; r++) {
+            const x = c * CELL, y = r * CELL;
+            const dSq = (x - mx) * (x - mx) + (y - my) * (y - my);
+            if (dSq > glowRSq) continue;
+            const prox = 1 - dSq / glowRSq;
+            ctx.beginPath();
+            ctx.arc(x, y, 3 + prox * 9, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,107,61,${prox * prox * 0.38})`;
+            ctx.fill();
+          }
+        }
+      }
+
+      // Intersection dots (second pass)
+      for (let c = 0; c <= cols; c++) {
+        for (let r = 0; r <= rows; r++) {
+          const x = c * CELL, y = r * CELL;
+
+          let prox = 0;
+          if (cursorActive) {
+            const dSq = (x - mx) * (x - mx) + (y - my) * (y - my);
+            prox = dSq < glowRSq ? 1 - dSq / glowRSq : 0;
+          }
+
+          // Subtle per-dot flicker — each dot breathes independently
+          const seed    = Math.sin(c * 6.11 + r * 11.31);
+          const flicker = 0.75 + 0.25 * Math.sin(t * (1.1 + seed * 1.8) + seed * 9.2);
+
+          const radius = 1.05 + prox * 1.9;
+
+          let fr: number, fg: number, fb: number, fa: number;
+          if (prox > 0.04) {
+            const b  = prox * 0.9;
+            fr = Math.round(ir + (255 - ir) * b);
+            fg = Math.round(ig + (107 - ig) * b);
+            fb = Math.round(ib + (61  - ib) * b);
+            fa = Math.min(1, (dotBase + prox * 0.72) * flicker);
+          } else {
+            fr = ir; fg = ig; fb = ib;
+            fa = dotBase * flicker;
+          }
+
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${fr},${fg},${fb},${fa})`;
+          ctx.fill();
+        }
+      }
+
+      raf = requestAnimationFrame(draw);
+    };
+
+    resize();
+    window.addEventListener('resize',    resize,  { passive: true });
+    window.addEventListener('mousemove', onMove,  { passive: true });
+    document.addEventListener('mouseleave', onLeave);
+    raf = requestAnimationFrame(draw);
+
     return () => {
-      window.removeEventListener('mousemove', onMove);
       cancelAnimationFrame(raf);
+      window.removeEventListener('resize',    resize);
+      window.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseleave', onLeave);
     };
   }, []);
 
-  // Grid: 72px squares, with a tiny dot at every intersection.
-  // Light mode: ink-tinted lines + dot.  Dark mode: cream-tinted variant.
   const lightGrid: React.CSSProperties = {
     backgroundImage: `
       radial-gradient(circle at 1px 1px, rgba(11,18,32,0.13) 1.1px, transparent 1.6px),
@@ -73,7 +145,6 @@ export function GridBackground() {
       linear-gradient(90deg, rgba(11,18,32,0.035) 1px, transparent 1px)
     `,
     backgroundSize: '72px 72px, 72px 72px, 72px 72px',
-    backgroundPosition: '0 0, 0 0, 0 0',
   };
   const darkGrid: React.CSSProperties = {
     backgroundImage: `
@@ -82,19 +153,17 @@ export function GridBackground() {
       linear-gradient(90deg, rgba(240,237,230,0.028) 1px, transparent 1px)
     `,
     backgroundSize: '72px 72px, 72px 72px, 72px 72px',
-    backgroundPosition: '0 0, 0 0, 0 0',
   };
 
   return (
     <div className="fixed inset-0 pointer-events-none z-0" aria-hidden>
-      {/* Grid lines + intersection dots — light mode */}
-      <div className="absolute inset-0 dark:hidden" style={lightGrid} />
-      {/* Dark mode variant */}
-      <div className="absolute inset-0 hidden dark:block" style={darkGrid} />
-      {/* Glow layers (mix-blend-mode: plus-lighter feels much more natural) */}
-      <div ref={glowRef}  className="absolute inset-0" style={{ mixBlendMode: 'plus-lighter' }} />
-      <div ref={glowBRef} className="absolute inset-0" style={{ mixBlendMode: 'plus-lighter' }} />
-      <div ref={glowCRef} className="absolute inset-0" style={{ mixBlendMode: 'plus-lighter' }} />
+      {/* Desktop: canvas-rendered interactive grid */}
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+      {/* Mobile-only CSS static grid */}
+      <div className="absolute inset-0 md:hidden">
+        <div className="absolute inset-0 dark:hidden" style={lightGrid} />
+        <div className="absolute inset-0 hidden dark:block" style={darkGrid} />
+      </div>
       {/* Edge vignette */}
       <div className="absolute inset-0" style={{
         background: 'radial-gradient(ellipse 90% 60% at 50% 0%, transparent 55%, var(--bg) 100%)',

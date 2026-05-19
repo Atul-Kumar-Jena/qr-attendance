@@ -1,6 +1,8 @@
 'use client';
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import type { User } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, isConfigured, signInWithGoogle, signOutUser } from '@/lib/firebase';
 
 export type Role = 'developer' | 'institution' | 'admin' | 'teacher' | 'student';
@@ -82,10 +84,7 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
 
     let unsub: (() => void) | undefined;
     try {
-      const { onAuthStateChanged } = require('firebase/auth');
-      const { doc, getDoc, setDoc, serverTimestamp } = require('firebase/firestore');
-
-      unsub = onAuthStateChanged(auth, async (u: User | null) => {
+      unsub = onAuthStateChanged(auth!, async (u: User | null) => {
       setUser(u);
       if (u) {
         let resolvedRole: Role = 'student';
@@ -137,14 +136,13 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
 
   const signIn = async () => {
     if (!isConfigured) return;
-    const u = await signInWithGoogle(); // throws on popup cancel / network error — let caller handle
+    const u = await signInWithGoogle();
     let isNew = false;
     if (db) {
       try {
-        const { doc, getDoc } = require('firebase/firestore');
         const snap = await getDoc(doc(db, 'users', u.uid));
         isNew = !snap.exists();
-      } catch { /* non-critical — isNew stays false */ }
+      } catch { /* non-critical */ }
     }
     onSignIn?.(u, isNew);
   };
@@ -154,7 +152,6 @@ export function AuthProvider({ children, onSignIn, onSignOut }: {
   const markOnboardingDone = () => {
     setNeedsOnboarding(false);
     if (user && db) {
-      const { doc, updateDoc } = require('firebase/firestore');
       updateDoc(doc(db, 'users', user.uid), { onboardingDone: true }).catch(() => {});
     }
   };

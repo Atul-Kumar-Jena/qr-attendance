@@ -125,7 +125,8 @@ export function Nav() {
     <>
       <header
         ref={headerRef}
-        className={cn('fixed inset-x-0 top-0 z-50 transition-all duration-500', scrolled ? 'py-2' : 'py-5')}
+        className={cn('fixed inset-x-0 top-0 z-50', scrolled ? 'py-2' : 'py-5')}
+        style={{ transition: 'padding 380ms cubic-bezier(0.4,0,0.2,1)' }}
       >
         <div className={cn(
           // nav-pill class is ALWAYS applied; CSS keeps it transparent until

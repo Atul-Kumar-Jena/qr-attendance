@@ -2,41 +2,32 @@
 
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initGSAP } from '@/lib/gsap-init';
 import { Magnetic } from './Magnetic';
 
 if (typeof window !== 'undefined') initGSAP();
 
-/**
- * Huge text reveal — a giant word that scales and wipes in as you scroll.
- * Plus a curving SVG path that draws on with scrub.
- */
 export function CTA() {
   const root = useRef<HTMLDivElement>(null);
-  const big = useRef<HTMLDivElement>(null);
   const path = useRef<SVGPathElement>(null);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.fromTo(big.current,
-        { scale: 0.6, yPercent: 30, opacity: 0, letterSpacing: '0.4em' },
-        {
-          scale: 1, yPercent: 0, opacity: 1, letterSpacing: '-0.04em',
-          ease: 'expo.out',
-          scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'center center', scrub: 1 },
+    let ctx: ReturnType<typeof gsap.context> | undefined;
+    try {
+      ctx = gsap.context(() => {
+        // Only the SVG line draws in — "attend." text stays constant
+        const p = path.current;
+        if (!p) return;
+        const len = p.getTotalLength();
+        gsap.set(p, { strokeDasharray: len, strokeDashoffset: len });
+        gsap.to(p, {
+          strokeDashoffset: 0, ease: 'none',
+          immediateRender: false,
+          scrollTrigger: { trigger: root.current, start: 'top 75%', end: 'bottom 55%', scrub: 1 },
         });
-
-      const p = path.current;
-      if (!p) return;
-      const len = p.getTotalLength();
-      gsap.set(p, { strokeDasharray: len, strokeDashoffset: len });
-      gsap.to(p, {
-        strokeDashoffset: 0, ease: 'none',
-        scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'bottom 60%', scrub: 1 },
-      });
-    }, root);
-    return () => ctx.revert();
+      }, root);
+    } catch { /* GSAP failure must not crash the page */ }
+    return () => { try { ctx?.revert(); } catch {} };
   }, []);
 
   return (
@@ -48,7 +39,7 @@ export function CTA() {
           stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"
         />
       </svg>
-      <div ref={big} className="relative will-change-transform text-center">
+      <div className="relative text-center">
         <div className="font-display text-[16vw] leading-none tracking-tightest text-ink">
           attend.
         </div>
