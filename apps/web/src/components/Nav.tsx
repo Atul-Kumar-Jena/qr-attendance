@@ -22,7 +22,7 @@ function SunIcon()  { return <svg width="14" height="14" viewBox="0 0 24 24" fil
 function MoonIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>; }
 function AutoIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><circle cx="12" cy="12" r="9"/><path d="M12 3v9l4 4"/></svg>; }
 
-function ThemeToggle({ compact }: { compact?: boolean }) {
+function ThemeToggle({ compact, onDark }: { compact?: boolean; onDark?: boolean }) {
   const { mode, setMode } = useTheme();
   const options: { m: 'light' | 'auto' | 'dark'; icon: React.ReactNode; label: string }[] = [
     { m: 'light', icon: <SunIcon />,  label: 'Light mode' },
@@ -30,14 +30,14 @@ function ThemeToggle({ compact }: { compact?: boolean }) {
     { m: 'dark',  icon: <MoonIcon />, label: 'Dark mode' },
   ];
   return (
-    <div className={cn('flex items-center rounded-lg border border-ink/10 dark:border-white/10 overflow-hidden', compact && 'flex-1')} role="group" aria-label="Theme">
+    <div className={cn('flex items-center rounded-lg border overflow-hidden transition-colors', onDark ? 'border-white/20' : 'border-ink/10 dark:border-white/10', compact && 'flex-1')} role="group" aria-label="Theme">
       {options.map(({ m, icon, label }) => (
         <button key={m} onClick={() => setMode(m)} aria-label={label} aria-pressed={mode === m}
           className={cn('flex items-center justify-center transition-all duration-200',
             compact ? 'flex-1 py-2 gap-1.5 text-[12px]' : 'w-7 h-7',
             mode === m
-              ? 'bg-ink dark:bg-white/15 text-cream-50 dark:text-white'
-              : 'text-ink-mute hover:text-ink dark:hover:text-white hover:bg-cream-100 dark:hover:bg-white/5'
+              ? (onDark ? 'bg-white/20 text-white' : 'bg-ink dark:bg-white/15 text-cream-50 dark:text-white')
+              : (onDark ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-ink-mute hover:text-ink dark:hover:text-white hover:bg-cream-100 dark:hover:bg-white/5')
           )}>
           {icon}
           {compact && <span>{m.charAt(0).toUpperCase() + m.slice(1)}</span>}
@@ -155,15 +155,15 @@ export function Nav() {
             ? 'nav-pill-scrolled px-4 lg:px-6 py-3 max-w-5xl'
             : 'px-4 lg:px-6 py-3',
         )}>
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <Link href="/" className={cn('flex items-center gap-2.5 group transition-colors', scrolled ? 'text-ink dark:text-white' : 'text-white')}>
             <Logo />
             <span className="font-display text-[1.25rem] leading-none tracking-tight">Attendly</span>
           </Link>
 
           {/* Desktop nav — compresses gap when scrolled */}
           <nav className={cn(
-            'hidden md:flex items-center text-[13px] tracking-wide text-ink-mute',
-            scrolled ? 'gap-5 lg:gap-6' : 'gap-7',
+            'hidden md:flex items-center text-[13px] tracking-wide transition-colors',
+            scrolled ? 'text-ink-mute gap-5 lg:gap-6' : 'text-white/75 gap-7',
           )}>
             {links.map((l) => (
               <Link key={l.href} href={l.href}
@@ -176,7 +176,7 @@ export function Nav() {
           <div className="flex items-center gap-2.5 md:gap-3">
             {/* Desktop theme toggle */}
             <div className="hidden md:flex">
-              <ThemeToggle />
+              <ThemeToggle onDark={!scrolled} />
             </div>
 
             {/* Desktop: UserMenu or Sign in */}
@@ -186,7 +186,7 @@ export function Nav() {
               </div>
             ) : (
               <AuthModal trigger={
-                <button className="hidden md:block text-[12.5px] tracking-wide text-ink-mute hover:text-ink dark:hover:text-white/90 transition-colors">
+                <button className={cn('hidden md:block text-[12.5px] tracking-wide transition-colors', scrolled ? 'text-ink-mute hover:text-ink dark:hover:text-white/90' : 'text-white/75 hover:text-white')}>
                   Sign in
                 </button>
               } />
@@ -220,8 +220,10 @@ export function Nav() {
               <Link
                 href="#pricing"
                 className={cn(
-                  'hidden md:inline-block rounded-xl bg-ink dark:bg-[#1A2236] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:hover:bg-[#222c3e] dark:border dark:border-white/15 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] whitespace-nowrap',
-                  scrolled ? 'px-3 py-1.5 text-[12px]' : 'px-4 py-2 text-[12.5px]',
+                  'hidden md:inline-block rounded-xl font-medium tracking-wide transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] whitespace-nowrap',
+                  scrolled
+                    ? 'bg-ink dark:bg-[#1A2236] text-cream-50 hover:bg-ink-soft dark:hover:bg-[#222c3e] dark:border dark:border-white/15 px-3 py-1.5 text-[12px]'
+                    : 'bg-white/10 border border-white/25 text-white hover:bg-white/15 px-4 py-2 text-[12.5px]',
                 )}
               >
                 Request demo
@@ -247,9 +249,9 @@ export function Nav() {
                 onClick={() => setMenuOpen((o) => !o)}
                 aria-label="Toggle menu"
               >
-                <span className={cn('block h-px w-5 bg-ink dark:bg-[#F0EDE6] transition-all duration-300', menuOpen && 'rotate-45 translate-y-2')} />
-                <span className={cn('block h-px w-5 bg-ink dark:bg-[#F0EDE6] transition-all duration-300', menuOpen && 'opacity-0')} />
-                <span className={cn('block h-px w-5 bg-ink dark:bg-[#F0EDE6] transition-all duration-300', menuOpen && '-rotate-45 -translate-y-2')} />
+                <span className={cn(cn('block h-px w-5 transition-all duration-300', scrolled ? 'bg-ink dark:bg-[#F0EDE6]' : 'bg-white'), menuOpen && 'rotate-45 translate-y-2')} />
+                <span className={cn(cn('block h-px w-5 transition-all duration-300', scrolled ? 'bg-ink dark:bg-[#F0EDE6]' : 'bg-white'), menuOpen && 'opacity-0')} />
+                <span className={cn(cn('block h-px w-5 transition-all duration-300', scrolled ? 'bg-ink dark:bg-[#F0EDE6]' : 'bg-white'), menuOpen && '-rotate-45 -translate-y-2')} />
               </button>
             </div>
           </div>
@@ -343,7 +345,7 @@ export function Nav() {
 
 function Logo() {
   return (
-    <svg width="20" height="20" viewBox="0 0 22 22" className="text-ink flex-shrink-0" aria-hidden>
+    <svg width="20" height="20" viewBox="0 0 22 22" className="flex-shrink-0" aria-hidden>
       <rect x="0" y="0" width="9" height="9" rx="2" fill="currentColor" />
       <rect x="13" y="0" width="9" height="9" rx="2" fill="currentColor" />
       <rect x="0" y="13" width="9" height="9" rx="2" fill="currentColor" />

@@ -6,6 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Magnetic } from './Magnetic';
 import { initGSAP } from '@/lib/gsap-init';
 import { DemoModal } from './DemoModal';
+import { Aurora } from './Aurora';
 
 if (typeof window !== 'undefined') {
   initGSAP();
@@ -120,17 +121,11 @@ export function Hero() {
   }, []);
 
   return (
-    <section ref={root} className="relative pt-36 pb-24 md:pt-48 md:pb-36 overflow-hidden">
-      {/* Background orb */}
-      <div
-        ref={orb}
-        aria-hidden
-        className="absolute -top-32 -right-40 h-[680px] w-[680px] rounded-full blur-3xl opacity-45"
-        style={{
-          background:
-            'radial-gradient(circle at 30% 30%, rgba(255,107,61,0.5), rgba(242,166,90,0.2) 40%, transparent 70%)',
-        }}
-      />
+    <section ref={root} className="hero-section section-dark relative pt-40 pb-28 md:pt-52 md:pb-40 overflow-hidden">
+      {/* Aurora — matte-glass moving colour field (parallaxed via orb ref) */}
+      <div ref={orb} aria-hidden className="absolute inset-0">
+        <Aurora variant="hero" />
+      </div>
       <DrawUnderline />
 
       <div className="container relative z-10">
@@ -170,7 +165,8 @@ export function Hero() {
               <Magnetic strength={0.22}>
                 <a
                   href="#pricing"
-                  className="hero-cta group inline-flex items-center gap-2.5 rounded-xl bg-ink dark:bg-[#1A2236] dark:border dark:border-white/10 px-7 py-3.5 text-[13px] font-medium tracking-wide text-cream-50 transition-all hover:bg-ink-soft dark:hover:bg-[#222c3e] hover:scale-[1.03] active:scale-[0.97]"
+                  data-magnetic
+                  className="hero-cta group inline-flex items-center gap-2.5 rounded-xl bg-accent px-7 py-3.5 text-[13px] font-semibold tracking-wide text-white shadow-[0_8px_30px_-6px_rgba(255,107,61,0.5)] transition-all hover:bg-accent/90 hover:scale-[1.03] active:scale-[0.97]"
                 >
                   Get started
                   <svg width="13" height="13" viewBox="0 0 14 14" className="transition-transform group-hover:translate-x-1">
@@ -180,7 +176,7 @@ export function Hero() {
               </Magnetic>
               <Magnetic strength={0.18}>
                 <DemoModal trigger={
-                  <button className="hero-cta inline-flex items-center gap-2 rounded-xl border border-ink/12 bg-cream-50/50 dark:bg-white/5 dark:border-white/10 px-7 py-3.5 text-[13px] tracking-wide text-ink dark:text-white/80 hover:bg-cream-100 dark:hover:bg-white/10 transition-all">
+                  <button data-magnetic className="hero-cta inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-7 py-3.5 text-[13px] tracking-wide text-white/85 hover:bg-white/10 hover:border-white/25 transition-all">
                     Watch demo
                   </button>
                 } />
@@ -202,6 +198,13 @@ export function Hero() {
             <QrMosaic />
           </div>
         </div>
+      </div>
+      {/* Scroll cue */}
+      <div className="hero-cue absolute bottom-7 left-1/2 -translate-x-1/2 z-10 hidden md:flex flex-col items-center gap-2 text-white/40">
+        <span className="text-[10px] tracking-[0.3em] uppercase">Scroll</span>
+        <span className="relative w-px h-9 overflow-hidden bg-white/15">
+          <span className="absolute inset-x-0 top-0 h-3 bg-white/60" style={{ animation: 'scrollCue 1.8s ease-in-out infinite' }} />
+        </span>
       </div>
     </section>
   );

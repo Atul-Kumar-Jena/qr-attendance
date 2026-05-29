@@ -723,6 +723,20 @@ html.theme-transitioning *::after {
 .section-dark .bg-cream-50    { background: var(--bg) !important; }
 .section-dark .bg-cream-100   { background: var(--bg-2) !important; }
 .section-dark [class*="border-ink"] { border-color: var(--line) !important; }
+.section-dark .glass {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.section-dark .bg-ink\/6   { background-color: rgba(244, 242, 238, 0.06) !important; }
+.section-dark .bg-ink\/8   { background-color: rgba(244, 242, 238, 0.08) !important; }
+.section-dark .bg-ink\/10  { background-color: rgba(244, 242, 238, 0.10) !important; }
+.section-dark .bg-ink\/12  { background-color: rgba(244, 242, 238, 0.12) !important; }
+.section-dark .bg-ink\/15  { background-color: rgba(244, 242, 238, 0.15) !important; }
+.section-dark .hover\:text-ink:hover      { color: var(--ink) !important; }
+.section-dark .hover\:bg-cream-100:hover  { background-color: var(--bg-2) !important; }
+.section-dark .hover\:bg-cream-50:hover   { background-color: var(--bg-2) !important; }
 
 /* ── Aurora · matte-glass moving colour field ───────────────────────────── */
 .aurora { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
@@ -786,6 +800,13 @@ html.theme-transitioning *::after {
   display: inline-block;
 }
 @keyframes loaderSpin { to { transform: rotate(360deg); } }
+
+/* ── Hero scroll cue ────────────────────────────────────────────────────── */
+@keyframes scrollCue {
+  0%   { transform: translateY(-12px); opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: translateY(36px); opacity: 0; }
+}
 
 /* ── aceternity spotlight ───────────────────────────────────────────────── */
 @keyframes spotlight {
