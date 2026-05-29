@@ -372,7 +372,7 @@ export default function QrDisplay() {
         {/* QR */}
         <div className="flex flex-col items-center w-full">
           <div style={{ perspective: '1200px' }}>
-            <div ref={qrRef} className="bg-cream-50 p-4 sm:p-5 lg:p-6 rounded-3xl shadow-[0_30px_80px_-20px_rgba(255,107,61,0.25)]"
+            <div ref={qrRef} className="bg-cream-50 p-4 sm:p-5 lg:p-6 rounded-3xl shadow-[0_30px_80px_-20px_rgba(140,140,148,0.25)]"
               style={{ transformStyle: 'preserve-3d' }}>
               {qrPayload ? (
                 <div className="w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] flex items-center justify-center">

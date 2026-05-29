@@ -1,13 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Cpu, MapPin, ScanFace, ShieldCheck } from 'lucide-react';
-import { SplineScene } from '@/components/ui/splite';
 import { Spotlight } from '@/components/ui/spotlight';
 import { InteractiveSpotlight } from '@/components/ui/interactive-spotlight';
 import { Aurora } from '@/components/Aurora';
-
-const SCENE = 'https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode';
 
 const CHIPS = [
   { icon: ScanFace,   label: 'Identity verified' },
@@ -18,32 +15,12 @@ const CHIPS = [
 
 export function Interactive3D() {
   const ref = useRef<HTMLDivElement>(null);
-  const [show3D, setShow3D] = useState(false);
-  const [allowed, setAllowed] = useState(true);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    // Never load the heavy 3D scene on touch / small screens.
-    const heavyOff =
-      window.matchMedia('(pointer: coarse)').matches ||
-      window.matchMedia('(max-width: 767px)').matches;
-    if (heavyOff) { setAllowed(false); return; }
-
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setShow3D(true); io.disconnect(); } },
-      { rootMargin: '200px' },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
 
   return (
     <section ref={ref} className="section-dark relative overflow-hidden py-24 lg:py-32">
       <Aurora variant="soft" />
-      <Spotlight className="-top-40 left-0 md:left-1/3 md:-top-20" fill="#FF6B3D" />
-      <InteractiveSpotlight size={460} className="from-accent/20 via-accent-violet/10 to-transparent" />
+      <Spotlight className="-top-40 left-0 md:left-1/3 md:-top-20" fill="#F4F2EE" />
+      <InteractiveSpotlight size={460} />
 
       <div className="container relative z-10">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center min-h-[440px]">
@@ -76,35 +53,21 @@ export function Interactive3D() {
             </div>
           </div>
 
-          {/* 3D / fallback */}
+          {/* Monochrome orb showcase */}
           <div className="relative h-[360px] lg:h-[520px]">
             {/* glowing pedestal beneath the object */}
             <div
               aria-hidden
               className="absolute left-1/2 top-1/2 w-[68%] h-[68%] rounded-full pointer-events-none"
               style={{
-                background: 'radial-gradient(circle, rgba(255,107,61,0.20), rgba(124,92,255,0.10) 45%, transparent 68%)',
+                background: 'radial-gradient(circle, rgba(244,242,238,0.16), rgba(244,242,238,0.05) 45%, transparent 68%)',
                 filter: 'blur(26px)',
                 animation: 'pedestalPulse 6s ease-in-out infinite',
               }}
             />
             <div className="relative h-full w-full" style={{ animation: 'float3d 7s ease-in-out infinite' }}>
-              {allowed && show3D ? (
-                <SplineScene scene={SCENE} className="w-full h-full" />
-              ) : (
-                <Fallback />
-              )}
+              <Fallback />
             </div>
-            {/* interaction affordance (desktop, real scene only) */}
-            {allowed && show3D && (
-              <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-white/35">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-                  <path d="M12 2v6M12 22v-4M2 12h6M22 12h-4" strokeLinecap="round" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-                drag to explore
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -112,14 +75,14 @@ export function Interactive3D() {
   );
 }
 
-/** Lightweight animated orb shown on mobile / before the 3D scene mounts. */
+/** Lightweight animated monochrome orb. */
 function Fallback() {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
       <div className="relative w-44 h-44">
         <div
           className="absolute inset-0 rounded-full"
-          style={{ background: 'radial-gradient(circle at 38% 32%, #FF6B3D, #FF4D6D 45%, #7C5CFF 100%)', filter: 'blur(2px)' }}
+          style={{ background: 'radial-gradient(circle at 38% 32%, #5A5A60, #1A1A1D 60%, #08080A 100%)', filter: 'blur(2px)' }}
         />
         <div
           className="absolute inset-0 rounded-full opacity-60"

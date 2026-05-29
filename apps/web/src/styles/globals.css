@@ -3,7 +3,7 @@
 @tailwind utilities;
 @import 'driver.js/dist/driver.css';
 
-/* ─── Design tokens · EMBER ──────────────────────────────────────────────── */
+/* ─── Design tokens · MONOCHROME ─────────────────────────────────────────── */
 :root {
   --bg:        #FAFAF9;
   --bg-2:      #F2F2F0;
@@ -11,14 +11,19 @@
   --ink-soft:  #3A3A40;
   --ink-mute:  #6E6E76;
   --line:      rgba(22, 22, 26, 0.08);
-  --accent:    #FF6B3D;  /* ember */
-  --accent-2:  #FF4D6D;  /* rose  */
-  --accent-3:  #7C5CFF;  /* violet */
+  /* Monochrome "accent" cascade — RGB channels so Tailwind alpha modifiers
+     (bg-accent/20 etc.) work and flip automatically per light/dark/section-dark. */
+  --accent-rgb:   22 22 26;    /* ink black   */
+  --accent-2-rgb: 58 58 64;    /* dark grey   */
+  --accent-3-rgb: 110 110 118; /* mid grey    */
+  --accent:    #16161A;
+  --accent-2:  #3A3A40;
+  --accent-3:  #6E6E76;
   /* Natural light-spread grid (theme-aware) */
   --grid-line: rgba(22, 22, 26, 0.045);
   --grid-dot:  rgba(22, 22, 26, 0.10);
-  --glow:      rgba(255, 107, 61, 0.10);
-  --glow-2:    rgba(124, 92, 255, 0.07);
+  --glow:      rgba(22, 22, 26, 0.06);
+  --glow-2:    rgba(22, 22, 26, 0.04);
   --page-bg:   #FAFAF9; /* true body bg — NOT overridden by .section-dark */
   --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
@@ -223,8 +228,8 @@ h1, h2, h3 {
   to   { transform: translateX(4px); }
 }
 @keyframes qrGlow {
-  from { box-shadow: 0 0 0 rgba(255, 107, 61, 0); }
-  to   { box-shadow: 0 0 12px rgba(255, 107, 61, 0.3); }
+  from { box-shadow: 0 0 0 rgba(244, 242, 238, 0); }
+  to   { box-shadow: 0 0 12px rgba(244, 242, 238, 0.3); }
 }
 @keyframes qrPulse {
   from { opacity: 0.7; }
@@ -258,13 +263,16 @@ html.dark {
   --ink-soft:  #C9C7C2;
   --ink-mute:  #8A8A92;
   --line:      rgba(244, 242, 238, 0.10);
-  --accent:    #FF6B3D;
-  --accent-2:  #FF4D6D;
-  --accent-3:  #7C5CFF;
+  --accent-rgb:   244 242 238; /* off-white  */
+  --accent-2-rgb: 201 199 194; /* light grey */
+  --accent-3-rgb: 138 138 146; /* mid grey   */
+  --accent:    #F4F2EE;
+  --accent-2:  #C9C7C2;
+  --accent-3:  #8A8A92;
   --grid-line: rgba(244, 242, 238, 0.05);
   --grid-dot:  rgba(244, 242, 238, 0.09);
-  --glow:      rgba(255, 107, 61, 0.13);
-  --glow-2:    rgba(124, 92, 255, 0.10);
+  --glow:      rgba(244, 242, 238, 0.10);
+  --glow-2:    rgba(244, 242, 238, 0.06);
   --page-bg:   #0A0A0B;
 }
 
@@ -469,13 +477,13 @@ html.dark a.bg-ink {
 }
 
 .atd-popover .driver-popover-next-btn {
-  background: #FF6B3D !important;
+  background: #16161A !important;
   color: #FAFAF7 !important;
-  border-color: #FF6B3D !important;
+  border-color: #16161A !important;
 }
 
 .atd-popover .driver-popover-next-btn:hover {
-  background: #e55c30 !important;
+  background: #000000 !important;
 }
 
 .atd-popover .driver-popover-prev-btn:hover {
@@ -714,6 +722,13 @@ html.theme-transitioning *::after {
   --ink-soft: #C9C7C2;
   --ink-mute: #8A8A92;
   --line:     rgba(244, 242, 238, 0.10);
+  /* white accent cascade so monochrome highlights pop on the dark bg */
+  --accent-rgb:   244 242 238;
+  --accent-2-rgb: 201 199 194;
+  --accent-3-rgb: 138 138 146;
+  --accent:    #F4F2EE;
+  --accent-2:  #C9C7C2;
+  --accent-3:  #8A8A92;
   background: var(--bg);
   color: var(--ink);
   position: relative;
@@ -854,13 +869,34 @@ button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
   to   { width: 100%; }
 }
 
-/* ── Route-change curtain wipe ──────────────────────────────────────────── */
+/* ── Route-change curtain wipe (cinematic) ──────────────────────────────── */
 .pt-curtain {
   position: fixed; inset: 0; z-index: 9999;
-  background: #0A0A0B;
+  /* Deep black with a faint vertical sheen so the sweep reads as a solid panel
+     moving across, not an invisible fade. */
+  background:
+    radial-gradient(120% 80% at 50% 50%, rgba(40,40,44,0.55), transparent 60%),
+    #050506;
   transform: scaleY(0);
+  transform-origin: bottom;
   pointer-events: none;
-  box-shadow: 0 0 0 0 rgba(255, 107, 61, 0);
+  display: flex; align-items: center; justify-content: center;
+}
+/* Centered brand mark that fades in while the curtain covers the screen. */
+.pt-curtain__mark {
+  width: 46px; height: 46px;
+  border-radius: 13px;
+  background: #F4F2EE;
+  opacity: 0;
+  transform: scale(0.6) rotate(-8deg);
+  box-shadow: 0 0 40px -6px rgba(244,242,238,0.35);
+}
+.pt-curtain__bar {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(to right, transparent, rgba(244,242,238,0.9), transparent);
+  opacity: 0;
 }
 
 /* ── Mobile / reduced-motion: flatten the expensive bits ────────────────── */

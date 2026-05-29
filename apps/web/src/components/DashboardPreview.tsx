@@ -144,7 +144,7 @@ export function DashboardPreview() {
                         className="bar rounded-t-sm"
                         style={{
                           height: `${h}%`,
-                          background: i === 12 ? '#FF6B3D' : barBg,
+                          background: i === 12 ? 'var(--accent)' : barBg,
                         }}
                       />
                     ))}

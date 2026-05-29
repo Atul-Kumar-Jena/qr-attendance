@@ -121,7 +121,7 @@ export function SecurityLayers() {
                     key={i}
                     className="sec-radial"
                     x1={x1} y1={y1} x2={x2} y2={y2}
-                    stroke="#FF6B3D"
+                    stroke="var(--accent)"
                     strokeWidth="0.8"
                     strokeOpacity="0.45"
                     strokeLinecap="round"
@@ -132,10 +132,10 @@ export function SecurityLayers() {
               <path
                 ref={path}
                 d="M 20 380 Q 100 250, 200 240 T 380 60"
-                stroke="#FF6B3D" strokeWidth="1.5" fill="none" strokeLinecap="round"
+                stroke="var(--accent)" strokeWidth="1.5" fill="none" strokeLinecap="round"
               />
-              <circle cx="200" cy="200" r="14" fill="#FF6B3D" />
-              <circle cx="200" cy="200" r="14" fill="none" stroke="#FF6B3D"
+              <circle cx="200" cy="200" r="14" fill="var(--accent)" />
+              <circle cx="200" cy="200" r="14" fill="none" stroke="var(--accent)"
                       className="animate-[pulseRing_2s_ease-out_infinite]" />
             </svg>
           </div>

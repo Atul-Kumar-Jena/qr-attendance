@@ -36,17 +36,17 @@ export function Aurora({ className = '', variant = 'hero' }: AuroraProps) {
         <>
           <div className="aurora-blob" style={{
             width: '60%', height: '60%', left: '-8%', top: '-12%', opacity: o,
-            background: 'radial-gradient(circle at 50% 50%, #FF6B3D, transparent 68%)',
+            background: 'radial-gradient(circle at 50% 50%, #4A4A50, transparent 68%)',
             animation: 'auroraDrift1 19s ease-in-out infinite',
           }} />
           <div className="aurora-blob" style={{
             width: '54%', height: '54%', right: '-6%', top: '-4%', opacity: o * 0.92,
-            background: 'radial-gradient(circle at 50% 50%, #FF4D6D, transparent 68%)',
+            background: 'radial-gradient(circle at 50% 50%, #6E6E76, transparent 68%)',
             animation: 'auroraDrift2 23s ease-in-out infinite',
           }} />
           <div className="aurora-blob" style={{
             width: '58%', height: '58%', left: '22%', bottom: '-20%', opacity: o * 0.85,
-            background: 'radial-gradient(circle at 50% 50%, #7C5CFF, transparent 70%)',
+            background: 'radial-gradient(circle at 50% 50%, #2A2A2E, transparent 70%)',
             animation: 'auroraDrift3 27s ease-in-out infinite',
           }} />
           <div className="aurora-glass" />

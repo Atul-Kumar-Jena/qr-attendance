@@ -66,7 +66,7 @@ export function MobilePreview() {
                   <div className="text-[10px] text-cream-50/50 tracking-wider">CS-301 · Operating Systems</div>
                   <div className="font-display text-[1.4rem] mt-1">Scan QR</div>
                   <div className="mt-4 relative aspect-square rounded-2xl border border-cream-50/15 overflow-hidden">
-                    <div className="scan-line absolute left-0 right-0 h-[2px] bg-accent shadow-[0_0_18px_2px_rgba(255,107,61,0.7)]" />
+                    <div className="scan-line absolute left-0 right-0 h-[2px] bg-accent shadow-[0_0_18px_2px_rgba(140,140,148,0.7)]" />
                     {/* corner marks */}
                     {['top-2 left-2','top-2 right-2','bottom-2 left-2','bottom-2 right-2'].map((p) => (
                       <span key={p} className={`absolute ${p} h-5 w-5 border-2 border-cream-50/70`} style={{
@@ -114,7 +114,7 @@ export function MobilePreview() {
                         <div className="mt-1 h-1 rounded-full bg-ink/8 overflow-hidden">
                           <div
                             className="h-full rounded-full"
-                            style={{ width: `${row.p}%`, background: row.c === 'accent' ? '#FF6B3D' : '#7C967A' }}
+                            style={{ width: `${row.p}%`, background: row.c === 'accent' ? 'var(--accent)' : '#7C967A' }}
                           />
                         </div>
                       </div>

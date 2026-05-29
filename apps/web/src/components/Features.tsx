@@ -22,43 +22,43 @@ function IlluMultiTenant() {
         @keyframes ft-mt-base   { 0%,100%{opacity:0.35} 50%{opacity:0.65} }
       `}</style>
       {/* base platform */}
-      <ellipse cx="140" cy="160" rx="118" ry="6" fill="#FF6B3D" opacity="0.10"
+      <ellipse cx="140" cy="160" rx="118" ry="6" fill="var(--accent)" opacity="0.10"
         style={{animation:'ft-mt-base 3s ease-in-out infinite'}}/>
       {/* Building A */}
       <g style={{animation:'ft-mt-float0 4s ease-in-out infinite', transformOrigin:'55px 130px'}}>
-        <rect x="30" y="85" width="50" height="70" rx="5" fill="#FF6B3D" fillOpacity="0.10" stroke="#FF6B3D" strokeOpacity="0.55" strokeWidth="1.4"/>
-        <rect x="40" y="97" width="9" height="9" rx="1.5" fill="#FF6B3D" fillOpacity="0.55"/>
-        <rect x="61" y="97" width="9" height="9" rx="1.5" fill="#FF6B3D" fillOpacity="0.25"/>
-        <rect x="40" y="113" width="9" height="9" rx="1.5" fill="#FF6B3D" fillOpacity="0.25"/>
-        <rect x="61" y="113" width="9" height="9" rx="1.5" fill="#FF6B3D" fillOpacity="0.45"/>
-        <rect x="46" y="133" width="18" height="22" rx="1.5" fill="#FF6B3D" fillOpacity="0.35"/>
-        <text x="55" y="80" textAnchor="middle" fontSize="8" fill="#FF6B3D" fillOpacity="0.6" fontFamily="ui-monospace,monospace">A</text>
+        <rect x="30" y="85" width="50" height="70" rx="5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.55" strokeWidth="1.4"/>
+        <rect x="40" y="97" width="9" height="9" rx="1.5" fill="var(--accent)" fillOpacity="0.55"/>
+        <rect x="61" y="97" width="9" height="9" rx="1.5" fill="var(--accent)" fillOpacity="0.25"/>
+        <rect x="40" y="113" width="9" height="9" rx="1.5" fill="var(--accent)" fillOpacity="0.25"/>
+        <rect x="61" y="113" width="9" height="9" rx="1.5" fill="var(--accent)" fillOpacity="0.45"/>
+        <rect x="46" y="133" width="18" height="22" rx="1.5" fill="var(--accent)" fillOpacity="0.35"/>
+        <text x="55" y="80" textAnchor="middle" fontSize="8" fill="var(--accent)" fillOpacity="0.6" fontFamily="ui-monospace,monospace">A</text>
       </g>
       {/* Building B — central, tallest */}
       <g style={{animation:'ft-mt-float1 4.6s ease-in-out infinite 0.4s', transformOrigin:'140px 120px'}}>
-        <rect x="110" y="56" width="60" height="99" rx="5" fill="#FF6B3D" fillOpacity="0.16" stroke="#FF6B3D" strokeOpacity="0.8" strokeWidth="1.6"/>
+        <rect x="110" y="56" width="60" height="99" rx="5" fill="var(--accent)" fillOpacity="0.16" stroke="var(--accent)" strokeOpacity="0.8" strokeWidth="1.6"/>
         {[68, 86, 104].map((y) => (
           <g key={y}>
-            <rect x="120" y={y} width="10" height="10" rx="1.5" fill="#FF6B3D" fillOpacity={y === 68 ? 0.7 : 0.4}/>
-            <rect x="150" y={y} width="10" height="10" rx="1.5" fill="#FF6B3D" fillOpacity={y === 68 ? 0.4 : 0.55}/>
+            <rect x="120" y={y} width="10" height="10" rx="1.5" fill="var(--accent)" fillOpacity={y === 68 ? 0.7 : 0.4}/>
+            <rect x="150" y={y} width="10" height="10" rx="1.5" fill="var(--accent)" fillOpacity={y === 68 ? 0.4 : 0.55}/>
           </g>
         ))}
-        <rect x="130" y="129" width="20" height="26" rx="1.5" fill="#FF6B3D" fillOpacity="0.5"/>
-        <text x="140" y="50" textAnchor="middle" fontSize="8" fill="#FF6B3D" fillOpacity="0.9" fontFamily="ui-monospace,monospace">B</text>
+        <rect x="130" y="129" width="20" height="26" rx="1.5" fill="var(--accent)" fillOpacity="0.5"/>
+        <text x="140" y="50" textAnchor="middle" fontSize="8" fill="var(--accent)" fillOpacity="0.9" fontFamily="ui-monospace,monospace">B</text>
       </g>
       {/* Building C */}
       <g style={{animation:'ft-mt-float2 3.8s ease-in-out infinite 0.9s', transformOrigin:'225px 130px'}}>
-        <rect x="200" y="90" width="50" height="65" rx="5" fill="#FF6B3D" fillOpacity="0.10" stroke="#FF6B3D" strokeOpacity="0.55" strokeWidth="1.4"/>
-        <rect x="210" y="102" width="9" height="9" rx="1.5" fill="#FF6B3D" fillOpacity="0.25"/>
-        <rect x="231" y="102" width="9" height="9" rx="1.5" fill="#FF6B3D" fillOpacity="0.45"/>
-        <rect x="210" y="118" width="9" height="9" rx="1.5" fill="#FF6B3D" fillOpacity="0.45"/>
-        <rect x="231" y="118" width="9" height="9" rx="1.5" fill="#FF6B3D" fillOpacity="0.25"/>
-        <rect x="216" y="135" width="18" height="20" rx="1.5" fill="#FF6B3D" fillOpacity="0.35"/>
-        <text x="225" y="85" textAnchor="middle" fontSize="8" fill="#FF6B3D" fillOpacity="0.6" fontFamily="ui-monospace,monospace">C</text>
+        <rect x="200" y="90" width="50" height="65" rx="5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.55" strokeWidth="1.4"/>
+        <rect x="210" y="102" width="9" height="9" rx="1.5" fill="var(--accent)" fillOpacity="0.25"/>
+        <rect x="231" y="102" width="9" height="9" rx="1.5" fill="var(--accent)" fillOpacity="0.45"/>
+        <rect x="210" y="118" width="9" height="9" rx="1.5" fill="var(--accent)" fillOpacity="0.45"/>
+        <rect x="231" y="118" width="9" height="9" rx="1.5" fill="var(--accent)" fillOpacity="0.25"/>
+        <rect x="216" y="135" width="18" height="20" rx="1.5" fill="var(--accent)" fillOpacity="0.35"/>
+        <text x="225" y="85" textAnchor="middle" fontSize="8" fill="var(--accent)" fillOpacity="0.6" fontFamily="ui-monospace,monospace">C</text>
       </g>
       {/* isolation barriers — dashed */}
-      <line x1="93"  y1="40" x2="93"  y2="156" stroke="#FF6B3D" strokeOpacity="0.18" strokeWidth="1" strokeDasharray="3 4"/>
-      <line x1="187" y1="40" x2="187" y2="156" stroke="#FF6B3D" strokeOpacity="0.18" strokeWidth="1" strokeDasharray="3 4"/>
+      <line x1="93"  y1="40" x2="93"  y2="156" stroke="var(--accent)" strokeOpacity="0.18" strokeWidth="1" strokeDasharray="3 4"/>
+      <line x1="187" y1="40" x2="187" y2="156" stroke="var(--accent)" strokeOpacity="0.18" strokeWidth="1" strokeDasharray="3 4"/>
     </svg>
   );
 }
@@ -82,16 +82,16 @@ function IlluDynamicQR() {
         @keyframes ft-qr-cell  { 0%,100%{opacity:1} 50%{opacity:0.55} }
       `}</style>
       {/* outer dashed ring */}
-      <circle cx="140" cy="86" r="65" fill="none" stroke="#FF6B3D" strokeOpacity="0.18" strokeWidth="1" strokeDasharray="2 4"/>
+      <circle cx="140" cy="86" r="65" fill="none" stroke="var(--accent)" strokeOpacity="0.18" strokeWidth="1" strokeDasharray="2 4"/>
       {/* countdown arc */}
       <g style={{ transformOrigin: '140px 86px', transform: 'rotate(-90deg)' }}>
-        <circle cx="140" cy="86" r="58" fill="none" stroke="#FF6B3D" strokeOpacity="0.7" strokeWidth="2"
+        <circle cx="140" cy="86" r="58" fill="none" stroke="var(--accent)" strokeOpacity="0.7" strokeWidth="2"
           strokeLinecap="round" strokeDasharray="364.4 364.4"
           style={{ animation: 'ft-qr-arc 7s linear infinite' }}/>
       </g>
       {/* orbiting dot */}
       <g style={{ transformOrigin: '140px 86px', animation: 'ft-qr-orbit 7s linear infinite' }}>
-        <circle cx="198" cy="86" r="3.2" fill="#FF6B3D"/>
+        <circle cx="198" cy="86" r="3.2" fill="var(--accent)"/>
       </g>
       {/* QR mosaic */}
       <g transform="translate(108, 54)">
@@ -99,19 +99,19 @@ function IlluDynamicQR() {
         {cells.map(({ r, c, on, corner }) =>
           on ? (
             <rect key={`${r}-${c}`} x={c * 9 + 1} y={r * 9 + 1} width="7.4" height="7.4" rx="1.2"
-              fill={corner ? '#FF6B3D' : '#0B1220'}
+              fill={corner ? 'var(--accent)' : '#0B1220'}
               opacity={corner ? 0.92 : 0.78}
               style={!corner ? { animation: `ft-qr-cell 3.5s ease-in-out infinite ${(r + c) * 0.04}s` } : undefined}
             />
           ) : null,
         )}
         {/* finder corner inner squares */}
-        <rect x="3"  y="3"  width="11" height="11" rx="2" fill="none" stroke="#FF6B3D" strokeWidth="1" opacity="0.8"/>
-        <rect x="49" y="3"  width="11" height="11" rx="2" fill="none" stroke="#FF6B3D" strokeWidth="1" opacity="0.8"/>
-        <rect x="3"  y="49" width="11" height="11" rx="2" fill="none" stroke="#FF6B3D" strokeWidth="1" opacity="0.8"/>
+        <rect x="3"  y="3"  width="11" height="11" rx="2" fill="none" stroke="var(--accent)" strokeWidth="1" opacity="0.8"/>
+        <rect x="49" y="3"  width="11" height="11" rx="2" fill="none" stroke="var(--accent)" strokeWidth="1" opacity="0.8"/>
+        <rect x="3"  y="49" width="11" height="11" rx="2" fill="none" stroke="var(--accent)" strokeWidth="1" opacity="0.8"/>
       </g>
       {/* label */}
-      <text x="140" y="166" textAnchor="middle" fill="#FF6B3D" fillOpacity="0.6" fontSize="8" fontFamily="ui-monospace,monospace"
+      <text x="140" y="166" textAnchor="middle" fill="var(--accent)" fillOpacity="0.6" fontSize="8" fontFamily="ui-monospace,monospace"
         style={{ animation: 'ft-qr-pulse 3s ease-in-out infinite' }}>
         HMAC·SHA256 · 7s TTL · single-use
       </text>
@@ -130,16 +130,16 @@ function IlluGeofence() {
         @keyframes ft-geo-deny   { 0%,100%{opacity:0.4} 50%{opacity:0.85} }
       `}</style>
       <g style={{ transformOrigin: '140px 86px' }}>
-        <circle cx="140" cy="86" r="62" fill="#FF6B3D" fillOpacity="0.04" stroke="#FF6B3D" strokeOpacity="0.10" strokeWidth="1" strokeDasharray="2 5"/>
+        <circle cx="140" cy="86" r="62" fill="var(--accent)" fillOpacity="0.04" stroke="var(--accent)" strokeOpacity="0.10" strokeWidth="1" strokeDasharray="2 5"/>
         {/* pulse rings */}
-        <circle cx="140" cy="86" r="40" fill="#FF6B3D" fillOpacity="0.05" stroke="#FF6B3D" strokeOpacity="0.4" strokeWidth="1"
+        <circle cx="140" cy="86" r="40" fill="var(--accent)" fillOpacity="0.05" stroke="var(--accent)" strokeOpacity="0.4" strokeWidth="1"
           style={{ animation: 'ft-geo-pulse1 3s ease-in-out infinite', transformOrigin: '140px 86px' }}/>
-        <circle cx="140" cy="86" r="40" fill="none" stroke="#FF6B3D" strokeOpacity="0.3" strokeWidth="1"
+        <circle cx="140" cy="86" r="40" fill="none" stroke="var(--accent)" strokeOpacity="0.3" strokeWidth="1"
           style={{ animation: 'ft-geo-pulse2 3.5s ease-in-out infinite 0.6s', transformOrigin: '140px 86px' }}/>
       </g>
       {/* pin */}
       <g style={{ animation: 'ft-geo-pin 2.6s ease-in-out infinite', transformOrigin: '140px 86px' }}>
-        <path d="M140 70 a10 10 0 1 1 -0.001 0 z M140 80 l-4 6 4 8 4 -8 z" fill="#FF6B3D"/>
+        <path d="M140 70 a10 10 0 1 1 -0.001 0 z M140 80 l-4 6 4 8 4 -8 z" fill="var(--accent)"/>
         <circle cx="140" cy="80" r="3.2" fill="#FAFAF7"/>
       </g>
       {/* allowed device — inside fence */}
@@ -152,7 +152,7 @@ function IlluGeofence() {
         <circle cx="208" cy="52" r="11" fill="rgba(239,68,68,0.16)" stroke="rgba(239,68,68,0.7)" strokeWidth="1.4"/>
         <path d="M204 48 l8 8 M212 48 l-8 8" stroke="rgba(239,68,68,0.95)" strokeWidth="1.6" strokeLinecap="round"/>
       </g>
-      <text x="140" y="166" textAnchor="middle" fill="#FF6B3D" fillOpacity="0.55" fontSize="8" fontFamily="ui-monospace,monospace">
+      <text x="140" y="166" textAnchor="middle" fill="var(--accent)" fillOpacity="0.55" fontSize="8" fontFamily="ui-monospace,monospace">
         Server-side Haversine · accuracy gated
       </text>
     </svg>
@@ -170,38 +170,38 @@ function IlluDeviceBinding() {
       `}</style>
       {/* Phone */}
       <g style={{ animation: 'ft-bind-phone 3.2s ease-in-out infinite', transformOrigin: '78px 90px' }}>
-        <rect x="48" y="36" width="60" height="108" rx="11" fill="#FAFAF7" stroke="#FF6B3D" strokeWidth="1.6" strokeOpacity="0.7"/>
-        <rect x="56" y="48" width="44" height="74" rx="3" fill="#FF6B3D" fillOpacity="0.08"/>
-        <circle cx="78" cy="133" r="3.5" fill="none" stroke="#FF6B3D" strokeOpacity="0.45" strokeWidth="1"/>
+        <rect x="48" y="36" width="60" height="108" rx="11" fill="#FAFAF7" stroke="var(--accent)" strokeWidth="1.6" strokeOpacity="0.7"/>
+        <rect x="56" y="48" width="44" height="74" rx="3" fill="var(--accent)" fillOpacity="0.08"/>
+        <circle cx="78" cy="133" r="3.5" fill="none" stroke="var(--accent)" strokeOpacity="0.45" strokeWidth="1"/>
         {/* student ID card on screen */}
-        <rect x="60" y="55" width="36" height="22" rx="2.5" fill="#FF6B3D" fillOpacity="0.16" stroke="#FF6B3D" strokeOpacity="0.5" strokeWidth="0.8"/>
-        <circle cx="68" cy="66" r="4" fill="#FF6B3D" fillOpacity="0.5"/>
-        <rect x="76" y="62" width="16" height="2" rx="1" fill="#FF6B3D" fillOpacity="0.45"/>
-        <rect x="76" y="66" width="13" height="1.5" rx="0.75" fill="#FF6B3D" fillOpacity="0.3"/>
-        <rect x="76" y="70" width="10" height="1.5" rx="0.75" fill="#FF6B3D" fillOpacity="0.3"/>
-        <text x="78" y="92" textAnchor="middle" fontSize="6" fill="#FF6B3D" fillOpacity="0.65" fontFamily="ui-monospace,monospace"
+        <rect x="60" y="55" width="36" height="22" rx="2.5" fill="var(--accent)" fillOpacity="0.16" stroke="var(--accent)" strokeOpacity="0.5" strokeWidth="0.8"/>
+        <circle cx="68" cy="66" r="4" fill="var(--accent)" fillOpacity="0.5"/>
+        <rect x="76" y="62" width="16" height="2" rx="1" fill="var(--accent)" fillOpacity="0.45"/>
+        <rect x="76" y="66" width="13" height="1.5" rx="0.75" fill="var(--accent)" fillOpacity="0.3"/>
+        <rect x="76" y="70" width="10" height="1.5" rx="0.75" fill="var(--accent)" fillOpacity="0.3"/>
+        <text x="78" y="92" textAnchor="middle" fontSize="6" fill="var(--accent)" fillOpacity="0.65" fontFamily="ui-monospace,monospace"
           style={{ animation: 'ft-bind-id 2.2s ease-in-out infinite' }}>
           DEVICE-7A2F
         </text>
-        <rect x="60" y="100" width="36" height="14" rx="3" fill="#FF6B3D" fillOpacity="0.20"/>
-        <text x="78" y="109" textAnchor="middle" fontSize="6" fill="#FF6B3D" fontFamily="ui-monospace,monospace">BOUND</text>
+        <rect x="60" y="100" width="36" height="14" rx="3" fill="var(--accent)" fillOpacity="0.20"/>
+        <text x="78" y="109" textAnchor="middle" fontSize="6" fill="var(--accent)" fontFamily="ui-monospace,monospace">BOUND</text>
       </g>
       {/* chain link */}
-      <path d="M114 90 L168 90" stroke="#FF6B3D" strokeOpacity="0.55" strokeWidth="2" strokeDasharray="5 5" strokeLinecap="round"
+      <path d="M114 90 L168 90" stroke="var(--accent)" strokeOpacity="0.55" strokeWidth="2" strokeDasharray="5 5" strokeLinecap="round"
         style={{ animation: 'ft-bind-chain 1.4s linear infinite' }}/>
       {/* User icon */}
       <g style={{ animation: 'ft-bind-lock 2.4s ease-in-out infinite', transformOrigin: '208px 90px' }}>
-        <circle cx="208" cy="90" r="32" fill="#FF6B3D" fillOpacity="0.10" stroke="#FF6B3D" strokeOpacity="0.6" strokeWidth="1.5"/>
-        <circle cx="208" cy="80" r="9" fill="#FF6B3D" fillOpacity="0.5"/>
-        <path d="M191 110 Q208 96 225 110" stroke="#FF6B3D" strokeOpacity="0.55" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
+        <circle cx="208" cy="90" r="32" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.6" strokeWidth="1.5"/>
+        <circle cx="208" cy="80" r="9" fill="var(--accent)" fillOpacity="0.5"/>
+        <path d="M191 110 Q208 96 225 110" stroke="var(--accent)" strokeOpacity="0.55" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
         {/* lock badge */}
         <g transform="translate(220, 70)">
-          <circle r="9" fill="#FAFAF7" stroke="#FF6B3D" strokeWidth="1.4"/>
-          <rect x="-3.5" y="-1.5" width="7" height="6.5" rx="1.5" fill="#FF6B3D"/>
-          <path d="M-2.6 -1.5 v -2 a 2.6 2.6 0 0 1 5.2 0 v 2" fill="none" stroke="#FF6B3D" strokeWidth="1.3"/>
+          <circle r="9" fill="#FAFAF7" stroke="var(--accent)" strokeWidth="1.4"/>
+          <rect x="-3.5" y="-1.5" width="7" height="6.5" rx="1.5" fill="var(--accent)"/>
+          <path d="M-2.6 -1.5 v -2 a 2.6 2.6 0 0 1 5.2 0 v 2" fill="none" stroke="var(--accent)" strokeWidth="1.3"/>
         </g>
       </g>
-      <text x="140" y="166" textAnchor="middle" fill="#FF6B3D" fillOpacity="0.55" fontSize="8" fontFamily="ui-monospace,monospace">
+      <text x="140" y="166" textAnchor="middle" fill="var(--accent)" fillOpacity="0.55" fontSize="8" fontFamily="ui-monospace,monospace">
         1 student · 1 device · admin-only reset
       </text>
     </svg>
@@ -213,7 +213,7 @@ function IlluAppAttestation() {
     <svg viewBox="0 0 280 180" fill="none" className="w-full h-full" aria-hidden>
       <style>{`
         @keyframes ft-shield-pulse { 0%,100%{opacity:0.15} 50%{opacity:0.30} }
-        @keyframes ft-shield-glow  { 0%,100%{filter:drop-shadow(0 0 0 rgba(255,107,61,0))} 50%{filter:drop-shadow(0 4px 14px rgba(255,107,61,0.35))} }
+        @keyframes ft-shield-glow  { 0%,100%{filter:drop-shadow(0 0 0 rgba(140,140,148,0))} 50%{filter:drop-shadow(0 4px 14px rgba(140,140,148,0.35))} }
         @keyframes ft-att-tag-1    { 0%,100%{opacity:0.55} 33%{opacity:1} 66%{opacity:0.55} }
         @keyframes ft-att-tag-2    { 0%,100%{opacity:0.55} 33%{opacity:0.55} 66%{opacity:1} }
         @keyframes ft-att-tag-3    { 0%,100%{opacity:1}    33%{opacity:0.55} 66%{opacity:0.55} }
@@ -221,28 +221,28 @@ function IlluAppAttestation() {
       {/* shield outer glow */}
       <g style={{ animation: 'ft-shield-glow 3s ease-in-out infinite', transformOrigin: '140px 92px' }}>
         <path d="M140 32 L186 52 L186 103 Q186 138 140 154 Q94 138 94 103 L94 52 Z"
-          fill="#FF6B3D" fillOpacity="0.10" stroke="#FF6B3D" strokeWidth="2"/>
+          fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeWidth="2"/>
         <path d="M140 40 L179 57 L179 102 Q179 132 140 146 Q101 132 101 102 L101 57 Z"
-          fill="#FF6B3D" style={{ animation: 'ft-shield-pulse 2.6s ease-in-out infinite' }} fillOpacity="0.15"/>
+          fill="var(--accent)" style={{ animation: 'ft-shield-pulse 2.6s ease-in-out infinite' }} fillOpacity="0.15"/>
         {/* checkmark */}
-        <path d="M118 95 L134 112 L162 80" stroke="#FF6B3D" strokeWidth="4.5"
+        <path d="M118 95 L134 112 L162 80" stroke="var(--accent)" strokeWidth="4.5"
           strokeLinecap="round" strokeLinejoin="round" fill="none"/>
       </g>
       {/* attestation tag chips */}
       <g transform="translate(56, 144)" style={{ animation: 'ft-att-tag-1 3s ease-in-out infinite' }}>
-        <rect width="56" height="14" rx="3.5" fill="#FF6B3D" fillOpacity="0.10" stroke="#FF6B3D" strokeOpacity="0.4" strokeWidth="0.8"/>
-        <circle cx="8" cy="7" r="2.5" fill="#FF6B3D"/>
-        <text x="33" y="10" textAnchor="middle" fontSize="6.5" fill="#FF6B3D" fontFamily="ui-monospace,monospace">Play Integrity</text>
+        <rect width="56" height="14" rx="3.5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.4" strokeWidth="0.8"/>
+        <circle cx="8" cy="7" r="2.5" fill="var(--accent)"/>
+        <text x="33" y="10" textAnchor="middle" fontSize="6.5" fill="var(--accent)" fontFamily="ui-monospace,monospace">Play Integrity</text>
       </g>
       <g transform="translate(118, 144)" style={{ animation: 'ft-att-tag-2 3s ease-in-out infinite' }}>
-        <rect width="44" height="14" rx="3.5" fill="#FF6B3D" fillOpacity="0.10" stroke="#FF6B3D" strokeOpacity="0.4" strokeWidth="0.8"/>
-        <circle cx="8" cy="7" r="2.5" fill="#FF6B3D"/>
-        <text x="27" y="10" textAnchor="middle" fontSize="6.5" fill="#FF6B3D" fontFamily="ui-monospace,monospace">App Attest</text>
+        <rect width="44" height="14" rx="3.5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.4" strokeWidth="0.8"/>
+        <circle cx="8" cy="7" r="2.5" fill="var(--accent)"/>
+        <text x="27" y="10" textAnchor="middle" fontSize="6.5" fill="var(--accent)" fontFamily="ui-monospace,monospace">App Attest</text>
       </g>
       <g transform="translate(168, 144)" style={{ animation: 'ft-att-tag-3 3s ease-in-out infinite' }}>
-        <rect width="56" height="14" rx="3.5" fill="#FF6B3D" fillOpacity="0.10" stroke="#FF6B3D" strokeOpacity="0.4" strokeWidth="0.8"/>
-        <circle cx="8" cy="7" r="2.5" fill="#FF6B3D"/>
-        <text x="33" y="10" textAnchor="middle" fontSize="6.5" fill="#FF6B3D" fontFamily="ui-monospace,monospace">DeviceCheck</text>
+        <rect width="56" height="14" rx="3.5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.4" strokeWidth="0.8"/>
+        <circle cx="8" cy="7" r="2.5" fill="var(--accent)"/>
+        <text x="33" y="10" textAnchor="middle" fontSize="6.5" fill="var(--accent)" fontFamily="ui-monospace,monospace">DeviceCheck</text>
       </g>
     </svg>
   );
@@ -259,30 +259,30 @@ function IlluFraudDetection() {
       `}</style>
       {/* radar plate */}
       <g style={{ transformOrigin: '105px 86px' }}>
-        <circle cx="105" cy="86" r="56" fill="#FF6B3D" fillOpacity="0.05" stroke="#FF6B3D" strokeOpacity="0.18" strokeWidth="1"/>
-        <circle cx="105" cy="86" r="40" fill="none" stroke="#FF6B3D" strokeOpacity="0.18" strokeWidth="1" strokeDasharray="2 3"/>
-        <circle cx="105" cy="86" r="24" fill="none" stroke="#FF6B3D" strokeOpacity="0.2"  strokeWidth="1" strokeDasharray="2 3"/>
-        <line x1="49"  y1="86" x2="161" y2="86" stroke="#FF6B3D" strokeOpacity="0.12" strokeWidth="1"/>
-        <line x1="105" y1="30" x2="105" y2="142" stroke="#FF6B3D" strokeOpacity="0.12" strokeWidth="1"/>
+        <circle cx="105" cy="86" r="56" fill="var(--accent)" fillOpacity="0.05" stroke="var(--accent)" strokeOpacity="0.18" strokeWidth="1"/>
+        <circle cx="105" cy="86" r="40" fill="none" stroke="var(--accent)" strokeOpacity="0.18" strokeWidth="1" strokeDasharray="2 3"/>
+        <circle cx="105" cy="86" r="24" fill="none" stroke="var(--accent)" strokeOpacity="0.2"  strokeWidth="1" strokeDasharray="2 3"/>
+        <line x1="49"  y1="86" x2="161" y2="86" stroke="var(--accent)" strokeOpacity="0.12" strokeWidth="1"/>
+        <line x1="105" y1="30" x2="105" y2="142" stroke="var(--accent)" strokeOpacity="0.12" strokeWidth="1"/>
         {/* sweeping arm */}
         <g style={{ transformOrigin: '105px 86px', animation: 'ft-fr-radar 4s linear infinite' }}>
           <defs>
             <linearGradient id="fr-sweep" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%"   stopColor="#FF6B3D" stopOpacity="0"/>
-              <stop offset="100%" stopColor="#FF6B3D" stopOpacity="0.55"/>
+              <stop offset="0%"   stopColor="var(--accent)" stopOpacity="0"/>
+              <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.55"/>
             </linearGradient>
           </defs>
           <path d="M105 86 L161 86 A56 56 0 0 0 145 47 Z" fill="url(#fr-sweep)"/>
-          <line x1="105" y1="86" x2="161" y2="86" stroke="#FF6B3D" strokeWidth="1.4"/>
+          <line x1="105" y1="86" x2="161" y2="86" stroke="var(--accent)" strokeWidth="1.4"/>
         </g>
         {/* blips */}
         <circle cx="78"  cy="62" r="2.5" fill="#7C967A" style={{ animation: 'ft-fr-pulse 2.4s ease-in-out infinite' }}/>
-        <circle cx="142" cy="76" r="2.5" fill="#FF6B3D" style={{ animation: 'ft-fr-pulse 2.6s ease-in-out infinite 0.4s' }}/>
+        <circle cx="142" cy="76" r="2.5" fill="var(--accent)" style={{ animation: 'ft-fr-pulse 2.6s ease-in-out infinite 0.4s' }}/>
         <circle cx="88"  cy="118" r="3" fill="rgba(239,68,68,0.9)" style={{ animation: 'ft-fr-blip 2.4s ease-in-out infinite' }}/>
       </g>
       {/* right column: review queue */}
       <g transform="translate(176, 32)">
-        <text x="0" y="0" fontSize="7" fill="#FF6B3D" fillOpacity="0.6" fontFamily="ui-monospace,monospace">REVIEW QUEUE</text>
+        <text x="0" y="0" fontSize="7" fill="var(--accent)" fillOpacity="0.6" fontFamily="ui-monospace,monospace">REVIEW QUEUE</text>
         {[
           { y: 12, label: 'spoofed GPS',     bad: true  },
           { y: 32, label: 'duplicate scan',  bad: true  },
@@ -313,14 +313,14 @@ function IlluReports() {
       `}</style>
       {/* document */}
       <g>
-        <rect x="34" y="18" width="148" height="148" rx="8" fill="#FAFAF7" stroke="#FF6B3D" strokeOpacity="0.35" strokeWidth="1.4"/>
+        <rect x="34" y="18" width="148" height="148" rx="8" fill="#FAFAF7" stroke="var(--accent)" strokeOpacity="0.35" strokeWidth="1.4"/>
         {/* fold */}
-        <path d="M156 18 L182 44 L156 44 Z" fill="#FF6B3D" fillOpacity="0.18" stroke="#FF6B3D" strokeOpacity="0.4" strokeWidth="1"/>
+        <path d="M156 18 L182 44 L156 44 Z" fill="var(--accent)" fillOpacity="0.18" stroke="var(--accent)" strokeOpacity="0.4" strokeWidth="1"/>
         {/* header bar */}
-        <rect x="44" y="30" width="80" height="6" rx="2" fill="#FF6B3D" fillOpacity="0.5"/>
-        <rect x="44" y="40" width="54" height="3" rx="1.5" fill="#FF6B3D" fillOpacity="0.25"/>
+        <rect x="44" y="30" width="80" height="6" rx="2" fill="var(--accent)" fillOpacity="0.5"/>
+        <rect x="44" y="40" width="54" height="3" rx="1.5" fill="var(--accent)" fillOpacity="0.25"/>
         {/* chart axis */}
-        <line x1="46" y1="128" x2="170" y2="128" stroke="#FF6B3D" strokeOpacity="0.3" strokeWidth="1"/>
+        <line x1="46" y1="128" x2="170" y2="128" stroke="var(--accent)" strokeOpacity="0.3" strokeWidth="1"/>
         {/* bars (CSS animation grows from baseline) */}
         {[
           { x: 52,  h: 46, c: 0.5 },
@@ -331,32 +331,32 @@ function IlluReports() {
         ].map((b, i) => (
           <g key={i}>
             <rect x={b.x} y={128 - b.h} width="14" height={b.h} rx="2"
-              fill="#FF6B3D" fillOpacity={b.c}
+              fill="var(--accent)" fillOpacity={b.c}
               style={{ transformOrigin: `${b.x + 7}px 128px`, animation: `ft-rp-bar 1s ease-out ${0.2 + i * 0.1}s both` }}/>
           </g>
         ))}
         {/* trendline overlay */}
         <path d="M59 90 Q83 70 107 96 T155 78"
-          stroke="#FF6B3D" strokeWidth="1.7" fill="none" strokeLinecap="round"
+          stroke="var(--accent)" strokeWidth="1.7" fill="none" strokeLinecap="round"
           strokeDasharray="280"
           style={{ animation: 'ft-rp-line 2.2s ease-out 0.5s both' }}/>
         {/* footer rows */}
-        <rect x="44" y="142" width="60" height="3.5" rx="1.5" fill="#FF6B3D" fillOpacity="0.18"/>
-        <rect x="44" y="150" width="44" height="3.5" rx="1.5" fill="#FF6B3D" fillOpacity="0.18"/>
-        <rect x="44" y="158" width="80" height="3.5" rx="1.5" fill="#FF6B3D" fillOpacity="0.18"/>
+        <rect x="44" y="142" width="60" height="3.5" rx="1.5" fill="var(--accent)" fillOpacity="0.18"/>
+        <rect x="44" y="150" width="44" height="3.5" rx="1.5" fill="var(--accent)" fillOpacity="0.18"/>
+        <rect x="44" y="158" width="80" height="3.5" rx="1.5" fill="var(--accent)" fillOpacity="0.18"/>
       </g>
       {/* export chips */}
       <g transform="translate(200, 50)" style={{ animation: 'ft-rp-tab 2.6s ease-in-out infinite' }}>
-        <rect width="56" height="22" rx="5" fill="#FF6B3D" fillOpacity="0.10" stroke="#FF6B3D" strokeOpacity="0.5" strokeWidth="1"/>
-        <text x="28" y="15" textAnchor="middle" fontSize="9" fill="#FF6B3D" fontFamily="ui-monospace,monospace" fontWeight="600">PDF</text>
+        <rect width="56" height="22" rx="5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.5" strokeWidth="1"/>
+        <text x="28" y="15" textAnchor="middle" fontSize="9" fill="var(--accent)" fontFamily="ui-monospace,monospace" fontWeight="600">PDF</text>
       </g>
       <g transform="translate(200, 82)" style={{ animation: 'ft-rp-tab 2.6s ease-in-out infinite 0.4s' }}>
-        <rect width="56" height="22" rx="5" fill="#FF6B3D" fillOpacity="0.10" stroke="#FF6B3D" strokeOpacity="0.5" strokeWidth="1"/>
-        <text x="28" y="15" textAnchor="middle" fontSize="9" fill="#FF6B3D" fontFamily="ui-monospace,monospace" fontWeight="600">XLSX</text>
+        <rect width="56" height="22" rx="5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.5" strokeWidth="1"/>
+        <text x="28" y="15" textAnchor="middle" fontSize="9" fill="var(--accent)" fontFamily="ui-monospace,monospace" fontWeight="600">XLSX</text>
       </g>
       <g transform="translate(200, 114)" style={{ animation: 'ft-rp-tab 2.6s ease-in-out infinite 0.8s' }}>
-        <rect width="56" height="22" rx="5" fill="#FF6B3D" fillOpacity="0.10" stroke="#FF6B3D" strokeOpacity="0.5" strokeWidth="1"/>
-        <text x="28" y="15" textAnchor="middle" fontSize="9" fill="#FF6B3D" fontFamily="ui-monospace,monospace" fontWeight="600">CSV</text>
+        <rect width="56" height="22" rx="5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.5" strokeWidth="1"/>
+        <text x="28" y="15" textAnchor="middle" fontSize="9" fill="var(--accent)" fontFamily="ui-monospace,monospace" fontWeight="600">CSV</text>
       </g>
     </svg>
   );
@@ -378,21 +378,21 @@ function IlluAuditTrail() {
       ].map((b, i) => (
         <g key={i} style={{ animation: `ft-audit-block 2.6s ease-in-out infinite ${b.delay}`, transformOrigin: `${b.x + 26}px 90px` }}>
           <rect x={b.x} y="55" width="52" height="65" rx="7"
-            fill="#FF6B3D" fillOpacity={0.06 + i * 0.02}
-            stroke="#FF6B3D" strokeOpacity={0.7 - i * 0.08} strokeWidth="1.5"/>
+            fill="var(--accent)" fillOpacity={0.06 + i * 0.02}
+            stroke="var(--accent)" strokeOpacity={0.7 - i * 0.08} strokeWidth="1.5"/>
           <text x={b.x + 26} y="71" textAnchor="middle" fontSize="8" fontFamily="ui-monospace,monospace" fontWeight="600"
-            fill="#FF6B3D" fillOpacity={0.85 - i * 0.07}>{b.label}</text>
-          <rect x={b.x + 6} y="78" width="40" height="2.5" rx="1" fill="#FF6B3D" fillOpacity="0.32"/>
-          <rect x={b.x + 6} y="84" width="32" height="2"   rx="1" fill="#FF6B3D" fillOpacity="0.20"/>
-          <rect x={b.x + 6} y="89" width="36" height="2"   rx="1" fill="#FF6B3D" fillOpacity="0.20"/>
-          <rect x={b.x + 6} y="98" width="40" height="14"  rx="2" fill="#FF6B3D" fillOpacity="0.10" stroke="#FF6B3D" strokeOpacity="0.3" strokeWidth="0.6"/>
-          <text x={b.x + 26} y="108" textAnchor="middle" fontSize="6" fill="#FF6B3D" fillOpacity="0.7" fontFamily="ui-monospace,monospace">SHA-256</text>
+            fill="var(--accent)" fillOpacity={0.85 - i * 0.07}>{b.label}</text>
+          <rect x={b.x + 6} y="78" width="40" height="2.5" rx="1" fill="var(--accent)" fillOpacity="0.32"/>
+          <rect x={b.x + 6} y="84" width="32" height="2"   rx="1" fill="var(--accent)" fillOpacity="0.20"/>
+          <rect x={b.x + 6} y="89" width="36" height="2"   rx="1" fill="var(--accent)" fillOpacity="0.20"/>
+          <rect x={b.x + 6} y="98" width="40" height="14"  rx="2" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.3" strokeWidth="0.6"/>
+          <text x={b.x + 26} y="108" textAnchor="middle" fontSize="6" fill="var(--accent)" fillOpacity="0.7" fontFamily="ui-monospace,monospace">SHA-256</text>
         </g>
       ))}
       {/* chain links */}
       {[64, 132, 200].map((x, i) => (
         <line key={i} x1={x} y1="87" x2={x + 16} y2="87"
-          stroke="#FF6B3D" strokeOpacity="0.6" strokeWidth="2" strokeDasharray="4 3" strokeLinecap="round"
+          stroke="var(--accent)" strokeOpacity="0.6" strokeWidth="2" strokeDasharray="4 3" strokeLinecap="round"
           style={{ animation: 'ft-audit-link 1.4s linear infinite' }}/>
       ))}
       {/* tamper-evident badge */}
@@ -531,7 +531,7 @@ export function Features() {
               {/* Illustration: fixed height */}
               <div className="relative h-[220px] flex items-center justify-center px-5 pt-5 overflow-hidden flex-shrink-0">
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  style={{ background:'radial-gradient(ellipse at 50% 50%, rgba(255,107,61,0.08) 0%, transparent 70%)' }} />
+                  style={{ background:'radial-gradient(ellipse at 50% 50%, rgba(140,140,148,0.08) 0%, transparent 70%)' }} />
                 <f.Illu />
               </div>
               {/* Footer fills the rest */}
@@ -551,7 +551,7 @@ export function Features() {
                 <ul className="mt-3 space-y-1.5 text-[12px] text-ink-mute/90">
                   {f.bullets.map((b) => (
                     <li key={b} className="flex items-start gap-2">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF6B3D" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="mt-1 flex-shrink-0">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="mt-1 flex-shrink-0">
                         <polyline points="20 6 9 17 4 12"/>
                       </svg>
                       <span className="leading-snug">{b}</span>

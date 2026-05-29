@@ -87,8 +87,8 @@ export function GridBackground() {
       >
         <div className="absolute inset-0" style={{
           backgroundImage: [
-            'linear-gradient(rgba(255,107,61,0.45) 1px, transparent 1px)',
-            'linear-gradient(90deg, rgba(255,107,61,0.45) 1px, transparent 1px)',
+            'linear-gradient(rgba(140,140,148,0.45) 1px, transparent 1px)',
+            'linear-gradient(90deg, rgba(140,140,148,0.45) 1px, transparent 1px)',
           ].join(', '),
           backgroundSize: G,
         }} />

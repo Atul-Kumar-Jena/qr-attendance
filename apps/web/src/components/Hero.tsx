@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Magnetic } from './Magnetic';
 import { initGSAP } from '@/lib/gsap-init';
 import { DemoModal } from './DemoModal';
 import { Aurora } from './Aurora';
+import { HeroRobot } from './HeroRobot';
 
 if (typeof window !== 'undefined') {
   initGSAP();
@@ -59,26 +60,7 @@ export function Hero() {
       };
       gsap.delayedCall(1.0, () => requestAnimationFrame(tick));
 
-      // 4) QR mosaic cells materialise
-      gsap.fromTo('.qr-cell',
-        { scale: 0, opacity: 0, rotation: () => gsap.utils.random(-90, 90) },
-        {
-          scale: 1, opacity: 1, rotation: 0,
-          transformOrigin: 'center center',
-          duration: 0.85,
-          ease: 'back.out(1.5)',
-          stagger: { each: 0.005, from: 'random' },
-          delay: 0.4,
-        },
-      );
-
-      // 5) QR continuous breathing
-      gsap.to(qr.current, {
-        rotate: 0.8, scale: 1.014, duration: 4,
-        ease: 'sine.inOut', yoyo: true, repeat: -1,
-      });
-
-      // 6) Orb parallax cursor
+      // 4) Orb parallax cursor
       const onMove = (e: PointerEvent) => {
         if (!orb.current) return;
         const { innerWidth: w, innerHeight: h } = window;
@@ -166,7 +148,7 @@ export function Hero() {
                 <a
                   href="#pricing"
                   data-magnetic
-                  className="hero-cta group inline-flex items-center gap-2.5 rounded-xl bg-accent px-7 py-3.5 text-[13px] font-semibold tracking-wide text-white shadow-[0_8px_30px_-6px_rgba(255,107,61,0.5)] transition-all hover:bg-accent/90 hover:scale-[1.03] active:scale-[0.97]"
+                  className="hero-cta group inline-flex items-center gap-2.5 rounded-xl bg-accent px-7 py-3.5 text-[13px] font-semibold tracking-wide text-[#0A0A0B] shadow-[0_8px_30px_-6px_rgba(244,242,238,0.35)] transition-all hover:bg-accent/90 hover:scale-[1.03] active:scale-[0.97]"
                 >
                   Get started
                   <svg width="13" height="13" viewBox="0 0 14 14" className="transition-transform group-hover:translate-x-1">
@@ -193,9 +175,9 @@ export function Hero() {
             </div>
           </div>
 
-          {/* QR mosaic */}
-          <div ref={qr} className="relative mx-auto w-full max-w-[420px] aspect-square">
-            <QrMosaic />
+          {/* Mascot robot — appears, greets, blinks, tracks the cursor */}
+          <div ref={qr} className="relative mx-auto w-full max-w-[440px]">
+            <HeroRobot />
           </div>
         </div>
       </div>
@@ -240,133 +222,6 @@ function Stat({
         {suffix && <span className="text-accent text-[1.3rem]">{suffix}</span>}
       </div>
       <div className="mt-2 text-[10px] tracking-[0.16em] text-ink-mute">{label}</div>
-    </div>
-  );
-}
-
-const N = 21;
-
-function isFinder(x: number, y: number) {
-  return (x < 7 && y < 7) || (x >= N - 7 && y < 7) || (x < 7 && y >= N - 7);
-}
-
-function finderOn(x: number, y: number) {
-  // Standard QR finder: 7x7 outer ring on, 5x5 inside off, 3x3 core on.
-  const lx = x >= N - 7 ? x - (N - 7) : x;
-  const ly = y >= N - 7 ? y - (N - 7) : y;
-  const d = Math.min(lx, 6 - lx, ly, 6 - ly);
-  return d === 0 || d >= 2;
-}
-
-function rng(seed: number, i: number) {
-  // Seeded pseudo-random — changes every tick but is deterministic within a tick
-  const x = Math.sin(i * 9301 + 49297 + seed * 1000) * 233280;
-  return x - Math.floor(x);
-}
-
-function buildCells(seed: number) {
-  const cells: { on: boolean; isFnd: boolean }[] = [];
-  for (let y = 0; y < N; y++) {
-    for (let x = 0; x < N; x++) {
-      const fnd = isFinder(x, y);
-      cells.push({
-        isFnd: fnd,
-        on: fnd ? finderOn(x, y) : rng(seed, x * 31 + y * 17) > 0.52,
-      });
-    }
-  }
-  return cells;
-}
-
-function QrMosaic() {
-  const [tick, setTick] = useState(0);
-  const [cells, setCells] = useState(() => buildCells(0));
-  const [prevCells, setPrevCells] = useState<typeof cells>([]);
-  const [flipping, setFlipping] = useState(false);
-  const flipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setTick((t) => {
-        const next = t + 1;
-        // Use functional updater so `prev` is always the current cells — no stale closure
-        setCells((prev) => {
-          setPrevCells(prev);
-          return buildCells(next);
-        });
-        setFlipping(true);
-        if (flipTimerRef.current) clearTimeout(flipTimerRef.current);
-        flipTimerRef.current = setTimeout(() => setFlipping(false), 350);
-        return next;
-      });
-    }, 1000);
-    return () => {
-      clearInterval(id);
-      if (flipTimerRef.current) clearTimeout(flipTimerRef.current);
-    };
-  }, []);
-
-  return (
-    <div className="relative h-full w-full">
-      {/* Glass card — works in both light and dark mode via .glass */}
-      <div className="absolute inset-0 rounded-[28px] glass shadow-[0_40px_100px_-20px_rgba(11,18,32,0.2)]" />
-
-      {/* Live QR token timer ring */}
-      <svg
-        className="absolute inset-0 pointer-events-none z-10 w-full h-full"
-        viewBox="0 0 100 100"
-        aria-hidden
-      >
-        {/* Static dashed orbit */}
-        <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(11,18,32,0.06)" strokeDasharray="2 5" />
-        {/* Countdown arc — depletes over 1 second */}
-        <circle
-          cx="50" cy="50" r="44"
-          fill="none"
-          stroke="#FF6B3D"
-          strokeWidth="1.5"
-          strokeOpacity="0.55"
-          strokeDasharray="276.46"
-          strokeDashoffset="0"
-          strokeLinecap="round"
-          transform="rotate(-90 50 50)"
-          style={{ animation: 'qrCountdown 1s linear infinite' }}
-        />
-      </svg>
-
-      {/* QR cell grid */}
-      <div
-        className="absolute inset-6 grid"
-        style={{ gridTemplateColumns: `repeat(${N}, 1fr)`, gap: '2.5px' }}
-      >
-        {cells.map((c, i) => {
-          const changed = !c.isFnd && prevCells[i] && prevCells[i].on !== c.on;
-          return (
-            <div
-              key={i}
-              className="qr-cell aspect-square"
-              style={{
-                opacity: c.on ? 1 : 0,
-                transform: c.on ? 'scale(1)' : 'scale(0)',
-                transition: changed && flipping
-                  ? `opacity 0.28s ease ${(i % 11) * 0.008}s, transform 0.28s ease ${(i % 11) * 0.008}s`
-                  : 'none',
-                visibility: 'visible',
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {/* Center logo */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-14 w-14 rounded-2xl bg-cream-50 dark:bg-[#13161D] grid place-items-center shadow-lg z-20">
-        <div className="h-6 w-6 rounded-lg bg-accent icon-pulse" />
-      </div>
-
-      {/* Tick label */}
-      <div className="absolute bottom-3 right-4 z-20 font-mono text-[9px] text-accent/60 tracking-widest select-none">
-        #{tick.toString().padStart(4, '0')} · 1s
-      </div>
     </div>
   );
 }

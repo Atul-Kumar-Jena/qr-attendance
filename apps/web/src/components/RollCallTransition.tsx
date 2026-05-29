@@ -83,7 +83,7 @@ export function RollCallTransition() {
           if (modeRef.current) modeRef.current.textContent = 'Manual roll call';
           if (captionRef.current) captionRef.current.textContent = 'time lost calling names';
         })
-          .set(dotRef.current, { backgroundColor: '#FF6B3D' })
+          .set(dotRef.current, { backgroundColor: 'var(--accent)' })
           .set(checks, { scale: 0, opacity: 0, color: 'var(--ink-mute)' })
           .set(rows, { backgroundColor: 'rgba(0,0,0,0)' })
           .set(qrRef.current, { opacity: 0, scale: 0.8 })
@@ -94,7 +94,7 @@ export function RollCallTransition() {
         const step = 0.55;
         rows.forEach((row, i) => {
           const at = i * step;
-          tl.to(row, { backgroundColor: 'rgba(255,107,61,0.08)', duration: 0.18 }, at)
+          tl.to(row, { backgroundColor: 'rgba(140,140,148,0.08)', duration: 0.18 }, at)
             .to(checks[i], { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(2)' }, at + 0.22)
             .to(row, { backgroundColor: 'rgba(0,0,0,0)', duration: 0.3 }, at + 0.42);
         });
@@ -226,7 +226,7 @@ export function RollCallTransition() {
                 <div
                   ref={beamRef}
                   className="pointer-events-none absolute inset-x-0 top-0 h-10 opacity-0"
-                  style={{ background: 'linear-gradient(to bottom, rgba(255,107,61,0) 0%, rgba(255,107,61,0.28) 50%, rgba(255,107,61,0) 100%)' }}
+                  style={{ background: 'linear-gradient(to bottom, rgba(140,140,148,0) 0%, rgba(140,140,148,0.28) 50%, rgba(140,140,148,0) 100%)' }}
                 />
               </div>
             </div>

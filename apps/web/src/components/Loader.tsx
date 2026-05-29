@@ -37,11 +37,11 @@ export function Loader() {
           <rect x="0" y="0" width="9" height="9" rx="2" fill="currentColor" />
           <rect x="13" y="0" width="9" height="9" rx="2" fill="currentColor" />
           <rect x="0" y="13" width="9" height="9" rx="2" fill="currentColor" />
-          <rect x="15" y="15" width="7" height="7" rx="2" fill="#FF6B3D" />
+          <rect x="15" y="15" width="7" height="7" rx="2" fill="#F4F2EE" fillOpacity="0.55" />
         </svg>
         <div className="font-display text-[1.5rem] tracking-tight text-white">Attendly</div>
         <div className="w-40 h-px bg-white/15 overflow-hidden rounded-full">
-          <div className="h-full bg-accent" style={{ animation: 'loadFill 1.05s cubic-bezier(.6,0,.2,1) forwards' }} />
+          <div className="h-full bg-[#F4F2EE]" style={{ animation: 'loadFill 1.05s cubic-bezier(.6,0,.2,1) forwards' }} />
         </div>
       </div>
     </div>

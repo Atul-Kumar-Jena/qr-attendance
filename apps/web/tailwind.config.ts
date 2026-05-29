@@ -25,10 +25,13 @@ const config: Config = {
           200: '#E8E8ED',
         },
         accent: {
-          DEFAULT: '#FF6B3D', // ember
-          warm:    '#F2A65A',
-          rose:    '#FF4D6D',
-          violet:  '#7C5CFF',
+          // Monochrome, theme-aware. Driven by CSS vars so every accent class
+          // flips automatically across light / dark / .section-dark contexts.
+          // RGB channels keep Tailwind's /alpha modifiers (bg-accent/20) working.
+          DEFAULT: 'rgb(var(--accent-rgb) / <alpha-value>)',
+          warm:    'rgb(var(--accent-2-rgb) / <alpha-value>)',
+          rose:    'rgb(var(--accent-2-rgb) / <alpha-value>)',
+          violet:  'rgb(var(--accent-3-rgb) / <alpha-value>)',
         },
       },
       letterSpacing: {

@@ -20,6 +20,8 @@ function stripBase(href: string): string {
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const curtain = useRef<HTMLDivElement>(null);
+  const mark = useRef<HTMLDivElement>(null);
+  const bar = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -29,17 +31,22 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
     const c = curtain.current;
     if (el) {
       gsap.fromTo(el,
-        { opacity: 0, y: 12 },
-        { opacity: 1, y: 0, duration: 0.55, ease: 'power3.out', clearProps: 'transform' },
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out', delay: 0.18, clearProps: 'transform' },
       );
     }
     if (c) {
-      // Reveal: curtain (currently covering) slides up and away.
-      gsap.fromTo(c,
-        { scaleY: 1, transformOrigin: 'top' },
-        { scaleY: 0, duration: 0.6, ease: 'power4.inOut',
-          onComplete: () => gsap.set(c, { scaleY: 0 }) },
-      );
+      // Reveal: the covering curtain sweeps up and away from the top edge.
+      gsap.set(mark.current, { opacity: 0, scale: 0.6, rotate: -8 });
+      gsap.set(bar.current, { opacity: 0 });
+      gsap.timeline()
+        .to(mark.current, { opacity: 1, scale: 1, rotate: 0, duration: 0.28, ease: 'back.out(2)' }, 0)
+        .to(mark.current, { opacity: 0, scale: 0.8, duration: 0.25, ease: 'power2.in' }, 0.3)
+        .fromTo(c,
+          { scaleY: 1, transformOrigin: 'top' },
+          { scaleY: 0, duration: 0.62, ease: 'power4.inOut',
+            onComplete: () => gsap.set(c, { scaleY: 0 }) },
+          0.34);
     }
   }, [pathname]);
 
@@ -71,11 +78,16 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Cover: curtain grows from the bottom edge upward.
-      gsap.fromTo(c,
-        { scaleY: 0, transformOrigin: 'bottom' },
-        { scaleY: 1, duration: 0.42, ease: 'power4.inOut', onComplete: () => router.push(route) },
-      );
+      // Cover: a bright bar sweeps across, then the panel grows up to fill.
+      gsap.set(mark.current, { opacity: 0, scale: 0.6 });
+      gsap.timeline({ onComplete: () => router.push(route) })
+        .fromTo(bar.current,
+          { opacity: 0, top: '100%' },
+          { opacity: 1, top: '0%', duration: 0.34, ease: 'power3.inOut' }, 0)
+        .fromTo(c,
+          { scaleY: 0, transformOrigin: 'bottom' },
+          { scaleY: 1, duration: 0.46, ease: 'power4.inOut' }, 0.06)
+        .to(mark.current, { opacity: 1, scale: 1, duration: 0.22, ease: 'back.out(2)' }, 0.34);
     };
 
     document.addEventListener('click', onClick, true);
@@ -84,7 +96,10 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <div ref={curtain} aria-hidden className="pt-curtain" />
+      <div ref={curtain} aria-hidden className="pt-curtain">
+        <div ref={bar} className="pt-curtain__bar" />
+        <div ref={mark} className="pt-curtain__mark" />
+      </div>
       <div ref={ref} style={{ opacity: 1 }}>
         {children}
       </div>
