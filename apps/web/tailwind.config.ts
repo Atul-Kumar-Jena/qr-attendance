@@ -14,20 +14,21 @@ const config: Config = {
       },
       colors: {
         ink: {
-          DEFAULT: '#1D1D1F', // Apple near-black
-          soft:    '#424245',
-          mute:    '#6E6E73', // Apple body-grey
+          DEFAULT: '#16161A', // Ember near-black (cooler than Apple grey)
+          soft:    '#3A3A40',
+          mute:    '#6E6E76',
         },
         cream: {
           // "cream" names stay so no component files need touching.
-          // Values now map to Apple's white / light-grey palette.
           50:  '#FFFFFF',
-          100: '#F5F5F7', // Apple light-grey
+          100: '#F5F5F7',
           200: '#E8E8ED',
         },
         accent: {
-          DEFAULT: '#FF6B3D', // kept
+          DEFAULT: '#FF6B3D', // ember
           warm:    '#F2A65A',
+          rose:    '#FF4D6D',
+          violet:  '#7C5CFF',
         },
       },
       letterSpacing: {

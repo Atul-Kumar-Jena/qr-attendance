@@ -6,6 +6,7 @@ import { ProblemSolution } from '@/components/ProblemSolution';
 import { ParallaxColumns } from '@/components/ParallaxColumns';
 import { Features } from '@/components/Features';
 import { SecurityLayers } from '@/components/SecurityLayers';
+import { Interactive3D } from '@/components/Interactive3D';
 import { DashboardPreview } from '@/components/DashboardPreview';
 import { MobilePreview } from '@/components/MobilePreview';
 import { Pricing } from '@/components/Pricing';
@@ -30,6 +31,7 @@ export default function Page() {
       <ParallaxColumns />
       <Features />
       <SecurityLayers />
+      <Interactive3D />
       <DashboardPreview />
       <MobilePreview />
       <Pricing />

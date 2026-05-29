@@ -3,15 +3,23 @@
 @tailwind utilities;
 @import 'driver.js/dist/driver.css';
 
-/* ─── Design tokens ──────────────────────────────────────────────────────── */
+/* ─── Design tokens · EMBER ──────────────────────────────────────────────── */
 :root {
-  --bg:       #FFFFFF;
-  --bg-2:     #F5F5F7;
-  --ink:      #1D1D1F;
-  --ink-soft: #424245;
-  --ink-mute: #6E6E73;
-  --line:     rgba(0, 0, 0, 0.08);
-  --accent:   #FF6B3D;
+  --bg:        #FAFAF9;
+  --bg-2:      #F2F2F0;
+  --ink:       #16161A;
+  --ink-soft:  #3A3A40;
+  --ink-mute:  #6E6E76;
+  --line:      rgba(22, 22, 26, 0.08);
+  --accent:    #FF6B3D;  /* ember */
+  --accent-2:  #FF4D6D;  /* rose  */
+  --accent-3:  #7C5CFF;  /* violet */
+  /* Natural light-spread grid (theme-aware) */
+  --grid-line: rgba(22, 22, 26, 0.045);
+  --grid-dot:  rgba(22, 22, 26, 0.10);
+  --glow:      rgba(255, 107, 61, 0.10);
+  --glow-2:    rgba(124, 92, 255, 0.07);
+  --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────── */
@@ -243,13 +251,19 @@ body {
 
 /* ─── Dark mode overrides ────────────────────────────────────────────────── */
 html.dark {
-  --bg:       #000000;
-  --bg-2:     #1C1C1E;
-  --ink:      #F5F5F7;
-  --ink-soft: #EBEBF0;
-  --ink-mute: #98989D;
-  --line:     rgba(255, 255, 255, 0.12);
-  --accent:   #FF6B3D;
+  --bg:        #0A0A0B;
+  --bg-2:      #131316;
+  --ink:       #F4F2EE;
+  --ink-soft:  #C9C7C2;
+  --ink-mute:  #8A8A92;
+  --line:      rgba(244, 242, 238, 0.10);
+  --accent:    #FF6B3D;
+  --accent-2:  #FF4D6D;
+  --accent-3:  #7C5CFF;
+  --grid-line: rgba(244, 242, 238, 0.05);
+  --grid-dot:  rgba(244, 242, 238, 0.09);
+  --glow:      rgba(255, 107, 61, 0.13);
+  --glow-2:    rgba(124, 92, 255, 0.10);
 }
 
 html.dark body { background: var(--bg); color: var(--ink); }
@@ -684,4 +698,117 @@ html.theme-transitioning *::after {
   /* No "cursor: none" on touch (was inside the pointer: fine media query, but
      adding belt-and-suspenders here) */
   * { cursor: auto !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EMBER · animation system (redesign)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Always-dark "bookend" sections (dark even while site is in light mode) ─ */
+.section-dark {
+  --bg:       #0A0A0B;
+  --bg-2:     #131316;
+  --ink:      #F4F2EE;
+  --ink-soft: #C9C7C2;
+  --ink-mute: #8A8A92;
+  --line:     rgba(244, 242, 238, 0.10);
+  background: var(--bg);
+  color: var(--ink);
+  position: relative;
+  isolation: isolate;
+}
+.section-dark .text-ink       { color: var(--ink) !important; }
+.section-dark .text-ink-soft  { color: var(--ink-soft) !important; }
+.section-dark .text-ink-mute  { color: var(--ink-mute) !important; }
+.section-dark .bg-cream-50    { background: var(--bg) !important; }
+.section-dark .bg-cream-100   { background: var(--bg-2) !important; }
+.section-dark [class*="border-ink"] { border-color: var(--line) !important; }
+
+/* ── Aurora · matte-glass moving colour field ───────────────────────────── */
+.aurora { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.aurora-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(64px);
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+.aurora-glass {
+  position: absolute; inset: 0;
+  backdrop-filter: blur(44px) saturate(125%);
+  -webkit-backdrop-filter: blur(44px) saturate(125%);
+  background: rgba(10, 10, 11, 0.28);
+}
+.aurora-grain {
+  position: absolute; inset: 0;
+  background-image: var(--grain);
+  background-size: 180px 180px;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+}
+@keyframes auroraDrift1 {
+  0%, 100% { transform: translate3d(-8%, -6%, 0) scale(1); }
+  50%      { transform: translate3d(12%, 10%, 0) scale(1.25); }
+}
+@keyframes auroraDrift2 {
+  0%, 100% { transform: translate3d(10%, -4%, 0) scale(1.1); }
+  50%      { transform: translate3d(-12%, 8%, 0) scale(0.9); }
+}
+@keyframes auroraDrift3 {
+  0%, 100% { transform: translate3d(-4%, 8%, 0) scale(0.95); }
+  50%      { transform: translate3d(8%, -10%, 0) scale(1.2); }
+}
+
+/* ── Natural light-spread (GridBackground ambient glows) ────────────────── */
+@keyframes glowDrift1 {
+  0%, 100% { transform: translate3d(-5%, -4%, 0) scale(1); }
+  50%      { transform: translate3d(7%, 6%, 0) scale(1.18); }
+}
+@keyframes glowDrift2 {
+  0%, 100% { transform: translate3d(6%, 5%, 0) scale(1.1); }
+  50%      { transform: translate3d(-7%, -8%, 0) scale(0.92); }
+}
+
+/* ── Smooth entrance reveals (GSAP sets the from-state; these are the
+      no-JS / reduced-motion safety states so content never sticks hidden) ─ */
+[data-reveal] { will-change: transform, opacity; }
+
+/* ── 3D tilt card ───────────────────────────────────────────────────────── */
+.tilt-card { transform-style: preserve-3d; will-change: transform; }
+.tilt-card__layer { transform: translateZ(38px); transform-style: preserve-3d; }
+
+/* ── Generic / Spline loader (SplineScene Suspense fallback uses .loader) ── */
+.loader {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 2.5px solid var(--line);
+  border-top-color: var(--accent);
+  animation: loaderSpin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes loaderSpin { to { transform: rotate(360deg); } }
+
+/* ── aceternity spotlight ───────────────────────────────────────────────── */
+@keyframes spotlight {
+  0%   { opacity: 0; transform: translate(-72%, -62%) scale(0.5); }
+  100% { opacity: 1; transform: translate(-50%, -40%) scale(1); }
+}
+.animate-spotlight { animation: spotlight 2s ease 0.75s 1 forwards; }
+
+/* ── Preloader curtain ──────────────────────────────────────────────────── */
+.preloader {
+  position: fixed; inset: 0; z-index: 100000;
+  background: #0A0A0B;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── Mobile / reduced-motion: flatten the expensive bits ────────────────── */
+@media (max-width: 767px) {
+  .aurora-blob  { filter: blur(46px) !important; animation: none !important; }
+  .aurora-glass { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: rgba(10, 10, 11, 0.42) !important; }
+  .aurora-grain { opacity: 0.32; }
+  .tilt-card    { transform: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob { animation: none !important; }
+  .animate-spotlight { animation: none !important; opacity: 1 !important; }
 }

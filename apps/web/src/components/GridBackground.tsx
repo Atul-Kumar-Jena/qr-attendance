@@ -1,22 +1,25 @@
 'use client';
 import { useEffect, useRef } from 'react';
 
-// Theme accent color: #FF6B3D (rgb 255, 107, 61) — same as --accent token
+/**
+ * Natural light-spread background.
+ *  - A faint, theme-aware hairline grid (var --grid-line / --grid-dot).
+ *  - Two large, slowly drifting ambient glows (the "light spread") that give
+ *    the page an organic, breathing warmth instead of a rigid grid.
+ *  - A gentle cursor-reveal that brightens the grid locally (desktop only).
+ * All colours come from CSS tokens so it adapts to light / dark automatically.
+ */
 export function GridBackground() {
   const revealRef = useRef<HTMLDivElement>(null);
   const spotRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    // Skip mouse tracking on touch devices — static grid still renders
-    if (window.matchMedia('(pointer: coarse)').matches) return;
+    if (window.matchMedia('(pointer: coarse)').matches) return; // no tracking on touch
 
     const reveal = revealRef.current!;
     const spot = spotRef.current!;
-
-    let mx = -9999, my = -9999;
-    let cx = mx, cy = my;
-    let raf = 0;
+    let mx = -9999, my = -9999, cx = mx, cy = my, raf = 0;
 
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
     const onMove = (e: MouseEvent) => { mx = e.clientX; my = e.clientY; };
@@ -24,86 +27,83 @@ export function GridBackground() {
     const tick = () => {
       cx = lerp(cx, mx, 0.09);
       cy = lerp(cy, my, 0.09);
-
-      const mask = `radial-gradient(380px circle at ${cx}px ${cy}px, black 0%, black 25%, transparent 68%)`;
+      const mask = `radial-gradient(340px circle at ${cx}px ${cy}px, black 0%, black 22%, transparent 70%)`;
       reveal.style.webkitMaskImage = mask;
       reveal.style.maskImage = mask;
-
-      const isDark = document.documentElement.classList.contains('dark');
-      spot.style.background = isDark
-        ? `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(255,107,61,0.14) 0%, rgba(255,107,61,0.05) 45%, transparent 70%)`
-        : `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(255,107,61,0.10) 0%, rgba(255,107,61,0.03) 45%, transparent 70%)`;
-
+      spot.style.background =
+        `radial-gradient(520px circle at ${cx}px ${cy}px, var(--glow) 0%, transparent 68%)`;
       raf = requestAnimationFrame(tick);
     };
 
     window.addEventListener('mousemove', onMove, { passive: true });
     raf = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('mousemove', onMove);
-    };
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('mousemove', onMove); };
   }, []);
 
-  const G = '48px 48px';
+  const G = '64px 64px';
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-0" aria-hidden>
-      {/* Dim base grid lines */}
+    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden>
+      {/* Soft drifting ambient glows — the "light spread" */}
+      <div className="absolute" style={{
+        width: '70vw', height: '70vw', left: '-15vw', top: '-20vh',
+        background: 'radial-gradient(circle at 50% 50%, var(--glow) 0%, transparent 70%)',
+        filter: 'blur(8px)', animation: 'glowDrift1 26s ease-in-out infinite',
+      }} />
+      <div className="absolute" style={{
+        width: '60vw', height: '60vw', right: '-12vw', bottom: '-18vh',
+        background: 'radial-gradient(circle at 50% 50%, var(--glow-2) 0%, transparent 72%)',
+        filter: 'blur(8px)', animation: 'glowDrift2 32s ease-in-out infinite',
+      }} />
+
+      {/* Faint hairline grid */}
       <div className="absolute inset-0" style={{
         backgroundImage: [
-          'linear-gradient(rgba(255,107,61,0.045) 1px, transparent 1px)',
-          'linear-gradient(90deg, rgba(255,107,61,0.045) 1px, transparent 1px)',
+          'linear-gradient(var(--grid-line) 1px, transparent 1px)',
+          'linear-gradient(90deg, var(--grid-line) 1px, transparent 1px)',
         ].join(', '),
         backgroundSize: G,
+        maskImage: 'radial-gradient(ellipse 90% 70% at 50% 35%, black 30%, transparent 92%)',
+        WebkitMaskImage: 'radial-gradient(ellipse 90% 70% at 50% 35%, black 30%, transparent 92%)',
       }} />
 
-      {/* Dim intersection dots */}
+      {/* Faint intersection dots */}
       <div className="absolute inset-0" style={{
-        backgroundImage: 'radial-gradient(circle, rgba(255,107,61,0.16) 0.9px, transparent 0.9px)',
+        backgroundImage: 'radial-gradient(circle, var(--grid-dot) 1px, transparent 1px)',
         backgroundSize: G,
+        maskImage: 'radial-gradient(ellipse 90% 70% at 50% 35%, black 30%, transparent 92%)',
+        WebkitMaskImage: 'radial-gradient(ellipse 90% 70% at 50% 35%, black 30%, transparent 92%)',
       }} />
 
-      {/* Cursor-revealed bright layer (masked, hidden off-screen until hover) */}
+      {/* Cursor-revealed accent grid (desktop) */}
       <div
         ref={revealRef}
         data-grid-reveal
         className="absolute inset-0"
         style={{
-          WebkitMaskImage: 'radial-gradient(380px circle at -9999px -9999px, black 0%, transparent 68%)',
-          maskImage: 'radial-gradient(380px circle at -9999px -9999px, black 0%, transparent 68%)',
+          WebkitMaskImage: 'radial-gradient(340px circle at -9999px -9999px, black 0%, transparent 70%)',
+          maskImage: 'radial-gradient(340px circle at -9999px -9999px, black 0%, transparent 70%)',
         }}
       >
-        {/* Vivid lines */}
         <div className="absolute inset-0" style={{
           backgroundImage: [
-            'linear-gradient(rgba(255,107,61,0.6) 1px, transparent 1px)',
-            'linear-gradient(90deg, rgba(255,107,61,0.6) 1px, transparent 1px)',
+            'linear-gradient(rgba(255,107,61,0.45) 1px, transparent 1px)',
+            'linear-gradient(90deg, rgba(255,107,61,0.45) 1px, transparent 1px)',
           ].join(', '),
           backgroundSize: G,
         }} />
-        {/* Vivid dots */}
         <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle, rgba(255,140,100,0.95) 1.1px, transparent 1.1px)',
+          backgroundImage: 'radial-gradient(circle, rgba(255,140,100,0.8) 1.1px, transparent 1.1px)',
           backgroundSize: G,
-        }} />
-        {/* Bloom behind lines */}
-        <div className="absolute inset-0" style={{
-          backgroundImage: [
-            'linear-gradient(rgba(255,140,100,0.18) 3px, transparent 3px)',
-            'linear-gradient(90deg, rgba(255,140,100,0.18) 3px, transparent 3px)',
-          ].join(', '),
-          backgroundSize: G,
-          filter: 'blur(2px)',
         }} />
       </div>
 
-      {/* Ambient halo that follows cursor */}
+      {/* Ambient halo following the cursor */}
       <div ref={spotRef} className="absolute inset-0" />
 
-      {/* Edge vignette — fades grid at page edges */}
+      {/* Edge vignette → blends into page bg */}
       <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse 100% 55% at 50% 0%, transparent 40%, var(--bg, #FAFAF7) 100%)',
+        background: 'radial-gradient(ellipse 100% 60% at 50% 0%, transparent 45%, var(--bg) 100%)',
       }} />
     </div>
   );
