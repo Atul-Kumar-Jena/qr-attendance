@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initGSAP } from '@/lib/gsap-init';
 import { Magnetic } from './Magnetic';
+import { TiltCard } from './TiltCard';
 import { useSiteConfig, type PricingTier } from '@/context/SiteConfigContext';
 
 if (typeof window !== 'undefined') initGSAP();
@@ -93,9 +94,9 @@ export function Pricing() {
               : t.price;
 
             return (
+              <TiltCard key={t.name} max={6} className="h-full">
               <div
-                key={t.name}
-                className={`tier rounded-2xl p-8 border transition-all ${
+                className={`tier h-full rounded-2xl p-8 border transition-all ${
                   t.highlight
                     ? 'bg-ink dark:bg-[#1A2236] text-cream-50 border-ink dark:border-white/10 shadow-[0_30px_80px_-20px_rgba(11,18,32,0.4)]'
                     : 'bg-cream-50 border-ink/10'
@@ -158,6 +159,7 @@ export function Pricing() {
                   </Magnetic>
                 </div>
               </div>
+              </TiltCard>
             );
           })}
         </div>

@@ -831,6 +831,15 @@ html.theme-transitioning *::after {
   to   { width: 100%; }
 }
 
+/* ── Route-change curtain wipe ──────────────────────────────────────────── */
+.pt-curtain {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #0A0A0B;
+  transform: scaleY(0);
+  pointer-events: none;
+  box-shadow: 0 0 0 0 rgba(255, 107, 61, 0);
+}
+
 /* ── Mobile / reduced-motion: flatten the expensive bits ────────────────── */
 @media (max-width: 767px) {
   .aurora-blob  { filter: blur(46px) !important; animation: none !important; }

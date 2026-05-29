@@ -24,6 +24,8 @@ export function ScrollReveal() {
       return;
     }
 
+    const desktop = !window.matchMedia('(max-width: 900px)').matches;
+
     const ctx = gsap.context(() => {
       gsap.set(els, { opacity: 0, y: 28 });
       ScrollTrigger.batch('[data-reveal]', {
@@ -35,6 +37,20 @@ export function ScrollReveal() {
             stagger: 0.08, overwrite: true,
           }),
       });
+
+      // Multi-speed parallax for [data-speed] (desktop only — cheap transforms).
+      if (desktop) {
+        gsap.utils.toArray<HTMLElement>('[data-speed]').forEach((el) => {
+          const speed = parseFloat(el.dataset.speed || '0');
+          if (!speed) return;
+          gsap.to(el, {
+            yPercent: speed * -12,
+            ease: 'none',
+            scrollTrigger: { trigger: el, start: 'top bottom', end: 'bottom top', scrub: true },
+          });
+        });
+      }
+
       ScrollTrigger.refresh();
     });
 

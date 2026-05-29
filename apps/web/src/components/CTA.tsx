@@ -6,6 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initGSAP } from '@/lib/gsap-init';
 import { Magnetic } from './Magnetic';
 import { Aurora } from './Aurora';
+import { InteractiveSpotlight } from './ui/interactive-spotlight';
 
 if (typeof window !== 'undefined') initGSAP();
 
@@ -42,6 +43,7 @@ export function CTA() {
   return (
     <section id="demo" ref={root} className="cta-section section-dark relative py-40 overflow-hidden">
       <Aurora variant="soft" />
+      <InteractiveSpotlight size={440} />
       <svg aria-hidden viewBox="0 0 1200 400" className="absolute inset-0 w-full h-full text-accent opacity-40 z-[1]">
         <path
           ref={path}

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Cpu, MapPin, ScanFace, ShieldCheck } from 'lucide-react';
 import { SplineScene } from '@/components/ui/splite';
 import { Spotlight } from '@/components/ui/spotlight';
+import { InteractiveSpotlight } from '@/components/ui/interactive-spotlight';
 import { Aurora } from '@/components/Aurora';
 
 const SCENE = 'https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode';
@@ -42,6 +43,7 @@ export function Interactive3D() {
     <section ref={ref} className="section-dark relative overflow-hidden py-24 lg:py-32">
       <Aurora variant="soft" />
       <Spotlight className="-top-40 left-0 md:left-1/3 md:-top-20" fill="#FF6B3D" />
+      <InteractiveSpotlight size={460} className="from-accent/20 via-accent-violet/10 to-transparent" />
 
       <div className="container relative z-10">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center min-h-[440px]">

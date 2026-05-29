@@ -19,23 +19,34 @@ function stripBase(href: string): string {
 
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
+  const curtain = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
 
-  // Fade IN on mount or route change
+  // Fade IN content + lift the curtain away on mount / route change.
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
-    gsap.fromTo(
-      el,
-      { opacity: 0, y: 12 },
-      { opacity: 1, y: 0, duration: 0.55, ease: 'power3.out', clearProps: 'transform' },
-    );
+    const c = curtain.current;
+    if (el) {
+      gsap.fromTo(el,
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.55, ease: 'power3.out', clearProps: 'transform' },
+      );
+    }
+    if (c) {
+      // Reveal: curtain (currently covering) slides up and away.
+      gsap.fromTo(c,
+        { scaleY: 1, transformOrigin: 'top' },
+        { scaleY: 0, duration: 0.6, ease: 'power4.inOut',
+          onComplete: () => gsap.set(c, { scaleY: 0 }) },
+      );
+    }
   }, [pathname]);
 
-  // Intercept link clicks — fade OUT then use Next.js router (no full reload)
+  // Intercept internal link clicks — curtain wipes UP to cover, then route.
   useEffect(() => {
     const el = ref.current;
+    const c = curtain.current;
     if (!el) return;
 
     const onClick = (e: MouseEvent) => {
@@ -53,13 +64,18 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
 
       const route = stripBase(rawHref);
       e.preventDefault();
-      gsap.to(el, {
-        opacity: 0,
-        y: -8,
-        duration: 0.28,
-        ease: 'power2.in',
-        onComplete: () => router.push(route),
-      });
+
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduce || !c) {
+        gsap.to(el, { opacity: 0, y: -8, duration: 0.24, ease: 'power2.in', onComplete: () => router.push(route) });
+        return;
+      }
+
+      // Cover: curtain grows from the bottom edge upward.
+      gsap.fromTo(c,
+        { scaleY: 0, transformOrigin: 'bottom' },
+        { scaleY: 1, duration: 0.42, ease: 'power4.inOut', onComplete: () => router.push(route) },
+      );
     };
 
     document.addEventListener('click', onClick, true);
@@ -67,8 +83,11 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   return (
-    <div ref={ref} style={{ opacity: 1 }}>
-      {children}
-    </div>
+    <>
+      <div ref={curtain} aria-hidden className="pt-curtain" />
+      <div ref={ref} style={{ opacity: 1 }}>
+        {children}
+      </div>
+    </>
   );
 }
