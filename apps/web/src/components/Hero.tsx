@@ -29,8 +29,8 @@ export function Hero() {
     ctx = gsap.context(() => {
       // 1) Headline mask reveal
       gsap.fromTo('.hero-line .reveal-line',
-        { yPercent: 110, rotateZ: 2 },
-        { yPercent: 0, rotateZ: 0, duration: 1.15, ease: 'expo.out', stagger: 0.1, delay: 0.2 },
+        { yPercent: 110, rotateZ: 2, filter: 'blur(10px)' },
+        { yPercent: 0, rotateZ: 0, filter: 'blur(0px)', duration: 1.25, ease: 'expo.out', stagger: 0.12, delay: 0.25 },
       );
 
       // 2) Badge entrance
@@ -145,7 +145,7 @@ export function Hero() {
               {HEADLINE.map((line, i) => (
                 <span key={i} className="hero-line block reveal-mask">
                   <span className="reveal-line">
-                    {i === 1 ? <em className="not-italic text-accent">{line}</em> : line}
+                    {i === 1 ? <em className="not-italic bg-clip-text text-transparent bg-gradient-to-r from-accent via-accent-rose to-accent-violet">{line}</em> : line}
                   </span>
                 </span>
               ))}
@@ -199,6 +199,9 @@ export function Hero() {
           </div>
         </div>
       </div>
+      {/* Fade into the light body below (theme-aware via --page-bg) */}
+      <div aria-hidden className="absolute inset-x-0 bottom-0 h-28 z-[1] pointer-events-none" style={{ background: 'linear-gradient(to bottom, transparent, var(--page-bg))' }} />
+
       {/* Scroll cue */}
       <div className="hero-cue absolute bottom-7 left-1/2 -translate-x-1/2 z-10 hidden md:flex flex-col items-center gap-2 text-white/40">
         <span className="text-[10px] tracking-[0.3em] uppercase">Scroll</span>
