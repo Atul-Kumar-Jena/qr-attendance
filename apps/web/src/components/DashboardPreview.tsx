@@ -74,8 +74,8 @@ export function DashboardPreview() {
   return (
     <section id="dashboard" ref={root} className="py-28 lg:py-40">
       <div className="container mb-12 text-center">
-        <span className="text-[11px] tracking-[0.3em] text-ink-mute uppercase">[ 04 — dashboard ]</span>
-        <h2 className="mt-4 font-display text-[2.5rem] lg:text-[4rem] leading-[1.02] tracking-tightish max-w-3xl mx-auto">
+        <span data-reveal className="text-[11px] tracking-[0.3em] text-ink-mute uppercase">[ 04 — dashboard ]</span>
+        <h2 data-reveal className="mt-4 font-display text-[2.5rem] lg:text-[4rem] leading-[1.02] tracking-tightish max-w-3xl mx-auto">
           A dashboard you'd actually want to open.
         </h2>
       </div>

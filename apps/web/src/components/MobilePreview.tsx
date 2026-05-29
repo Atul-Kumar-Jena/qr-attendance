@@ -47,11 +47,11 @@ export function MobilePreview() {
     <section ref={root} className="py-28 lg:py-40 bg-ink text-cream-50 relative overflow-hidden">
       <div className="container">
         <div className="mb-16 max-w-3xl">
-          <span className="text-[11px] tracking-[0.3em] text-cream-50/50 uppercase">[ 05 — mobile ]</span>
-          <h2 className="mt-4 font-display text-[2.5rem] lg:text-[4rem] leading-[1.02] tracking-tightish">
+          <span data-reveal className="text-[11px] tracking-[0.3em] text-cream-50/50 uppercase">[ 05 — mobile ]</span>
+          <h2 data-reveal className="mt-4 font-display text-[2.5rem] lg:text-[4rem] leading-[1.02] tracking-tightish">
             For students, it's just <em className="not-italic text-accent">tap, scan, done.</em>
           </h2>
-          <p className="mt-5 text-[14px] text-cream-50/60 max-w-md">
+          <p data-reveal className="mt-5 text-[14px] text-cream-50/60 max-w-md">
             Bound to one device. Sees its own attendance history, percentages
             and warnings — nothing more.
           </p>

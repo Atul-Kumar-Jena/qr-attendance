@@ -27,14 +27,14 @@ export function ScrollReveal() {
     const desktop = !window.matchMedia('(max-width: 900px)').matches;
 
     const ctx = gsap.context(() => {
-      gsap.set(els, { opacity: 0, y: 28 });
+      gsap.set(els, { opacity: 0, y: 36, filter: 'blur(6px)' });
       ScrollTrigger.batch('[data-reveal]', {
-        start: 'top 88%',
+        start: 'top 86%',
         once: true,
         onEnter: (batch) =>
           gsap.to(batch, {
-            opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
-            stagger: 0.08, overwrite: true,
+            opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.0, ease: 'expo.out',
+            stagger: 0.1, overwrite: true,
           }),
       });
 

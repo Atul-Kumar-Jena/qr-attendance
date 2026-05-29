@@ -72,8 +72,8 @@ export function Pricing() {
     <section id="pricing" ref={root} className="py-28 lg:py-40">
       <div className="container">
         <div className="mb-16 text-center">
-          <span className="text-[11px] tracking-[0.3em] text-ink-mute uppercase">[ 06 — pricing ]</span>
-          <h2 className="mt-4 font-display text-[2.5rem] lg:text-[4rem] leading-[1.02] tracking-tightish">
+          <span data-reveal className="text-[11px] tracking-[0.3em] text-ink-mute uppercase">[ 06 — pricing ]</span>
+          <h2 data-reveal className="mt-4 font-display text-[2.5rem] lg:text-[4rem] leading-[1.02] tracking-tightish">
             Honest pricing. <em className="not-italic text-accent">No per-scan tax.</em>
           </h2>
           {isLimitedOffer && (
