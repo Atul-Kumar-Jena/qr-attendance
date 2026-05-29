@@ -7,29 +7,27 @@ const config: Config = {
     container: { center: true, padding: '1.5rem', screens: { '2xl': '1280px' } },
     extend: {
       fontFamily: {
-        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-display)', 'serif'],
-        mono: ['ui-monospace', 'SFMono-Regular', 'monospace'],
+        // Both display + body use Nunito Sans — Apple-style single-family.
+        sans:    ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        mono:    ['ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {
         ink: {
-          DEFAULT: '#0B1220',
-          soft: '#1A2236',
-          mute: '#5A6783',
+          DEFAULT: '#1D1D1F', // Apple near-black
+          soft:    '#424245',
+          mute:    '#6E6E73', // Apple body-grey
         },
         cream: {
-          50: '#FAFAF7',
-          100: '#F4F3EC',
-          200: '#EAE7DA',
-        },
-        sage: {
-          400: '#9DB39A',
-          500: '#7C967A',
-          600: '#5F7B5E',
+          // "cream" names stay so no component files need touching.
+          // Values now map to Apple's white / light-grey palette.
+          50:  '#FFFFFF',
+          100: '#F5F5F7', // Apple light-grey
+          200: '#E8E8ED',
         },
         accent: {
-          DEFAULT: '#FF6B3D',
-          warm: '#F2A65A',
+          DEFAULT: '#FF6B3D', // kept
+          warm:    '#F2A65A',
         },
       },
       letterSpacing: {

@@ -5,15 +5,13 @@
 
 /* ─── Design tokens ──────────────────────────────────────────────────────── */
 :root {
-  --bg: #FAFAF7;
-  --bg-2: #F4F3EC;
-  --ink: #0B1220;
-  --ink-soft: #1A2236;
-  --ink-mute: #5A6783;
-  --line: rgba(11, 18, 32, 0.07);
-  --sage: #7C967A;
-  --accent: #FF6B3D;
-  --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --bg:       #FFFFFF;
+  --bg-2:     #F5F5F7;
+  --ink:      #1D1D1F;
+  --ink-soft: #424245;
+  --ink-mute: #6E6E73;
+  --line:     rgba(0, 0, 0, 0.08);
+  --accent:   #FF6B3D;
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────── */
@@ -32,18 +30,6 @@ html, body {
   letter-spacing: 0.01em;
 }
 
-/* Film-grain overlay */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image: var(--grain);
-  opacity: 0.4;
-  mix-blend-mode: multiply;
-  z-index: 1;
-}
-
 ::selection { background: var(--ink); color: var(--bg); }
 
 html { scroll-behavior: smooth; }
@@ -58,19 +44,20 @@ html { scroll-behavior: smooth; }
 }
 
 /* ─── Typography scale ───────────────────────────────────────────────────── */
-/* Display headings use Cormorant Garamond — slightly larger, more generous tracking */
+/* Display headings — Nunito Sans at heavier weight, slightly tightened. */
 .font-display {
-  font-feature-settings: "liga", "kern";
-  letter-spacing: -0.02em;
+  font-feature-settings: "kern";
+  letter-spacing: -0.015em;
+  font-weight: 700;
 }
 
-/* Body copy: relax inter-character spacing slightly */
 body, p, span, li {
   line-height: 1.65;
 }
 
 h1, h2, h3 {
-  line-height: 1.05;
+  line-height: 1.1;
+  font-weight: 700;
 }
 
 /* ─── Stat numbers: always tabular + tight ───────────────────────────────── */
@@ -117,9 +104,9 @@ h1, h2, h3 {
 
 /* ─── Glass card ─────────────────────────────────────────────────────────── */
 .glass {
-  background: rgba(250, 250, 247, 0.6);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--line);
 }
 
@@ -256,41 +243,38 @@ body {
 
 /* ─── Dark mode overrides ────────────────────────────────────────────────── */
 html.dark {
-  --bg: #0D0F14;
-  --bg-2: #13161D;
-  --ink: #F0EDE6;
-  --ink-soft: #D4D0C8;
-  --ink-mute: #7A8199;
-  --line: rgba(240, 237, 230, 0.08);
-  --sage: #7C967A;
-  --accent: #FF6B3D;
+  --bg:       #000000;
+  --bg-2:     #1C1C1E;
+  --ink:      #F5F5F7;
+  --ink-soft: #EBEBF0;
+  --ink-mute: #98989D;
+  --line:     rgba(255, 255, 255, 0.12);
+  --accent:   #FF6B3D;
 }
 
 html.dark body { background: var(--bg); color: var(--ink); }
 
 html.dark .glass {
-  background: rgba(20, 23, 32, 0.7);
-  border-color: rgba(240, 237, 230, 0.08);
+  background: rgba(28, 28, 30, 0.78);
+  border-color: rgba(255, 255, 255, 0.10);
 }
 
-/* grain overlay handled below in the fixes section */
-
-html.dark .bg-cream-50 { background: var(--bg) !important; }
-html.dark .bg-cream-100 { background: var(--bg-2) !important; }
-html.dark .text-ink { color: var(--ink) !important; }
+html.dark .bg-cream-50  { background: var(--bg)   !important; }
+html.dark .bg-cream-100 { background: var(--bg-2)  !important; }
+html.dark .text-ink      { color: var(--ink)      !important; }
 html.dark .text-ink-mute { color: var(--ink-mute) !important; }
 html.dark .border-ink\/10 { border-color: var(--line) !important; }
-html.dark .border-ink\/8 { border-color: var(--line) !important; }
+html.dark .border-ink\/8  { border-color: var(--line) !important; }
 
 /* Dark mode nav pill */
 html.dark header .bg-cream-50\/80 {
-  background: rgba(13, 15, 20, 0.85) !important;
-  border-color: rgba(240, 237, 230, 0.08) !important;
+  background: rgba(0, 0, 0, 0.88) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
 }
 
 /* Dark mode mobile menu */
 html.dark .bg-cream-50\/95 {
-  background: rgba(13, 15, 20, 0.95) !important;
+  background: rgba(0, 0, 0, 0.96) !important;
 }
 
 /* Dark mode section backgrounds */
@@ -335,14 +319,14 @@ html.dark [class*="border-ink"] {
     max-width       380ms cubic-bezier(.4, 0, .2, 1);
 }
 .nav-pill-scrolled {
-  background: rgba(250, 250, 247, 0.82);
-  border-color: rgba(11, 18, 32, 0.08);
-  box-shadow: 0 4px 32px -4px rgba(11, 18, 32, 0.12);
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 32px -4px rgba(0, 0, 0, 0.08);
 }
 html.dark .nav-pill-scrolled {
-  background: rgba(13, 15, 20, 0.85);
-  border-color: rgba(240, 237, 230, 0.08);
-  box-shadow: 0 4px 40px -4px rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.88);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 4px 40px -4px rgba(0, 0, 0, 0.6);
 }
 
 /* divide-* borders (divide-ink/X uses a different class than border-ink/X) */
@@ -359,52 +343,43 @@ html.dark .qr-cell {
 }
 
 /* bg-ink opacity variants for decorative circles / dots */
-html.dark .bg-ink\/15 { background-color: rgba(240, 237, 230, 0.15) !important; }
+html.dark .bg-ink\/15 { background-color: rgba(245, 245, 247, 0.15) !important; }
 
 /* ParallaxColumns in dark mode */
 html.dark .pcol-card {
-  background: rgba(25, 30, 42, 0.85);
-  border-color: rgba(240, 237, 230, 0.08);
+  background: rgba(28, 28, 30, 0.9);
+  border-color: rgba(255, 255, 255, 0.10);
 }
 
 /* ── Dark mode hover & opacity-variant fixes ──────────────────────────────── */
 
-/* Hover text → theme-adaptive (Tailwind hover:text-ink uses hardcoded #0B1220) */
-html.dark .hover\:text-ink:hover { color: var(--ink) !important; }
+html.dark .hover\:text-ink:hover      { color: var(--ink)      !important; }
 html.dark .hover\:text-ink-soft:hover { color: var(--ink-soft) !important; }
 
-/* Hover backgrounds → theme-adaptive */
-html.dark .hover\:bg-cream-50:hover  { background-color: var(--bg)   !important; }
-html.dark .hover\:bg-cream-100:hover { background-color: var(--bg-2)  !important; }
-html.dark .hover\:bg-ink-soft:hover  { background-color: #222c3e !important; }
+html.dark .hover\:bg-cream-50:hover  { background-color: var(--bg)  !important; }
+html.dark .hover\:bg-cream-100:hover { background-color: var(--bg-2) !important; }
+html.dark .hover\:bg-ink-soft:hover  { background-color: #2C2C2E !important; }
 
-/* Opacity-variant backgrounds not caught by base `.bg-cream-*` selectors */
-html.dark .bg-cream-100\/60 { background-color: rgba(19, 22, 29, 0.6) !important; }
-html.dark .bg-cream-100\/70 { background-color: rgba(19, 22, 29, 0.7) !important; }
-html.dark .bg-cream-100\/80 { background-color: rgba(19, 22, 29, 0.8) !important; }
-html.dark .bg-cream-50\/50  { background-color: rgba(13, 15, 20, 0.5) !important; }
-html.dark .bg-cream-50\/30  { background-color: rgba(13, 15, 20, 0.3) !important; }
-html.dark .bg-cream-50\/10  { background-color: rgba(13, 15, 20, 0.1) !important; }
+/* Opacity-variant backgrounds */
+html.dark .bg-cream-100\/60 { background-color: rgba(28, 28, 30, 0.6) !important; }
+html.dark .bg-cream-100\/70 { background-color: rgba(28, 28, 30, 0.7) !important; }
+html.dark .bg-cream-100\/80 { background-color: rgba(28, 28, 30, 0.8) !important; }
+html.dark .bg-cream-50\/50  { background-color: rgba(0,  0,  0,  0.5) !important; }
+html.dark .bg-cream-50\/30  { background-color: rgba(0,  0,  0,  0.3) !important; }
+html.dark .bg-cream-50\/10  { background-color: rgba(0,  0,  0,  0.1) !important; }
 
-/* Hover opacity-variant backgrounds */
-html.dark .hover\:bg-cream-100\/70:hover { background-color: rgba(19, 22, 29, 0.7) !important; }
-html.dark .hover\:bg-cream-100\/50:hover { background-color: rgba(19, 22, 29, 0.5) !important; }
+html.dark .hover\:bg-cream-100\/70:hover { background-color: rgba(28, 28, 30, 0.7) !important; }
+html.dark .hover\:bg-cream-100\/50:hover { background-color: rgba(28, 28, 30, 0.5) !important; }
 
-/* bg-ink opacity variants used as 1-px card-gap dividers */
-html.dark .bg-ink\/6  { background-color: rgba(240, 237, 230, 0.06) !important; }
-html.dark .bg-ink\/8  { background-color: rgba(240, 237, 230, 0.08) !important; }
-html.dark .bg-ink\/10 { background-color: rgba(240, 237, 230, 0.10) !important; }
+/* bg-ink opacity variants used as card-gap dividers */
+html.dark .bg-ink\/6  { background-color: rgba(255, 255, 255, 0.06) !important; }
+html.dark .bg-ink\/8  { background-color: rgba(255, 255, 255, 0.08) !important; }
+html.dark .bg-ink\/10 { background-color: rgba(255, 255, 255, 0.10) !important; }
 
-/* bg-ink buttons in dark mode — add subtle border so button shape is visible */
+/* bg-ink buttons in dark mode */
 html.dark button.bg-ink,
 html.dark a.bg-ink {
-  border: 1px solid rgba(240, 237, 230, 0.12);
-}
-
-/* Grain overlay — screen blend mode creates white scroll artifacts on dark bg */
-html.dark body::before {
-  mix-blend-mode: normal;
-  opacity: 0.04;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 /* ─── Theme toggle button ────────────────────────────────────────────────── */
@@ -601,10 +576,10 @@ html.theme-transitioning *::after {
   .glass {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    background: rgba(250, 250, 247, 0.97) !important;
+    background: rgba(255, 255, 255, 0.97) !important;
   }
   html.dark .glass {
-    background: rgba(13, 15, 20, 0.97) !important;
+    background: rgba(0, 0, 0, 0.97) !important;
   }
 
   /* Skip backdrop-blur — it's expensive on phone GPUs */
@@ -620,10 +595,6 @@ html.theme-transitioning *::after {
   /* Ensure animated sections are always readable (GSAP fallback) */
   .reveal-line  { transform: none !important; }
   .section-fade { opacity: 1 !important; transform: none !important; }
-
-  /* Grain overlay is expensive on phones — make it lighter */
-  body::before { opacity: 0.2; }
-  html.dark body::before { opacity: 0.025; }
 
   /* Touch-friendly tap targets: ensure buttons/links are at least 40x40 */
   button, a[role="button"], [role="menuitem"], .tap-target {

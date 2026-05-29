@@ -1,6 +1,7 @@
 import { Nav } from '@/components/Nav';
 import { Hero } from '@/components/Hero';
 import { Marquee } from '@/components/Marquee';
+import { RollCallTransition } from '@/components/RollCallTransition';
 import { ProblemSolution } from '@/components/ProblemSolution';
 import { ParallaxColumns } from '@/components/ParallaxColumns';
 import { Features } from '@/components/Features';
@@ -24,6 +25,7 @@ export default function Page() {
       <Nav />
       <Hero />
       <Marquee />
+      <RollCallTransition />
       <ProblemSolution />
       <ParallaxColumns />
       <Features />
