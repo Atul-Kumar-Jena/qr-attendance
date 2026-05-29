@@ -28,25 +28,26 @@ export function Aurora({ className = '', variant = 'hero' }: AuroraProps) {
     return () => io.disconnect();
   }, []);
 
-  const o = variant === 'soft' ? 0.5 : 0.72;
+  const o = variant === 'soft' ? 0.55 : 0.8;
 
+  // Soft silver-grey flow on near-black (Google "Flow"-style monochrome aurora).
   return (
     <div ref={ref} className={`aurora ${className}`} aria-hidden>
       {on && (
         <>
           <div className="aurora-blob" style={{
-            width: '60%', height: '60%', left: '-8%', top: '-12%', opacity: o,
-            background: 'radial-gradient(circle at 50% 50%, #4A4A50, transparent 68%)',
+            width: '64%', height: '64%', left: '-10%', top: '-14%', opacity: o,
+            background: 'radial-gradient(circle at 50% 50%, #9CA0AA, #4C4E55 38%, transparent 70%)',
             animation: 'auroraDrift1 19s ease-in-out infinite',
           }} />
           <div className="aurora-blob" style={{
-            width: '54%', height: '54%', right: '-6%', top: '-4%', opacity: o * 0.92,
-            background: 'radial-gradient(circle at 50% 50%, #6E6E76, transparent 68%)',
+            width: '56%', height: '56%', right: '-8%', top: '-6%', opacity: o * 0.9,
+            background: 'radial-gradient(circle at 50% 50%, #C2C6CE, #5A5C63 40%, transparent 72%)',
             animation: 'auroraDrift2 23s ease-in-out infinite',
           }} />
           <div className="aurora-blob" style={{
-            width: '58%', height: '58%', left: '22%', bottom: '-20%', opacity: o * 0.85,
-            background: 'radial-gradient(circle at 50% 50%, #2A2A2E, transparent 70%)',
+            width: '60%', height: '60%', left: '24%', bottom: '-22%', opacity: o * 0.8,
+            background: 'radial-gradient(circle at 50% 50%, #74777F, #303137 42%, transparent 72%)',
             animation: 'auroraDrift3 27s ease-in-out infinite',
           }} />
           <div className="aurora-glass" />

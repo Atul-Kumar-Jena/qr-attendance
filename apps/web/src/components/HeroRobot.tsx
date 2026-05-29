@@ -88,7 +88,7 @@ export function HeroRobot() {
           {phase === 'hi' ? (
             <span className="font-display text-[15px] font-bold tracking-tight text-[#0A0A0B]">Hi 👋</span>
           ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" className="text-[#0A0A0B]">
+            <svg width="18" height="18" viewBox="0 0 24 24" className="text-[#0A0A0B]" style={{ animation: 'iconPulse 1.5s ease-in-out infinite' }}>
               <path d="M12 21s-7.5-4.9-10-9.2C.4 9 1.6 5.5 5 5.5c2 0 3.2 1.2 4 2.4.8-1.2 2-2.4 4-2.4 3.4 0 4.6 3.5 3 6.3C19.5 16.1 12 21 12 21Z" fill="currentColor" />
             </svg>
           )}

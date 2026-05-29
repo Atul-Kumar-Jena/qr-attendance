@@ -14,9 +14,13 @@ const config: Config = {
       },
       colors: {
         ink: {
-          DEFAULT: '#16161A', // Ember near-black (cooler than Apple grey)
-          soft:    '#3A3A40',
-          mute:    '#6E6E76',
+          // Theme-aware foreground. Driven by CSS vars (RGB channels so /alpha
+          // modifiers work) → text-ink, text-ink/70, bg-ink, border-ink/10 etc.
+          // all invert automatically between light and dark, so letters never
+          // disappear on theme toggle.
+          DEFAULT: 'rgb(var(--ink-rgb) / <alpha-value>)',
+          soft:    'rgb(var(--ink-soft-rgb) / <alpha-value>)',
+          mute:    'rgb(var(--ink-mute-rgb) / <alpha-value>)',
         },
         cream: {
           // "cream" names stay so no component files need touching.

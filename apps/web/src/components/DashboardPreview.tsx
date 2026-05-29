@@ -104,7 +104,7 @@ export function DashboardPreview() {
             <aside className="col-span-2 bg-cream-50 p-4 text-[12px] hidden md:block">
               <div className="font-mono text-[10px] tracking-wider text-ink-mute mb-3">MENU</div>
               {['Overview', 'Sessions', 'QR Live', 'Students', 'Reports', 'Audit'].map((m, i) => (
-                <div key={m} className={`px-2 py-2 rounded-md ${i === 2 ? 'bg-ink text-cream-50' : 'text-ink-mute'}`}>
+                <div key={m} className={`px-2 py-2 rounded-md ${i === 2 ? 'bg-[#16161A] dark:bg-white/15 text-cream-50 dark:text-white' : 'text-ink-mute'}`}>
                   {m}
                 </div>
               ))}

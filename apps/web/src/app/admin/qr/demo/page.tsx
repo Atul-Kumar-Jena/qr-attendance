@@ -260,7 +260,7 @@ export default function QrDisplay() {
   // ── Setup screen ─────────────────────────────────────────────────────────────
   if (stage === 'setup') {
     return (
-      <div className="min-h-screen bg-ink text-cream-50 flex flex-col items-center justify-center p-8">
+      <div className="min-h-screen bg-[#0A0A0B] text-cream-50 flex flex-col items-center justify-center p-8">
         <div className="w-full max-w-md space-y-6">
           <div className="text-center">
             <div className="font-display text-[2rem] mb-1">Start QR Session</div>
@@ -334,7 +334,7 @@ export default function QrDisplay() {
   // ── Ended screen ─────────────────────────────────────────────────────────────
   if (stage === 'ended') {
     return (
-      <div className="min-h-screen bg-ink text-cream-50 flex flex-col items-center justify-center p-8 gap-5">
+      <div className="min-h-screen bg-[#0A0A0B] text-cream-50 flex flex-col items-center justify-center p-8 gap-5">
         <div className="text-[3rem]">✓</div>
         <div className="font-display text-[2rem]">Session ended</div>
         <div className="text-[12px] text-cream-50/50">{subjectName} · {className}</div>
@@ -350,7 +350,7 @@ export default function QrDisplay() {
   // ── Live QR screen ───────────────────────────────────────────────────────────
   const elapsedSec = Math.floor((Date.now() - sessionStartRef.current) / 1000);
   return (
-    <div className="min-h-screen bg-ink text-cream-50 flex flex-col p-4 sm:p-6 lg:p-8 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0A0A0B] text-cream-50 flex flex-col p-4 sm:p-6 lg:p-8 relative overflow-hidden">
       {/* Header bar */}
       <div className="flex items-start justify-between mb-4 sm:mb-6 gap-3">
         <div className="min-w-0">

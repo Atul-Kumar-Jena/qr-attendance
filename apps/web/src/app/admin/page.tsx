@@ -211,7 +211,7 @@ export default function AdminHome() {
               className={`block w-full text-left px-3 py-2 rounded-md text-[13px] transition-colors ${
                 isGod
                   ? currentTab === t ? 'bg-red-600 text-white font-semibold' : 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium'
-                  : currentTab === t ? 'bg-ink text-cream-50 dark:bg-white/10 dark:border dark:border-white/10'
+                  : currentTab === t ? 'bg-[#16161A] text-cream-50 dark:bg-white/10 dark:border dark:border-white/10'
                   : 'text-ink-mute hover:text-ink dark:hover:text-white hover:bg-cream-100 dark:hover:bg-white/5'
               }`}
             >
@@ -455,7 +455,7 @@ function PricingTierEditor({ tiers, onChange }: {
       <div className="flex gap-2">
         {!editing && (
           <button onClick={() => onChange(DEFAULTS.map((t) => ({ ...t })))}
-            className="text-[12px] bg-ink text-cream-50 rounded-lg px-3 py-2 hover:bg-ink/80 transition-colors">
+            className="text-[12px] bg-[#16161A] text-cream-50 rounded-lg px-3 py-2 hover:bg-black transition-colors">
             Start editing
           </button>
         )}
@@ -824,7 +824,7 @@ function StudentsPanel({ role }: { role: Role }) {
             <Field label="Class / section" value={newStudent.klassName} onChange={(v) => setNewStudent((s) => ({ ...s, klassName: v }))} />
           </div>
           <div className="flex gap-3">
-            <button onClick={addStudent} className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all">Add</button>
+            <button onClick={addStudent} className="rounded-lg bg-[#16161A] text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-black transition-all">Add</button>
             <button onClick={() => setShowAddStudent(false)} className="rounded-lg border border-ink/10 px-4 py-2 text-[12.5px] text-ink-mute hover:text-ink transition-all">Cancel</button>
           </div>
         </Card>
@@ -1061,7 +1061,7 @@ function ClassesPanel() {
           </div>
           <div className="flex gap-3">
             <button onClick={addClass} disabled={saving || !form.name.trim()}
-              className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all disabled:opacity-50">
+              className="rounded-lg bg-[#16161A] text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-black transition-all disabled:opacity-50">
               {saving ? 'Adding…' : 'Add class'}
             </button>
             <button onClick={() => setShowAdd(false)}
@@ -1494,7 +1494,7 @@ function ManageUsersPanel({ role }: { role: Role }) {
           </div>
           <div className="flex gap-3">
             <button onClick={createUser}
-              className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all">
+              className="rounded-lg bg-[#16161A] text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-black transition-all">
               Create invite
             </button>
             <button onClick={() => setShowCreate(false)}
@@ -1849,7 +1849,7 @@ function InstitutionsPanel() {
           <p className="text-[11px] text-ink-mute">A 6-character join code will be auto-generated for this institution.</p>
           <div className="flex gap-3">
             <button onClick={createInst} disabled={creating || !newInstForm.name.trim()}
-              className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all disabled:opacity-50">
+              className="rounded-lg bg-[#16161A] text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-black transition-all disabled:opacity-50">
               {creating ? 'Creating…' : 'Create institution'}
             </button>
             <button onClick={() => setShowCreate(false)}
@@ -2381,7 +2381,7 @@ function GodModePanel() {
       <Card className="p-5 border-blue-200 dark:border-blue-900/40 bg-blue-50/30 dark:bg-blue-900/10 space-y-2">
         <SectionTitle>Firebase setup — Firestore rules</SectionTitle>
         <p className="text-[12px] text-ink-mute">Deploy these rules in Firebase Console → Firestore → Rules to enable all collections:</p>
-        <pre className="text-[11px] bg-ink text-cream-50 rounded-lg p-4 overflow-x-auto leading-relaxed">{`rules_version = '2';
+        <pre className="text-[11px] bg-[#16161A] text-cream-50 rounded-lg p-4 overflow-x-auto leading-relaxed">{`rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /config/{docId} {
@@ -2485,7 +2485,7 @@ function CreateUserForm() {
         <Field label="Full name" value={form.fullName} onChange={set('fullName')} />
       </div>
       <button onClick={create} disabled={saving || !form.email || !form.fullName}
-        className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all disabled:opacity-50">
+        className="rounded-lg bg-[#16161A] text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-black transition-all disabled:opacity-50">
         {saving ? 'Creating…' : 'Create pending user'}
       </button>
       {status && <p className="text-[11px] text-ink-mute font-mono">{status}</p>}
@@ -2542,7 +2542,7 @@ function CreateInstitutionForm() {
       </div>
       <p className="text-[11.5px] text-ink-mute">A unique join code is generated automatically.</p>
       <button onClick={create} disabled={saving || !name.trim()}
-        className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all disabled:opacity-50">
+        className="rounded-lg bg-[#16161A] text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-black transition-all disabled:opacity-50">
         {saving ? 'Creating…' : 'Create institution'}
       </button>
       {status && (

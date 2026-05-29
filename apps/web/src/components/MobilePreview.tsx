@@ -44,7 +44,7 @@ export function MobilePreview() {
   }, []);
 
   return (
-    <section ref={root} className="py-28 lg:py-40 bg-ink text-cream-50 relative overflow-hidden">
+    <section ref={root} className="py-28 lg:py-40 section-dark text-cream-50 relative overflow-hidden">
       <div className="container">
         <div className="mb-16 max-w-3xl">
           <span data-reveal className="text-[11px] tracking-[0.3em] text-cream-50/50 uppercase">[ 05 — mobile ]</span>
@@ -136,8 +136,8 @@ export function MobilePreview() {
 
 function PhoneShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative h-[600px] w-[300px] rounded-[44px] bg-ink-soft p-2 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)]">
-      <div className="absolute left-1/2 top-2 -translate-x-1/2 h-6 w-32 rounded-full bg-ink z-10" />
+    <div className="relative h-[600px] w-[300px] rounded-[44px] bg-[#1C1C20] p-2 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)]">
+      <div className="absolute left-1/2 top-2 -translate-x-1/2 h-6 w-32 rounded-full bg-[#0A0A0B] z-10" />
       <div className="relative h-full w-full rounded-[36px] overflow-hidden">{children}</div>
     </div>
   );

@@ -10,6 +10,11 @@
   --ink:       #16161A;
   --ink-soft:  #3A3A40;
   --ink-mute:  #6E6E76;
+  /* RGB channels for the foreground — Tailwind ink classes read these so every
+     text/border/bg-ink variant inverts cleanly with the theme. */
+  --ink-rgb:       22 22 26;
+  --ink-soft-rgb:  58 58 64;
+  --ink-mute-rgb:  110 110 118;
   --line:      rgba(22, 22, 26, 0.08);
   /* Monochrome "accent" cascade — RGB channels so Tailwind alpha modifiers
      (bg-accent/20 etc.) work and flip automatically per light/dark/section-dark. */
@@ -262,6 +267,9 @@ html.dark {
   --ink:       #F4F2EE;
   --ink-soft:  #C9C7C2;
   --ink-mute:  #8A8A92;
+  --ink-rgb:       244 242 238;
+  --ink-soft-rgb:  201 199 194;
+  --ink-mute-rgb:  138 138 146;
   --line:      rgba(244, 242, 238, 0.10);
   --accent-rgb:   244 242 238; /* off-white  */
   --accent-2-rgb: 201 199 194; /* light grey */
@@ -721,6 +729,9 @@ html.theme-transitioning *::after {
   --ink:      #F4F2EE;
   --ink-soft: #C9C7C2;
   --ink-mute: #8A8A92;
+  --ink-rgb:       244 242 238;
+  --ink-soft-rgb:  201 199 194;
+  --ink-mute-rgb:  138 138 146;
   --line:     rgba(244, 242, 238, 0.10);
   /* white accent cascade so monochrome highlights pop on the dark bg */
   --accent-rgb:   244 242 238;
@@ -766,9 +777,9 @@ html.theme-transitioning *::after {
 }
 .aurora-glass {
   position: absolute; inset: 0;
-  backdrop-filter: blur(44px) saturate(125%);
-  -webkit-backdrop-filter: blur(44px) saturate(125%);
-  background: rgba(10, 10, 11, 0.28);
+  backdrop-filter: blur(48px) saturate(108%);
+  -webkit-backdrop-filter: blur(48px) saturate(108%);
+  background: rgba(8, 8, 9, 0.20);
 }
 .aurora-grain {
   position: absolute; inset: 0;
