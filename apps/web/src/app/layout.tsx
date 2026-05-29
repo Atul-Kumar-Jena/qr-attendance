@@ -5,6 +5,7 @@ import { PageTransition } from '@/components/PageTransition';
 import { Providers } from '@/components/Providers';
 import { DeepLinkRestore } from '@/components/DeepLinkRestore';
 import { GridBackground } from '@/components/GridBackground';
+import { Loader } from '@/components/Loader';
 
 // Single rounded sans for both display and body — minimalist, one-family approach.
 const nunito = Nunito_Sans({
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var m=localStorage.getItem('attendly-theme-mode')||'auto';var h=new Date().getHours();var t=m==='dark'?'dark':m==='light'?'light':(h>=7&&h<19?'light':'dark');if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();` }} />
       </head>
       <body className="font-sans antialiased">
+        <Loader />
         <Providers>
           <GridBackground />
           <DeepLinkRestore />
