@@ -14,6 +14,7 @@ import { Faq } from '@/components/Faq';
 import { CTA } from '@/components/CTA';
 import { Footer } from '@/components/Footer';
 import { ScrollProgress } from '@/components/ScrollProgress';
+import { ScrollReveal } from '@/components/ScrollReveal';
 import { SmoothScroll } from '@/components/SmoothScroll';
 import { DarkModeNudge } from '@/components/DarkModeNudge';
 
@@ -22,6 +23,7 @@ export default function Page() {
     <main className="relative">
       <SmoothScroll />
       <ScrollProgress />
+      <ScrollReveal />
       <DarkModeNudge />
       <Nav />
       <Hero />

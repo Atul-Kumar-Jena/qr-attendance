@@ -47,21 +47,21 @@ export function Interactive3D() {
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center min-h-[440px]">
           {/* Copy */}
           <div>
-            <span className="text-[11px] tracking-[0.3em] text-white/40 uppercase">[ the system ]</span>
-            <h2 className="font-display text-[2.6rem] lg:text-[4rem] leading-[1.04] tracking-tightish mt-6 text-white">
+            <span data-reveal className="text-[11px] tracking-[0.3em] text-white/40 uppercase">[ the system ]</span>
+            <h2 data-reveal className="font-display text-[2.6rem] lg:text-[4rem] leading-[1.04] tracking-tightish mt-6 text-white">
               Attendance that
               <br />
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-accent via-accent-rose to-accent-violet">
                 runs itself.
               </span>
             </h2>
-            <p className="mt-6 max-w-[440px] text-[14px] leading-[1.75] text-white/55">
+            <p data-reveal className="mt-6 max-w-[440px] text-[14px] leading-[1.75] text-white/55">
               While you teach, Attendly watches every scan — checking device, location and
               identity in milliseconds, then writing an immutable record. No roll call.
               No proxies. No busywork.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-2.5">
+            <div data-reveal className="mt-8 flex flex-wrap gap-2.5">
               {CHIPS.map(({ icon: Icon, label }) => (
                 <span
                   key={label}

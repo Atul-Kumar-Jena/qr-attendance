@@ -92,6 +92,7 @@ function MobileUserHeader() {
 export function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [active, setActive] = useState('');
   const headerRef = useRef<HTMLElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
@@ -103,6 +104,22 @@ export function Nav() {
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Active-section indicator — highlights the nav link for the section in view.
+  useEffect(() => {
+    const els = links
+      .map((l) => document.getElementById(l.href.replace('#', '')))
+      .filter(Boolean) as HTMLElement[];
+    if (els.length === 0) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => { if (e.isIntersecting) setActive('#' + e.target.id); });
+      },
+      { rootMargin: '-45% 0px -50% 0px', threshold: 0 },
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
   }, []);
 
   useEffect(() => {
@@ -167,7 +184,12 @@ export function Nav() {
           )}>
             {links.map((l) => (
               <Link key={l.href} href={l.href}
-                className="relative py-1 hover:text-ink dark:hover:text-white/90 transition-colors duration-200 after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full">
+                className={cn(
+                  'relative py-1 transition-colors duration-200 after:absolute after:left-0 after:bottom-0 after:h-px after:bg-accent after:transition-all after:duration-300 hover:after:w-full',
+                  active === l.href
+                    ? 'text-accent after:w-full'
+                    : 'hover:text-ink dark:hover:text-white/90 after:w-0',
+                )}>
                 {l.label}
               </Link>
             ))}
