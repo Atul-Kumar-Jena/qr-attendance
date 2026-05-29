@@ -810,6 +810,16 @@ html.theme-transitioning *::after {
   100% { transform: translateY(36px); opacity: 0; }
 }
 
+/* ── Gentle 3D float (Spline showcase pedestal) ─────────────────────────── */
+@keyframes float3d {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+@keyframes pedestalPulse {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 0.8; transform: translate(-50%, -50%) scale(1.08); }
+}
+
 /* ── aceternity spotlight ───────────────────────────────────────────────── */
 @keyframes spotlight {
   0%   { opacity: 0; transform: translate(-72%, -62%) scale(0.5); }

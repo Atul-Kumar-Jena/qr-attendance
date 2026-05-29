@@ -77,11 +77,33 @@ export function Interactive3D() {
           </div>
 
           {/* 3D / fallback */}
-          <div className="relative h-[340px] lg:h-[500px]">
-            {allowed && show3D ? (
-              <SplineScene scene={SCENE} className="w-full h-full" />
-            ) : (
-              <Fallback />
+          <div className="relative h-[360px] lg:h-[520px]">
+            {/* glowing pedestal beneath the object */}
+            <div
+              aria-hidden
+              className="absolute left-1/2 top-1/2 w-[68%] h-[68%] rounded-full pointer-events-none"
+              style={{
+                background: 'radial-gradient(circle, rgba(255,107,61,0.20), rgba(124,92,255,0.10) 45%, transparent 68%)',
+                filter: 'blur(26px)',
+                animation: 'pedestalPulse 6s ease-in-out infinite',
+              }}
+            />
+            <div className="relative h-full w-full" style={{ animation: 'float3d 7s ease-in-out infinite' }}>
+              {allowed && show3D ? (
+                <SplineScene scene={SCENE} className="w-full h-full" />
+              ) : (
+                <Fallback />
+              )}
+            </div>
+            {/* interaction affordance (desktop, real scene only) */}
+            {allowed && show3D && (
+              <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-white/35">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+                  <path d="M12 2v6M12 22v-4M2 12h6M22 12h-4" strokeLinecap="round" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                drag to explore
+              </div>
             )}
           </div>
         </div>
