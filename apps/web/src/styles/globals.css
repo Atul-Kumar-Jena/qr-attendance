@@ -827,6 +827,17 @@ html.theme-transitioning *::after {
 }
 .animate-spotlight { animation: spotlight 2s ease 0.75s 1 forwards; }
 
+/* ── Global micro-interaction polish ────────────────────────────────────── */
+[data-magnetic] { will-change: transform; }
+button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+/* Glass cards transition smoothly on hover-driven border/shadow changes. */
+.glass { transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; }
+
 /* ── Preloader curtain ──────────────────────────────────────────────────── */
 .preloader {
   position: fixed; inset: 0; z-index: 100000;

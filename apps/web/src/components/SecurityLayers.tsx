@@ -142,13 +142,14 @@ export function SecurityLayers() {
 
           <ol className="sec-list space-y-px bg-ink/10 rounded-2xl overflow-hidden">
             {LAYERS.map((l, i) => (
-              <li key={l.k} className="sec-row bg-cream-50 p-6 flex items-baseline gap-6 hover:bg-cream-100 transition-colors">
-                <span className="font-mono text-[11px] text-ink-mute w-8">{String(i + 1).padStart(2, '0')}</span>
+              <li key={l.k} className="sec-row group relative bg-cream-50 p-6 pl-7 flex items-baseline gap-6 hover:bg-cream-100 transition-colors">
+                <span aria-hidden className="absolute left-0 top-0 h-full w-0.5 bg-accent origin-top scale-y-0 group-hover:scale-y-100 transition-transform duration-300" />
+                <span className="font-mono text-[11px] w-8 text-ink-mute group-hover:text-accent transition-colors">{String(i + 1).padStart(2, '0')}</span>
                 <div className="flex-1">
                   <h3 className="font-display text-[1.45rem]">{l.k}</h3>
                   <p className="mt-1 text-[13px] text-ink-mute">{l.d}</p>
                 </div>
-                <span className="text-sage-500 text-xl">✓</span>
+                <span className="text-sage-500 text-xl transition-transform duration-300 group-hover:scale-125">✓</span>
               </li>
             ))}
           </ol>

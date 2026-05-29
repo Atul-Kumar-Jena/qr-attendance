@@ -67,14 +67,14 @@ function Row({ q, a }: { q: string; a: string }) {
     });
   }, [open]);
   return (
-    <li className="faq-row py-5">
+    <li className="faq-row group py-5">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between text-left gap-6"
+        className="w-full flex items-center justify-between text-left gap-6 active:scale-[0.995] transition-transform"
         data-magnetic
       >
-        <span className="font-display text-[1.35rem] leading-tight">{q}</span>
-        <span className={`text-2xl text-accent transition-transform ${open ? 'rotate-45' : ''}`}>+</span>
+        <span className={`font-display text-[1.35rem] leading-tight transition-colors duration-300 ${open ? 'text-accent' : 'group-hover:text-accent'}`}>{q}</span>
+        <span className={`text-2xl text-accent transition-transform duration-300 ${open ? 'rotate-45' : 'group-hover:rotate-90'}`}>+</span>
       </button>
       <div ref={body} className="overflow-hidden h-0 opacity-0 text-[14px] text-ink-mute max-w-2xl">
         <p className="pt-3">{a}</p>
