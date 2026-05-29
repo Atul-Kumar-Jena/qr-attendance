@@ -6,6 +6,7 @@ import { Providers } from '@/components/Providers';
 import { DeepLinkRestore } from '@/components/DeepLinkRestore';
 import { GridBackground } from '@/components/GridBackground';
 import { Loader } from '@/components/Loader';
+import { InputRobot } from '@/components/InputRobot';
 
 // Single rounded sans for both display and body — minimalist, one-family approach.
 const nunito = Nunito_Sans({
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="font-sans antialiased">
         <Loader />
+        <InputRobot />
         <Providers>
           <GridBackground />
           <DeepLinkRestore />
