@@ -229,37 +229,38 @@ function IlluFraudDetection() {
       <g style={{ transformOrigin: '105px 86px' }}>
         <circle cx="105" cy="86" r="56" fill="var(--accent)" fillOpacity="0.05" stroke="var(--accent)" strokeOpacity="0.18" strokeWidth="1"/>
         <circle cx="105" cy="86" r="40" fill="none" stroke="var(--accent)" strokeOpacity="0.18" strokeWidth="1" strokeDasharray="2 3"/>
-        <circle cx="105" cy="86" r="24" fill="none" stroke="var(--accent)" strokeOpacity="0.2"  strokeWidth="1" strokeDasharray="2 3"/>
-        <line x1="49"  y1="86" x2="161" y2="86" stroke="var(--accent)" strokeOpacity="0.12" strokeWidth="1"/>
+        <circle cx="105" cy="86" r="24" fill="none" stroke="var(--accent)" strokeOpacity="0.2" strokeWidth="1" strokeDasharray="2 3"/>
+        <line x1="49" y1="86" x2="161" y2="86" stroke="var(--accent)" strokeOpacity="0.12" strokeWidth="1"/>
         <line x1="105" y1="30" x2="105" y2="142" stroke="var(--accent)" strokeOpacity="0.12" strokeWidth="1"/>
         <g style={{ transformOrigin: '105px 86px', animation: 'ft-fr-radar 4s linear infinite' }}>
           <defs>
-            <linearGradient id="fr-sweep-g" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%"   stopColor="var(--accent)" stopOpacity="0"/>
+            <linearGradient id="fr-sweep-u" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="var(--accent)" stopOpacity="0"/>
               <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.55"/>
             </linearGradient>
           </defs>
-          <path d="M105 86 L161 86 A56 56 0 0 0 145 47 Z" fill="url(#fr-sweep-g)"/>
+          <path d="M105 86 L161 86 A56 56 0 0 0 145 47 Z" fill="url(#fr-sweep-u)"/>
           <line x1="105" y1="86" x2="161" y2="86" stroke="var(--accent)" strokeWidth="1.4"/>
         </g>
-        <circle cx="78"  cy="62" r="2.5" fill="#7C967A" style={{ animation: 'ft-fr-pulse 2.4s ease-in-out infinite' }}/>
+        <circle cx="78" cy="62" r="2.5" fill="#7C967A" style={{ animation: 'ft-fr-pulse 2.4s ease-in-out infinite' }}/>
         <circle cx="142" cy="76" r="2.5" fill="var(--accent)" style={{ animation: 'ft-fr-pulse 2.6s ease-in-out infinite 0.4s' }}/>
-        <circle cx="88"  cy="118" r="3" fill="rgba(239,68,68,0.9)" style={{ animation: 'ft-fr-blip 2.4s ease-in-out infinite' }}/>
+        <circle cx="88" cy="118" r="3" fill="rgba(239,68,68,0.9)" style={{ animation: 'ft-fr-blip 2.4s ease-in-out infinite' }}/>
       </g>
       <g transform="translate(176, 32)">
         <text x="0" y="0" fontSize="7" fill="var(--accent)" fillOpacity="0.6" fontFamily="ui-monospace,monospace">REVIEW QUEUE</text>
         {[
-          { y: 12, label: 'spoofed GPS',     bad: true  },
-          { y: 32, label: 'duplicate scan',  bad: true  },
-          { y: 52, label: 'velocity > 90mph',bad: true  },
-          { y: 72, label: 'cleared (manual)',bad: false },
+          { y: 12, label: 'spoofed GPS',      bad: true  },
+          { y: 32, label: 'duplicate scan',   bad: true  },
+          { y: 52, label: 'velocity > 90mph', bad: true  },
+          { y: 72, label: 'cleared (manual)', bad: false },
         ].map((r, i) => (
           <g key={i} style={{ animation: `ft-fr-alert 2.4s ease-in-out infinite ${i * 0.3}s` }}>
             <rect x="0" y={r.y} width="92" height="14" rx="3"
               fill={r.bad ? 'rgba(239,68,68,0.08)' : 'rgba(124,150,122,0.10)'}
               stroke={r.bad ? 'rgba(239,68,68,0.4)' : 'rgba(124,150,122,0.5)'} strokeWidth="0.8"/>
             <circle cx="8" cy={r.y + 7} r="2.4" fill={r.bad ? '#EF4444' : '#7C967A'}/>
-            <text x="16" y={r.y + 10} fontSize="6.5" fill={r.bad ? 'rgba(239,68,68,0.95)' : 'rgba(124,150,122,0.95)'}
+            <text x="16" y={r.y + 10} fontSize="6.5"
+              fill={r.bad ? 'rgba(239,68,68,0.95)' : 'rgba(124,150,122,0.95)'}
               fontFamily="ui-monospace,monospace">{r.label}</text>
           </g>
         ))}
@@ -272,9 +273,9 @@ function IlluReports() {
   return (
     <svg viewBox="0 0 280 180" fill="none" className="w-full h-full" aria-hidden>
       <style>{`
-        @keyframes ft-rp-line  { from{stroke-dashoffset:280} to{stroke-dashoffset:0} }
-        @keyframes ft-rp-bar   { from{transform:scaleY(0)} to{transform:scaleY(1)} }
-        @keyframes ft-rp-tab   { 0%,100%{opacity:0.6} 50%{opacity:1} }
+        @keyframes ft-rp-line { from{stroke-dashoffset:280} to{stroke-dashoffset:0} }
+        @keyframes ft-rp-bar  { from{transform:scaleY(0)} to{transform:scaleY(1)} }
+        @keyframes ft-rp-tab  { 0%,100%{opacity:0.6} 50%{opacity:1} }
       `}</style>
       <g>
         <rect x="34" y="18" width="148" height="148" rx="8" fill="#FAFAF7" stroke="var(--accent)" strokeOpacity="0.35" strokeWidth="1.4"/>
@@ -283,9 +284,9 @@ function IlluReports() {
         <rect x="44" y="40" width="54" height="3" rx="1.5" fill="var(--accent)" fillOpacity="0.25"/>
         <line x1="46" y1="128" x2="170" y2="128" stroke="var(--accent)" strokeOpacity="0.3" strokeWidth="1"/>
         {[
-          { x: 52,  h: 46, c: 0.5 },
+          { x: 52,  h: 46, c: 0.5  },
           { x: 76,  h: 70, c: 0.75 },
-          { x: 100, h: 34, c: 0.4 },
+          { x: 100, h: 34, c: 0.4  },
           { x: 124, h: 62, c: 0.65 },
           { x: 148, h: 52, c: 0.55 },
         ].map((b, i) => (
@@ -297,24 +298,21 @@ function IlluReports() {
         ))}
         <path d="M59 90 Q83 70 107 96 T155 78"
           stroke="var(--accent)" strokeWidth="1.7" fill="none" strokeLinecap="round"
-          strokeDasharray="280"
-          style={{ animation: 'ft-rp-line 2.2s ease-out 0.5s both' }}/>
+          strokeDasharray="280" style={{ animation: 'ft-rp-line 2.2s ease-out 0.5s both' }}/>
         <rect x="44" y="142" width="60" height="3.5" rx="1.5" fill="var(--accent)" fillOpacity="0.18"/>
         <rect x="44" y="150" width="44" height="3.5" rx="1.5" fill="var(--accent)" fillOpacity="0.18"/>
         <rect x="44" y="158" width="80" height="3.5" rx="1.5" fill="var(--accent)" fillOpacity="0.18"/>
       </g>
-      <g transform="translate(200, 50)" style={{ animation: 'ft-rp-tab 2.6s ease-in-out infinite' }}>
-        <rect width="56" height="22" rx="5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.5" strokeWidth="1"/>
-        <text x="28" y="15" textAnchor="middle" fontSize="9" fill="var(--accent)" fontFamily="ui-monospace,monospace" fontWeight="600">PDF</text>
-      </g>
-      <g transform="translate(200, 82)" style={{ animation: 'ft-rp-tab 2.6s ease-in-out infinite 0.4s' }}>
-        <rect width="56" height="22" rx="5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.5" strokeWidth="1"/>
-        <text x="28" y="15" textAnchor="middle" fontSize="9" fill="var(--accent)" fontFamily="ui-monospace,monospace" fontWeight="600">XLSX</text>
-      </g>
-      <g transform="translate(200, 114)" style={{ animation: 'ft-rp-tab 2.6s ease-in-out infinite 0.8s' }}>
-        <rect width="56" height="22" rx="5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.5" strokeWidth="1"/>
-        <text x="28" y="15" textAnchor="middle" fontSize="9" fill="var(--accent)" fontFamily="ui-monospace,monospace" fontWeight="600">CSV</text>
-      </g>
+      {[
+        { dy: 50,  label: 'PDF'  },
+        { dy: 82,  label: 'XLSX' },
+        { dy: 114, label: 'CSV'  },
+      ].map(({ dy, label }, i) => (
+        <g key={label} transform={`translate(200, ${dy})`} style={{ animation: `ft-rp-tab 2.6s ease-in-out infinite ${i * 0.4}s` }}>
+          <rect width="56" height="22" rx="5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.5" strokeWidth="1"/>
+          <text x="28" y="15" textAnchor="middle" fontSize="9" fill="var(--accent)" fontFamily="ui-monospace,monospace" fontWeight="600">{label}</text>
+        </g>
+      ))}
     </svg>
   );
 }
@@ -327,7 +325,7 @@ function IlluAuditTrail() {
         @keyframes ft-audit-link  { from{stroke-dashoffset:0} to{stroke-dashoffset:-14} }
       `}</style>
       {[
-        { x: 12,  label: '#0F12', delay: '0s'   },
+        { x: 12,  label: '#0F12', delay: '0s'    },
         { x: 80,  label: '#0F13', delay: '0.25s' },
         { x: 148, label: '#0F14', delay: '0.5s'  },
         { x: 216, label: '#0F15', delay: '0.75s' },
@@ -350,8 +348,7 @@ function IlluAuditTrail() {
           stroke="var(--accent)" strokeOpacity="0.6" strokeWidth="2" strokeDasharray="4 3" strokeLinecap="round"
           style={{ animation: 'ft-audit-link 1.4s linear infinite' }}/>
       ))}
-      <rect x="64" y="138" width="152" height="22" rx="5"
-        fill="rgba(124,150,122,0.10)" stroke="rgba(124,150,122,0.5)" strokeWidth="1"/>
+      <rect x="64" y="138" width="152" height="22" rx="5" fill="rgba(124,150,122,0.10)" stroke="rgba(124,150,122,0.5)" strokeWidth="1"/>
       <circle cx="80" cy="149" r="3.5" fill="#7C967A"/>
       <text x="140" y="153" textAnchor="middle" fontSize="9" fill="rgba(124,150,122,0.95)" fontFamily="ui-monospace,monospace">
         append-only · tamper-evident
@@ -360,6 +357,7 @@ function IlluAuditTrail() {
   );
 }
 
+/* ─── Feature data ───────────────────────────────────────────────────────── */
 const FEATS: Array<{
   t: string; d: string; Illu: () => JSX.Element;
   tags: string[]; bullets: string[];
@@ -422,7 +420,7 @@ const FEATS: Array<{
   },
 ];
 
-/* ─── Full-screen overlay ────────────────────────────────────────────────── */
+/* ─── Full-screen overlay (click to expand) ─────────────────────────────── */
 function FeatureOverlay({
   feat, index, onClose,
 }: {
@@ -473,7 +471,7 @@ function FeatureOverlay({
         <button
           onClick={close}
           aria-label="Close"
-          className="absolute top-5 right-5 z-10 w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-200"
+          className="absolute top-5 right-5 z-10 w-9 h-9 rounded-full flex items-center justify-center"
           style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
           onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.14)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
@@ -482,14 +480,10 @@ function FeatureOverlay({
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
-
         <div className="h-[260px] md:h-[320px] flex items-center justify-center px-8 pt-8 pb-4 relative overflow-hidden">
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 60%, rgba(180,180,190,0.06) 0%, transparent 70%)' }} />
-          <div className="w-full max-w-[360px]">
-            <feat.Illu />
-          </div>
+          <div className="w-full max-w-[360px]"><feat.Illu /></div>
         </div>
-
         <div className="px-8 md:px-12 pb-12 pt-6 border-t border-white/8">
           <div className="flex items-start justify-between mb-4 gap-4">
             <div>
@@ -508,10 +502,8 @@ function FeatureOverlay({
           <ul className="space-y-3">
             {feat.bullets.map((b, bi) => (
               <li key={b} className="flex items-start gap-3">
-                <span
-                  className="mt-1 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono font-bold"
-                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' }}
-                >
+                <span className="mt-1 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono font-bold"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' }}>
                   {bi + 1}
                 </span>
                 <span className="text-[14px] text-white/70 leading-snug">{b}</span>
@@ -524,111 +516,74 @@ function FeatureOverlay({
   );
 }
 
-/* ─── 3D spiral constants (module-level, stable) ─────────────────────────── */
-const Z_STEP    = 600;  // Z gap between cards (px)
-const CARD_W    = 400;
-const CARD_H    = 520;
-const THETA_INC = 0.75; // radians per card
-const R_BASE    = 160;  // starting radius
-const R_INC     = 44;   // logarithmic radius growth per card
+/* ─── Cinematic flythrough constants ─────────────────────────────────────── */
+/*
+  The scene works exactly like the reference implementation:
+  - A tall div creates scroll distance (the "timeline")
+  - A `position:sticky` 100vh div is the fixed "lens" (never moves visually)
+  - Inside: a preserve-3d "camera rig" div — rAF moves it forward in Z (+Z = camera forward)
+  - Cards sit at fixed world X/Y/Z positions inside the rig
+  - Each rAF frame: read scrollY → compute cameraZ, pan X/Y → update rig.transform
+  - Per card: compute distance from camera → set blur, opacity, idle rotation
+  - When a card enters the focus zone → flash project name at bottom centre
 
-// Precomputed card positions — pure math, safe on SSR
-const SPIRAL_POS = FEATS.map((_, i) => {
-  const theta  = i * THETA_INC;
-  const radius = R_BASE + i * R_INC;
-  return {
-    x: Math.cos(theta) * radius,
-    y: Math.sin(theta) * radius,
-    z: i * -Z_STEP,
-  };
-});
+  No GSAP/React DOM mutations in the hot path → no insertBefore crashes.
+  Deterministic rand() keeps SSR and client positions identical.
+*/
+const PERSPECTIVE  = 900;   // px — matches CSS perspective on the sticky viewport
+const CARD_SPACING = 820;   // Z gap between consecutive card world positions
+const FIRST_Z      = -500;  // world-Z of card[0] (negative = in front of rig start)
+const TOTAL_DEPTH  = Math.abs(FIRST_Z) + FEATS.length * CARD_SPACING + 800;
+const FOCUS_DIST   = 340;   // Z distance at which a card is "in focus" → label flash
+const MAX_BLUR     = 10;    // px blur at the far distance
+const BLUR_DIST    = 1400;  // Z distance that maps to MAX_BLUR
 
-// CSS height of the scroll container (gives 1 Z_STEP of scroll per card)
-const SPIRAL_H = `calc(100vh + ${FEATS.length * Z_STEP}px)`;
-
-/* ─── Main component ─────────────────────────────────────────────────────── */
-export function Features() {
-  const sectionRef  = useRef<HTMLDivElement>(null);
-  const spiralRef   = useRef<HTMLDivElement>(null); // tall scroll container
-  const trackRef    = useRef<HTMLDivElement>(null); // preserve-3d track
-  const cardRefs    = useRef<Array<HTMLDivElement | null>>([]);
-  const dotRefs     = useRef<Array<HTMLDivElement | null>>([]);
-  const [expanded, setExpanded] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (window.matchMedia('(max-width: 900px)').matches) return;
-
-    const spiral = spiralRef.current;
-    const track  = trackRef.current;
-    if (!spiral || !track) return;
-
-    const n = FEATS.length;
-
-    // Update card styles based on current trackZ progress
-    const updateCards = (progress: number) => {
-      const trackZ  = progress * n * Z_STEP;
-
-/* ─── 3D flythrough scene constants ──────────────────────────────────────── */
-/* The camera (a #rig div) travels forward along +Z as you scroll. Cards sit at
-   fixed world positions scattered across X/Y/Z. As the camera passes each card
-   it grows sharp + large, flashes its label, then flies past and fades.       */
-
-const PERSPECTIVE  = 900;   // must match CSS perspective on the viewport
-const CARD_SPACING = 850;   // Z gap between consecutive cards
-const FIRST_Z      = -700;  // world-Z of the first (nearest) card
-const TOTAL_DEPTH  =        // how far the camera travels over the full scroll
-  Math.abs(FIRST_Z) + FEATS.length * CARD_SPACING + 700;
-const FOCUS_DIST   = 360;   // within this Z-distance a card is "in focus"
-const MAX_BLUR     = 11;    // px of blur at the far plane
-const BLUR_DIST    = 1500;  // distance at which blur reaches MAX_BLUR
-
-/* Deterministic pseudo-random so server + client markup match (no hydration
-   mismatch). Same seed → same value on every render. */
-function rand(seed: number) {
-  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
-  return x - Math.floor(x);
+// Deterministic seeded RNG — same output on server and client, no hydration mismatch
+function seededRand(seed: number): number {
+  const s = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return s - Math.floor(s);
 }
 
-type CardPos = {
-  x: number; y: number; z: number;          // fixed world position
-  w: number; h: number;                      // card size (varied)
-  baseRotX: number; baseRotY: number;        // static tilt
-  rotSpeedX: number; rotSpeedY: number;      // idle float speed
-  rotPhaseX: number; rotPhaseY: number;      // idle float phase
+type CardScene = {
+  x: number; y: number; z: number;
+  w: number; h: number;
+  baseRotX: number; baseRotY: number;
+  rotSpeedX: number; rotSpeedY: number;
+  rotPhaseX: number; rotPhaseY: number;
 };
 
-// Precompute every card's scene placement — pure math, SSR-safe.
-const SCENE: CardPos[] = FEATS.map((_, i) => {
-  const portrait = rand(i * 3 + 5) > 0.5;
+// Precompute all card world positions at module load — pure math, SSR-safe
+const SCENE: CardScene[] = FEATS.map((_, i) => {
+  const portrait = seededRand(i * 3 + 5) > 0.5;
   return {
-    x: (rand(i * 2 + 1) - 0.5) * 1500,
-    y: (rand(i * 3 + 7) - 0.5) * 680,
-    z: FIRST_Z - i * CARD_SPACING + (rand(i * 5 + 9) - 0.5) * 220,
-    w: portrait ? 330 : 420,
-    h: portrait ? 460 : 320,
-    baseRotX: (rand(i * 17 + 2) - 0.5) * 16,
-    baseRotY: (rand(i * 19 + 4) - 0.5) * 26,
-    rotSpeedX: (rand(i * 5 + 2) - 0.5) * 0.45,
-    rotSpeedY: (rand(i * 7 + 4) - 0.5) * 0.45,
-    rotPhaseX: rand(i * 11 + 1) * Math.PI * 2,
-    rotPhaseY: rand(i * 13 + 6) * Math.PI * 2,
+    x:        (seededRand(i * 2 + 1) - 0.5) * 1500,
+    y:        (seededRand(i * 3 + 7) - 0.5) * 680,
+    z:        FIRST_Z - i * CARD_SPACING + (seededRand(i * 5 + 9) - 0.5) * 200,
+    w:        portrait ? 330 : 420,
+    h:        portrait ? 460 : 310,
+    baseRotX: (seededRand(i * 17 + 2) - 0.5) * 16,
+    baseRotY: (seededRand(i * 19 + 4) - 0.5) * 26,
+    rotSpeedX: (seededRand(i * 5  + 2) - 0.5) * 0.45,
+    rotSpeedY: (seededRand(i * 7  + 4) - 0.5) * 0.45,
+    rotPhaseX: seededRand(i * 11 + 1) * Math.PI * 2,
+    rotPhaseY: seededRand(i * 13 + 6) * Math.PI * 2,
   };
 });
 
-// Scroll container height: enough scroll distance to fly through every card.
-const SCENE_H = `${FEATS.length * 95 + 110}vh`;
+// Height of the tall scroll container — gives enough scroll to fly past every card
+const SCENE_HEIGHT = `${FEATS.length * 100 + 120}vh`;
 
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const clamp = (v: number, lo: number, hi: number) =>
+  v < lo ? lo : v > hi ? hi : v;
 
 /* ─── Main component ─────────────────────────────────────────────────────── */
 export function Features() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const sceneRef   = useRef<HTMLDivElement>(null);  // tall scroll container
-  const rigRef     = useRef<HTMLDivElement>(null);  // the moving "camera rig"
-  const labelRef   = useRef<HTMLDivElement>(null);  // project-name flash
+  const sceneRef   = useRef<HTMLDivElement>(null);   // tall scroll-space div
+  const rigRef     = useRef<HTMLDivElement>(null);   // moving camera rig
+  const labelRef   = useRef<HTMLDivElement>(null);   // project-name flash
   const cardRefs   = useRef<Array<HTMLDivElement | null>>([]);
-  const focusRef   = useRef<boolean[]>(FEATS.map(() => false));
+  const inFocusRef = useRef<boolean[]>(FEATS.map(() => false));
   const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
@@ -640,85 +595,89 @@ export function Features() {
     const label = labelRef.current;
     if (!scene || !rig || !label) return;
 
-    let raf = 0;
+    let rafId      = 0;
     let smoothProg = 0;
     let labelTimer: ReturnType<typeof setTimeout> | null = null;
-    let running = true;
+    let alive      = true;
 
-    const loop = (ts: number) => {
-      if (!running) return;
-      raf = requestAnimationFrame(loop);
-      const t = ts * 0.001; // seconds
+    const tick = (ts: number) => {
+      if (!alive) return;
+      rafId = requestAnimationFrame(tick);
 
-      // ── Scroll → normalized progress for THIS section ──────────────────
+      const t = ts * 0.001; // seconds elapsed
+
+      // ── Scroll → normalized progress for this section only ──────────────
+      // We measure how far the scene div has scrolled past the viewport top.
       const rect  = scene.getBoundingClientRect();
       const total = scene.offsetHeight - window.innerHeight;
-      const raw   = total > 0 ? clamp(-rect.top / total, 0, 1) : 0;
-      // Inertial smoothing (layered on top of Lenis for extra silkiness)
-      smoothProg += (raw - smoothProg) * 0.09;
-      const progress = smoothProg;
+      const rawProg = total > 0 ? clamp(-rect.top / total, 0, 1) : 0;
 
-      // ── Camera rig movement ────────────────────────────────────────────
-      const cameraZ = progress * TOTAL_DEPTH;                 // forward travel
-      const cameraX = Math.sin(progress * Math.PI * 4.5) * 190; // pan L/R
-      const cameraY = Math.sin(progress * Math.PI * 3 + 1) * 70; // subtle up/down
+      // Lerp for cinematic inertia (layered on Lenis if active)
+      smoothProg += (rawProg - smoothProg) * 0.08;
+      const prog = smoothProg;
+
+      // ── Camera rig transform ────────────────────────────────────────────
+      // Moving rig in +Z = camera flying forward through the scene.
+      // Pan X/Y via slow sine waves for cinematic drift.
+      const cameraZ =  prog * TOTAL_DEPTH;
+      const cameraX =  Math.sin(prog * Math.PI * 4.5) * 185;
+      const cameraY =  Math.sin(prog * Math.PI * 3.0 + 1.0) * 65;
+
       rig.style.transform =
         `translate3d(${-cameraX}px, ${-cameraY}px, ${cameraZ}px)`;
 
-      // ── Per-card update ────────────────────────────────────────────────
-      let focusIdx = -1;
-      let focusMin = Infinity;
-
-      cardRefs.current.forEach((el, i) => {
-        if (!el) return;
+      // ── Per-card update ─────────────────────────────────────────────────
+      cardRefs.current.forEach((card, i) => {
+        if (!card) return;
         const p = SCENE[i];
-        const net      = p.z + cameraZ;        // <0 ahead, ~0 at camera, >0 passed
+
+        // net > 0 → card has passed the camera; net < 0 → still ahead
+        const net      = p.z + cameraZ;
         const distance = Math.abs(net);
 
-        // Blur grows with distance
+        // Depth-of-field blur
         const blur = clamp((distance / BLUR_DIST) * MAX_BLUR, 0, MAX_BLUR);
 
-        // Opacity: approaching cards fade slowly; passed cards vanish fast
-        const fadeRange = net > 0 ? 520 : 2100;
+        // Opacity: slow fade-in as card approaches, fast fade-out after passing
+        const fadeRange = net > 0 ? 480 : 2200;
         const opacity   = clamp(1 - distance / fadeRange, 0, 1);
 
-        // Independent idle float
+        // Independent idle float rotation per card
         const rx = p.baseRotX + Math.sin(t * p.rotSpeedX + p.rotPhaseX) * 8;
         const ry = p.baseRotY + Math.sin(t * p.rotSpeedY + p.rotPhaseY) * 10;
 
-        el.style.opacity = String(opacity);
-        el.style.filter  = blur > 0.15 ? `blur(${blur.toFixed(1)}px)` : 'none';
-        el.style.transform =
-          `translate(-50%, -50%) translate3d(${p.x}px, ${p.y}px, ${p.z}px) ` +
+        card.style.opacity        = String(opacity);
+        card.style.filter         = blur > 0.1 ? `blur(${blur.toFixed(1)}px)` : 'none';
+        card.style.transform      =
+          `translate(-50%,-50%) ` +
+          `translate3d(${p.x}px,${p.y}px,${p.z}px) ` +
           `rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`;
-        // Cards behind the camera shouldn't catch clicks
-        el.style.pointerEvents = opacity > 0.25 && net < 250 ? 'auto' : 'none';
+        // Only catch clicks on cards that are close and in front of camera
+        card.style.pointerEvents  = (opacity > 0.2 && net < 300) ? 'auto' : 'none';
 
-        if (distance < focusMin) { focusMin = distance; focusIdx = i; }
-      });
-
-      // ── Project-name label flash ───────────────────────────────────────
-      cardRefs.current.forEach((_, i) => {
-        const p = SCENE[i];
-        const distance = Math.abs(p.z + cameraZ);
-        const inFocus  = distance < FOCUS_DIST;
-        if (inFocus && !focusRef.current[i]) {
-          focusRef.current[i] = true;
-          label.textContent = FEATS[i].t;
-          label.style.opacity = '1';
-          if (labelTimer) clearTimeout(labelTimer);
-          labelTimer = setTimeout(() => { label.style.opacity = '0'; }, 650);
-        } else if (!inFocus) {
-          focusRef.current[i] = false;
+        // ── Label flash ───────────────────────────────────────────────────
+        const isInFocus = distance < FOCUS_DIST;
+        if (isInFocus && !inFocusRef.current[i]) {
+          inFocusRef.current[i] = true;
+          if (label) {
+            label.textContent    = FEATS[i].t;
+            label.style.opacity  = '1';
+            if (labelTimer) clearTimeout(labelTimer);
+            labelTimer = setTimeout(() => {
+              if (label) label.style.opacity = '0';
+            }, 650);
+          }
+        } else if (!isInFocus) {
+          inFocusRef.current[i] = false;
         }
       });
     };
 
-    raf = requestAnimationFrame(loop);
+    rafId = requestAnimationFrame(tick);
 
     return () => {
-      running = false;
-      cancelAnimationFrame(raf);
+      alive = false;
+      cancelAnimationFrame(rafId);
       if (labelTimer) clearTimeout(labelTimer);
     };
   }, []);
@@ -726,11 +685,16 @@ export function Features() {
   return (
     <>
       {expanded !== null && (
-        <FeatureOverlay feat={FEATS[expanded]} index={expanded} onClose={() => setExpanded(null)} />
+        <FeatureOverlay
+          feat={FEATS[expanded]}
+          index={expanded}
+          onClose={() => setExpanded(null)}
+        />
       )}
 
       <section id="features" ref={sectionRef}>
-        {/* ── Heading ──────────────────────────────────────────────────────── */}
+
+        {/* ── Section heading (scrolls normally, above the sticky scene) ─── */}
         <div className="feat-head container pt-24 pb-6 md:pt-32 md:pb-8">
           <span className="inline-block text-[10px] tracking-[0.28em] text-ink-mute uppercase mb-4 px-3 py-1 rounded-full border border-ink/10 dark:border-white/10">
             02 — Features
@@ -743,55 +707,71 @@ export function Features() {
           </p>
         </div>
 
-        {/* ── Desktop: 3D cinematic flythrough ─────────────────────────────── */}
-        {/*
-            scene  — tall scroll container (gives scroll distance)
-            sticky — 100vh viewport, the fixed "camera lens" (perspective here)
-            rig    — preserve-3d; rAF moves this in Z (forward) + X/Y (pan)
-            cards  — fixed world positions; rAF sets rotation/blur/opacity
-            No GSAP/React DOM mutation → no insertBefore crashes.
-        */}
-        <div ref={sceneRef} className="hidden md:block" style={{ height: SCENE_H }}>
+        {/* ── Desktop: cinematic 3D flythrough ─────────────────────────────
+            Architecture (matches reference implementation exactly):
+            sceneRef  — tall div, provides scroll distance ("timeline")
+            sticky    — 100vh fixed-position lens, never moves visually
+            rigRef    — preserve-3d camera rig; rAF moves it in Z+X+Y
+            cards     — fixed world positions; rAF sets transform+blur+opacity
+        ────────────────────────────────────────────────────────────────── */}
+        <div
+          ref={sceneRef}
+          className="hidden md:block"
+          style={{ height: SCENE_HEIGHT }}
+        >
+          {/* Sticky 100vh viewport — the CSS perspective container */}
           <div
             className="sticky top-0 h-screen overflow-hidden"
-            style={{ perspective: `${PERSPECTIVE}px`, perspectiveOrigin: '50% 50%' }}
+            style={{
+              perspective: `${PERSPECTIVE}px`,
+              perspectiveOrigin: '50% 50%',
+            }}
           >
+            {/* Camera rig — rAF translates this forward in Z every frame */}
             <div
               ref={rigRef}
               className="absolute inset-0"
-              style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
+              style={{
+                transformStyle: 'preserve-3d',
+                willChange: 'transform',
+              }}
             >
               {FEATS.map((f, i) => (
                 <div
                   key={f.t}
                   ref={el => { cardRefs.current[i] = el; }}
                   onClick={() => setExpanded(i)}
-                  className="feat-card absolute rounded-[28px] overflow-hidden cursor-pointer"
+                  className="feat-card absolute rounded-[28px] overflow-hidden"
                   style={{
-                    width: SCENE[i].w,
+                    width:  SCENE[i].w,
                     height: SCENE[i].h,
-                    top: '50%',
-                    left: '50%',
-                    background: 'rgba(10,10,12,0.97)',
-                    border: '1px solid rgba(255,255,255,0.10)',
-                    boxShadow: '0 40px 100px -20px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.08)',
-                    transformStyle: 'preserve-3d',
+                    top:    '50%',
+                    left:   '50%',
+                    cursor: 'pointer',
+                    background:       'rgba(10,10,12,0.97)',
+                    border:           '1px solid rgba(255,255,255,0.10)',
+                    boxShadow:        '0 40px 100px -20px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.08)',
                     backfaceVisibility: 'hidden',
-                    willChange: 'transform, filter, opacity',
-                    opacity: 0,
-                    transform: `translate(-50%, -50%) translate3d(${SCENE[i].x}px, ${SCENE[i].y}px, ${SCENE[i].z}px)`,
+                    willChange:       'transform, filter, opacity',
+                    // Initial rAF-managed values (opacity + transform set per frame)
+                    opacity:   0,
+                    transform: `translate(-50%,-50%) translate3d(${SCENE[i].x}px,${SCENE[i].y}px,${SCENE[i].z}px)`,
                   }}
                 >
-                  {/* Ghost number */}
-                  <div className="absolute top-4 left-6 font-display font-extrabold select-none pointer-events-none"
-                    style={{ fontSize: '4.6rem', lineHeight: 1, color: 'rgba(255,255,255,0.05)', letterSpacing: '-0.06em' }}>
+                  {/* Ghost index number */}
+                  <div
+                    className="absolute top-4 left-6 font-display font-extrabold select-none pointer-events-none"
+                    style={{ fontSize: '4.4rem', lineHeight: 1, color: 'rgba(255,255,255,0.05)', letterSpacing: '-0.06em' }}
+                  >
                     {String(i + 1).padStart(2, '0')}
                   </div>
 
-                  {/* Tag */}
-                  <div className="absolute top-6 right-6 z-10">
-                    <span style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.09)' }}
-                      className="text-[9px] tracking-[0.18em] uppercase font-mono px-2.5 py-1 rounded-full">
+                  {/* First tag pill */}
+                  <div className="absolute top-5 right-5 z-10">
+                    <span
+                      className="text-[9px] tracking-[0.18em] uppercase font-mono px-2.5 py-1 rounded-full"
+                      style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.38)', border: '1px solid rgba(255,255,255,0.09)' }}
+                    >
                       {f.tags[0]}
                     </span>
                   </div>
@@ -803,50 +783,64 @@ export function Features() {
                     </div>
                   </div>
 
-                  {/* Footer */}
-                  <div className="absolute bottom-0 left-0 right-0 px-7 pb-7 pt-12"
-                    style={{ background: 'linear-gradient(to top, rgba(8,8,10,1) 55%, transparent)' }}>
-                    <h3 className="font-display text-[1.4rem] leading-tight text-white font-bold tracking-tight">{f.t}</h3>
-                    <p className="mt-1.5 text-[12px] leading-relaxed line-clamp-2" style={{ color: 'rgba(255,255,255,0.42)' }}>{f.d}</p>
+                  {/* Gradient footer with title */}
+                  <div
+                    className="absolute bottom-0 left-0 right-0 px-7 pb-6 pt-12"
+                    style={{ background: 'linear-gradient(to top, rgba(8,8,10,1) 55%, transparent)' }}
+                  >
+                    <h3 className="font-display text-[1.35rem] leading-tight text-white font-bold tracking-tight">{f.t}</h3>
+                    <p
+                      className="mt-1.5 text-[12px] leading-relaxed line-clamp-2"
+                      style={{ color: 'rgba(255,255,255,0.40)' }}
+                    >{f.d}</p>
                     <div className="mt-4 flex items-center justify-between">
-                      <span className="font-mono text-[9px] tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.18)' }}>
+                      <span className="font-mono text-[9px] tracking-[0.2em] uppercase" style={{ color: 'rgba(255,255,255,0.18)' }}>
                         {String(i + 1).padStart(2, '0')} / {FEATS.length}
                       </span>
-                      <div className="flex items-center gap-1.5" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '10px' }}>
+                      <span className="font-mono text-[9px] tracking-widest uppercase flex items-center gap-1.5" style={{ color: 'rgba(255,255,255,0.32)' }}>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                           <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
                         </svg>
-                        <span className="font-mono tracking-widest uppercase text-[9px]">Expand</span>
-                      </div>
+                        Expand
+                      </span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Project-name flash — bottom center */}
+            {/* Project-name label — flashes at bottom-centre when a card enters focus */}
             <div
               ref={labelRef}
-              className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 pointer-events-none select-none font-mono text-white"
+              className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 pointer-events-none select-none"
               style={{
-                fontSize: '13px', letterSpacing: '0.28em', textTransform: 'uppercase',
-                opacity: 0, transition: 'opacity 0.35s ease',
-                textShadow: '0 2px 20px rgba(0,0,0,0.8)',
+                fontFamily:      'ui-monospace, monospace',
+                fontSize:        '13px',
+                letterSpacing:   '0.28em',
+                textTransform:   'uppercase',
+                color:           'rgba(255,255,255,0.9)',
+                opacity:         0,
+                transition:      'opacity 0.35s ease',
+                textShadow:      '0 2px 20px rgba(0,0,0,0.8)',
+                whiteSpace:      'nowrap',
               }}
             />
 
-            {/* Hint */}
-            <p className="absolute bottom-7 right-8 text-[10px] font-mono text-white/20 tracking-widest pointer-events-none select-none z-20">
+            {/* Scroll hint */}
+            <p className="absolute bottom-7 right-8 text-[10px] font-mono text-white/18 tracking-widest pointer-events-none select-none z-20">
               ↓ scroll to fly through
             </p>
 
-            {/* Depth vignette */}
-            <div aria-hidden className="absolute inset-0 pointer-events-none z-[1]"
-              style={{ background: 'radial-gradient(ellipse 75% 65% at 50% 50%, transparent 38%, rgba(0,0,0,0.72) 100%)' }} />
+            {/* Radial vignette — darkens edges so cards pop from centre */}
+            <div
+              aria-hidden
+              className="absolute inset-0 pointer-events-none z-[1]"
+              style={{ background: 'radial-gradient(ellipse 72% 62% at 50% 50%, transparent 35%, rgba(0,0,0,0.75) 100%)' }}
+            />
           </div>
         </div>
 
-        {/* ── Mobile: vertical list ────────────────────────────────────────── */}
+        {/* ── Mobile: vertical tap-through list ────────────────────────────── */}
         <div className="container space-y-2.5 md:hidden pb-10">
           {FEATS.map((f, i) => (
             <div
@@ -855,12 +849,14 @@ export function Features() {
               className="relative rounded-[20px] overflow-hidden cursor-pointer active:scale-[0.99] transition-transform duration-100 flex items-center gap-4 px-5 py-4"
               style={{
                 background: 'rgba(10,10,12,0.94)',
-                border: '1px solid rgba(255,255,255,0.07)',
-                boxShadow: '0 2px 16px rgba(0,0,0,0.35)',
+                border:     '1px solid rgba(255,255,255,0.07)',
+                boxShadow:  '0 2px 16px rgba(0,0,0,0.35)',
               }}
             >
-              <span className="font-display font-extrabold shrink-0"
-                style={{ fontSize: '2.4rem', lineHeight: 1, color: 'rgba(255,255,255,0.06)', letterSpacing: '-0.06em', width: '2.5rem' }}>
+              <span
+                className="font-display font-extrabold shrink-0"
+                style={{ fontSize: '2.4rem', lineHeight: 1, color: 'rgba(255,255,255,0.06)', letterSpacing: '-0.06em', width: '2.5rem' }}
+              >
                 {String(i + 1).padStart(2, '0')}
               </span>
               <div className="flex-1 min-w-0">
@@ -873,6 +869,7 @@ export function Features() {
             </div>
           ))}
         </div>
+
       </section>
     </>
   );
