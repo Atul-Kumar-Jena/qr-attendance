@@ -533,7 +533,7 @@ function FeatureOverlay({
 const N_FEATS  = FEATS.length;
 const SP_SPIN   = 0.74;   // radians between consecutive cards along the spiral
 const SP_R0     = 40;     // radius of the focus seat
-const SP_RGROW  = 168;    // radius growth per card away from focus
+const SP_RGROW  = 198;    // radius growth per card away from focus
 const SP_ZDEPTH = 178;    // how much each step recedes in Z
 const SP_FRONTZ = 340;    // bring the focus card forward → it grows large (hero)
 const SP_YFLAT  = 0.58;   // vertical squash of the spiral
@@ -542,7 +542,27 @@ const clampSp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? h
 const wrapRel = (r: number) => { while (r > N_FEATS / 2) r -= N_FEATS; while (r < -N_FEATS / 2) r += N_FEATS; return r; };
 
 // Mixed portrait / landscape sizes, deterministic per card.
-const CARD_DIMS = FEATS.map((_, i) => (i % 3 === 1 ? { w: 252, h: 340 } : { w: 360, h: 236 }));
+const CARD_DIMS = FEATS.map((_, i) => (i % 3 === 1 ? { w: 252, h: 340 } : { w: 372, h: 244 }));
+
+// Vivid full-bleed artwork per card (abstract glows) — matches the showreel look.
+const CARD_ART = [
+  'radial-gradient(120% 90% at 28% 24%, rgba(21,224,255,0.55), transparent 55%), radial-gradient(110% 100% at 72% 82%, rgba(60,72,255,0.45), transparent 60%), linear-gradient(150deg, #0a1230, #050818)',
+  'radial-gradient(80% 70% at 56% 46%, rgba(255,150,70,0.65), transparent 60%), radial-gradient(130% 100% at 28% 18%, rgba(255,255,255,0.85), transparent 55%), linear-gradient(150deg, #f4efe8, #d7cfc4)',
+  'radial-gradient(95% 85% at 48% 50%, rgba(180,255,60,0.5), transparent 55%), radial-gradient(120% 95% at 76% 70%, rgba(10,255,200,0.45), transparent 60%), linear-gradient(150deg, #0a2417, #04140d)',
+  'radial-gradient(72% 62% at 50% 44%, rgba(255,94,196,0.6), transparent 55%), radial-gradient(120% 100% at 30% 72%, rgba(106,59,255,0.55), transparent 60%), linear-gradient(150deg, #1a0f3a, #08061c)',
+  'radial-gradient(100% 80% at 50% 28%, rgba(201,205,214,0.7), transparent 60%), linear-gradient(160deg, #3b414d, #12151b)',
+  'radial-gradient(92% 80% at 44% 56%, rgba(255,178,77,0.7), transparent 60%), radial-gradient(120% 100% at 72% 20%, rgba(255,110,46,0.55), transparent 55%), linear-gradient(150deg, #2a1a0a, #140b04)',
+  'radial-gradient(100% 90% at 38% 38%, rgba(25,211,255,0.55), transparent 55%), radial-gradient(110% 100% at 76% 76%, rgba(31,107,255,0.5), transparent 60%), linear-gradient(150deg, #07223a, #03101d)',
+  'radial-gradient(82% 72% at 34% 40%, rgba(124,155,255,0.65), transparent 55%), radial-gradient(95% 82% at 70% 66%, rgba(182,255,92,0.45), transparent 60%), linear-gradient(150deg, #14204a, #0a1230)',
+];
+
+// Deterministic per-card base tilt so the scatter reads varied like the reference.
+const seededT = (n: number) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+const CARD_TILT = FEATS.map((_, i) => ({
+  rz: (seededT(i * 2 + 1) - 0.5) * 14,
+  rx: (seededT(i * 3 + 5) - 0.5) * 8,
+  ry: (seededT(i * 5 + 2) - 0.5) * 10,
+}));
 
 export function Features() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -594,13 +614,14 @@ export function Features() {
         const z = SP_FRONTZ - a * SP_ZDEPTH;
         const idleY = Math.sin(time * 0.6 + i * 1.7) * 3;
         const idleX = Math.cos(time * 0.5 + i * 2.3) * 2.4;
-        const rotY = clampSp(-x * 0.045, -32, 32) + idleY;
-        const rotX = clampSp(y * 0.05, -22, 22) + idleX;
-        const opacity = clampSp(1.16 - a * 0.15, 0, 1);
-        const blur = clampSp((a - 0.7) * 1.5, 0, 6);
+        const rotY = clampSp(-x * 0.06, -42, 42) + idleY + CARD_TILT[i].ry;
+        const rotX = clampSp(y * 0.06, -28, 28) + idleX + CARD_TILT[i].rx;
+        const rotZ = CARD_TILT[i].rz + Math.sin(time * 0.4 + i) * 1.4;
+        const opacity = clampSp(1.18 - a * 0.14, 0, 1);
+        const blur = clampSp((a - 0.8) * 1.5, 0, 6);
         card.style.transform =
           `translate(-50%,-50%) translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) ` +
-          `rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
+          `rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg)`;
         card.style.opacity = opacity.toFixed(3);
         card.style.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : 'none';
         card.style.pointerEvents = a < 0.6 ? 'auto' : 'none';
@@ -642,6 +663,7 @@ export function Features() {
                   className="sp-card"
                   style={{ width: CARD_DIMS[i].w, height: CARD_DIMS[i].h }}
                 >
+                  <div className="sp-card-art" style={{ background: CARD_ART[i % CARD_ART.length] }} />
                   <div className="sp-card-illu"><f.Illu /></div>
                   <span className="sp-card-tag">{f.tags[0]}</span>
                 </div>

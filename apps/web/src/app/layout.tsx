@@ -5,7 +5,8 @@ import { PageTransition } from '@/components/PageTransition';
 import { Providers } from '@/components/Providers';
 import { DeepLinkRestore } from '@/components/DeepLinkRestore';
 import { Loader } from '@/components/Loader';
-import { InputRobot } from '@/components/InputRobot';
+import { FeatureRobot } from '@/components/FeatureRobot';
+import { GridBackground } from '@/components/GridBackground';
 import { GlobalAurora } from '@/components/GlobalAurora';
 
 const jakarta = Plus_Jakarta_Sans({
@@ -29,8 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="font-sans antialiased">
         <GlobalAurora />
+        <GridBackground />
         <Loader />
-        <InputRobot />
+        <FeatureRobot />
         <Providers>
           <DeepLinkRestore />
           <PageTransition>{children}</PageTransition>
