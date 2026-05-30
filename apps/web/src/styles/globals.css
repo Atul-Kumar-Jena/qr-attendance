@@ -457,3 +457,199 @@ html.theme-transitioning *::after {
   transition: background-color 0.3s ease, color 0.2s ease, border-color 0.25s ease !important;
   transition-delay: 0s !important;
 }
+
+/* ═══ Aurora ambient backdrop (replaces the old reactive grid) ═══════════════ */
+/* A continuously-moving field of soft, blurred light. Pure CSS so it can never
+   jank or crash; tuned for both themes; frozen under reduced-motion. */
+.aurora-root {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at 50% -10%, rgba(255, 107, 61, 0.06), transparent 60%);
+}
+.aurora-field {
+  position: absolute;
+  inset: -20%;
+}
+.aurora-blob {
+  position: absolute;
+  display: block;
+  width: 60vw;
+  height: 60vw;
+  border-radius: 50%;
+  /* Blur lives on each blob (a promoted transform layer) — NOT the parent —
+     so the drift animates as a cheap GPU composite, not a per-frame re-blur. */
+  filter: blur(50px) saturate(130%);
+  will-change: transform;
+}
+.aurora-b1 { left: -8%;   top: -12%;    background: radial-gradient(circle at 50% 50%, rgba(255, 107, 61, 0.32), transparent 62%); animation: auroraA 34s ease-in-out infinite; }
+.aurora-b2 { right: -10%; top: -4%;     background: radial-gradient(circle at 50% 50%, rgba(242, 166, 90, 0.26), transparent 64%); animation: auroraB 44s ease-in-out infinite; }
+.aurora-b3 { left: 6%;    bottom: -20%; background: radial-gradient(circle at 50% 50%, rgba(124, 150, 122, 0.24), transparent 66%); animation: auroraC 38s ease-in-out infinite; }
+.aurora-b4 { right: 4%;   bottom: -14%; background: radial-gradient(circle at 50% 50%, rgba(138, 124, 255, 0.18), transparent 66%); animation: auroraD 48s ease-in-out infinite; }
+.aurora-b5 { left: 32%;   top: 22%;     background: radial-gradient(circle at 50% 50%, rgba(255, 140, 90, 0.16), transparent 68%); animation: auroraE 30s ease-in-out infinite; }
+
+@keyframes auroraA { 0%,100% { transform: translate3d(0,0,0) scale(1); }    33% { transform: translate3d(12vw,8vh,0) scale(1.18); }  66% { transform: translate3d(-6vw,14vh,0) scale(0.92); } }
+@keyframes auroraB { 0%,100% { transform: translate3d(0,0,0) scale(1.05); } 50% { transform: translate3d(-14vw,10vh,0) scale(0.85); } }
+@keyframes auroraC { 0%,100% { transform: translate3d(0,0,0) scale(0.95); } 40% { transform: translate3d(10vw,-10vh,0) scale(1.2); }  75% { transform: translate3d(18vw,4vh,0) scale(1.05); } }
+@keyframes auroraD { 0%,100% { transform: translate3d(0,0,0) scale(1); }    50% { transform: translate3d(-12vw,-12vh,0) scale(1.22); } }
+@keyframes auroraE { 0%,100% { transform: translate3d(0,0,0) scale(1.1); }  50% { transform: translate3d(8vw,-6vh,0) scale(0.8); } }
+
+.aurora-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(130% 95% at 50% 45%, transparent 45%, var(--bg) 100%);
+}
+
+/* Dark theme: lift the glow without re-tinting every blob */
+html.dark .aurora-root  { background: radial-gradient(120% 80% at 50% -10%, rgba(255, 107, 61, 0.10), transparent 60%); }
+html.dark .aurora-blob  { filter: blur(58px) saturate(150%) brightness(1.3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob { animation: none !important; }
+}
+@media (pointer: coarse) {
+  /* Trim GPU cost on phones */
+  .aurora-b4, .aurora-b5 { display: none; }
+  .aurora-blob { filter: blur(38px) saturate(125%); }
+}
+
+/* ═══ Features: 3D scroll tunnel ═════════════════════════════════════════════ */
+/* The section pins; scrolling flies the camera forward through a tunnel of
+   cards. Desktop + motion-OK only — everything else falls back to a static
+   grid, which is the markup that renders by default (progressive enhancement). */
+.tunnel-pin       { display: none; }
+.tunnel-fallback  { display: block; }
+.tunnel-active .tunnel-pin      { display: block; height: 100vh; }
+.tunnel-active .tunnel-fallback { display: none; }
+
+.tunnel-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  perspective: 1000px;          /* MUST match PERSPECTIVE in Features.tsx */
+  perspective-origin: 50% 50%;  /* vanishing point = screen centre */
+}
+/* Top/bottom shading so overlay text stays legible over busy cards */
+.tunnel-scene::before,
+.tunnel-scene::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  height: 30%;
+  pointer-events: none;
+  z-index: 5;
+}
+.tunnel-scene::before { top: 0;    background: linear-gradient(to bottom, var(--bg), transparent); opacity: 0.5; }
+.tunnel-scene::after  { bottom: 0; background: linear-gradient(to top,    var(--bg), transparent); opacity: 0.62; }
+
+.tunnel-world {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+  transform: translate(-50%, -50%);   /* overwritten every frame by JS */
+}
+
+.tunnel-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 300px;
+  height: 384px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 26px;
+  background: linear-gradient(158deg, rgba(255, 255, 255, 0.94), rgba(248, 247, 242, 0.86));
+  border: 1px solid var(--line);
+  box-shadow:
+    0 30px 80px -24px rgba(11, 18, 32, 0.40),
+    0 10px 30px -16px rgba(11, 18, 32, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform, filter, opacity;
+  opacity: 0;                  /* the loop reveals each card by its distance */
+}
+/* Accent hairline along the leading edge */
+.tunnel-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 26px;
+  padding: 1px;
+  background: linear-gradient(160deg, rgba(255, 107, 61, 0.45), transparent 42%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.7;
+}
+html.dark .tunnel-card {
+  background: linear-gradient(158deg, rgba(30, 34, 46, 0.95), rgba(17, 20, 28, 0.9));
+  border-color: rgba(240, 237, 230, 0.10);
+  box-shadow:
+    0 36px 90px -24px rgba(0, 0, 0, 0.7),
+    0 0 40px -10px rgba(255, 107, 61, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Greeting headline — fades out as the camera enters the tunnel */
+.tunnel-ui {
+  position: absolute;
+  top: 14vh;
+  left: 0; right: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+/* The name + blurb of whichever card currently fills the frame */
+.tunnel-label {
+  position: absolute;
+  left: 50%;
+  bottom: 8vh;
+  transform: translate(-50%, 12px);
+  z-index: 7;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  max-width: min(90vw, 560px);
+}
+.tunnel-label.show { opacity: 1; transform: translate(-50%, 0); }
+.tunnel-label-title {
+  font-family: var(--font-display), serif;
+  font-size: clamp(2rem, 4.5vw, 3.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.tunnel-label-desc {
+  margin-top: 8px;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  color: var(--ink-mute);
+}
+
+.tunnel-counter {
+  position: absolute;
+  right: 5vw;
+  bottom: 8vh;
+  z-index: 7;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: var(--ink-mute);
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  /* The tunnel never initialises here; keep the markup inert regardless. */
+  .tunnel-pin      { display: none !important; }
+  .tunnel-fallback { display: block !important; }
+}
