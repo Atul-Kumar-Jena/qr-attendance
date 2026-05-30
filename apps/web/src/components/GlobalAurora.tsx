@@ -1,40 +1,37 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
+/**
+ * Site-wide grey moving aurora — visible only in dark mode (matte black bg).
+ * Fixed full-screen, sits behind all content. Three large grey blobs drift
+ * slowly with `screen` blend so they glow softly against pure black.
+ */
 export function GlobalAurora() {
-  const ref = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
   return (
     <div
-      ref={ref}
       aria-hidden
-      className="fixed inset-0 pointer-events-none overflow-hidden"
+      className="global-aurora fixed inset-0 pointer-events-none overflow-hidden"
       style={{ zIndex: 0 }}
     >
       {mounted && (
         <>
           <div className="aurora-blob-g" style={{
-            width: '75vw', height: '75vw', left: '-15vw', top: '-20vh',
-            background: 'radial-gradient(circle at 50% 50%, #606068 0%, #38383F 35%, transparent 70%)',
-            animation: 'auroraDrift1 22s ease-in-out infinite',
+            width: '70vw', height: '70vw', left: '-12vw', top: '-18vh',
+            background: 'radial-gradient(circle at 50% 50%, #8A8A95 0%, #4A4A55 38%, transparent 70%)',
+            animation: 'auroraDrift1 24s ease-in-out infinite',
           }} />
           <div className="aurora-blob-g" style={{
-            width: '65vw', height: '65vw', right: '-10vw', top: '-10vh',
-            background: 'radial-gradient(circle at 50% 50%, #7A7A84 0%, #45454E 35%, transparent 70%)',
-            animation: 'auroraDrift2 28s ease-in-out infinite',
+            width: '62vw', height: '62vw', right: '-10vw', top: '-8vh',
+            background: 'radial-gradient(circle at 50% 50%, #9DA0AC 0%, #54545F 36%, transparent 70%)',
+            animation: 'auroraDrift2 30s ease-in-out infinite',
           }} />
           <div className="aurora-blob-g" style={{
-            width: '70vw', height: '70vw', left: '20vw', bottom: '-25vh',
-            background: 'radial-gradient(circle at 50% 50%, #4E4E58 0%, #2C2C33 38%, transparent 72%)',
-            animation: 'auroraDrift3 34s ease-in-out infinite',
-          }} />
-          <div style={{
-            position: 'absolute', inset: 0,
-            backdropFilter: 'blur(60px) saturate(100%)',
-            WebkitBackdropFilter: 'blur(60px) saturate(100%)',
-            background: 'rgba(0,0,0,0.15)',
+            width: '68vw', height: '68vw', left: '22vw', bottom: '-22vh',
+            background: 'radial-gradient(circle at 50% 50%, #6E6E7A 0%, #3A3A44 40%, transparent 72%)',
+            animation: 'auroraDrift3 36s ease-in-out infinite',
           }} />
         </>
       )}

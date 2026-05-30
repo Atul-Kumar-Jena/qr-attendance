@@ -833,13 +833,21 @@ html:not(.dark) .section-dark {
 .aurora-blob-g {
   position: absolute;
   border-radius: 9999px;
-  filter: blur(80px);
+  filter: blur(90px);
   mix-blend-mode: screen;
   will-change: transform;
   opacity: 0;
-  transition: opacity 0.5s;
+  transition: opacity 0.6s ease;
 }
-html.dark .aurora-blob-g { opacity: 1; }
+html.dark .aurora-blob-g { opacity: 0.55; }
+
+/* The whole global-aurora layer only renders its glow in dark mode */
+.global-aurora { opacity: 0; transition: opacity 0.6s ease; }
+html.dark .global-aurora { opacity: 1; }
+
+/* In dark mode, the GridBackground's solid-black edge vignette would bury the
+   aurora — neutralise it so the grey field shows through across the page. */
+html.dark .grid-bg-vignette { background: transparent !important; }
 
 /* ── Aurora · matte-glass moving colour field ───────────────────────────── */
 .aurora { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }

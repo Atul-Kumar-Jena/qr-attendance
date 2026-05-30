@@ -7,6 +7,8 @@ import { Magnetic } from './Magnetic';
 import { initGSAP } from '@/lib/gsap-init';
 import { DemoModal } from './DemoModal';
 import { Aurora } from './Aurora';
+import { SplineScene } from './ui/splite';
+import { Spotlight } from './ui/spotlight';
 
 if (typeof window !== 'undefined') {
   initGSAP();
@@ -15,250 +17,6 @@ if (typeof window !== 'undefined') {
 const HEADLINE = ['Attendance,', 'unforgeable.'];
 const SUB =
   'Dynamic signed QR · device binding · geofence · app attestation. The proxy-attendance problem, solved at the protocol layer.';
-
-function RobotBust() {
-  const headG  = useRef<SVGGElement>(null);
-  const bodyG  = useRef<SVGGElement>(null);
-  const armL   = useRef<SVGGElement>(null);
-  const armR   = useRef<SVGGElement>(null);
-  const eyeIrisL = useRef<SVGEllipseElement>(null);
-  const eyeIrisR = useRef<SVGEllipseElement>(null);
-  const [hiVisible, setHiVisible] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const head = headG.current;
-    const irisL = eyeIrisL.current;
-    const irisR = eyeIrisR.current;
-    const aL = armL.current;
-    const aR = armR.current;
-    if (!head || !irisL || !irisR) return;
-
-    // Entrance
-    gsap.set(head, { opacity: 0, scale: 0.92, transformOrigin: '160px 220px' });
-    gsap.to(head, { opacity: 1, scale: 1, duration: 1, ease: 'power3.out', delay: 0.15 });
-
-    gsap.set([irisL, irisR], { scaleY: 0, transformOrigin: '50% 50%' });
-    gsap.to([irisL, irisR], { scaleY: 1, duration: 0.65, ease: 'back.out(1.7)', delay: 0.7 });
-
-    setHiVisible(true);
-    const hiTimer = setTimeout(() => setHiVisible(false), 2600);
-
-    // Blink loop
-    const blinkSchedule = () => {
-      const delay = 2800 + Math.random() * 3200;
-      return setTimeout(() => {
-        if (!irisL || !irisR) return;
-        gsap.timeline()
-          .to([irisL, irisR], { attr: { ry: 0.05 }, duration: 0.055, ease: 'power2.in' })
-          .to([irisL, irisR], { attr: { ry: 28 }, duration: 0.1, ease: 'power2.out' })
-          .call(() => { blinkTimer = blinkSchedule(); });
-      }, delay);
-    };
-    let blinkTimer = blinkSchedule();
-
-    // Gentle body float
-    const floatTween = gsap.to(head, {
-      y: -8, duration: 2.2, ease: 'sine.inOut', yoyo: true, repeat: -1,
-    });
-
-    // Arms — pivot at shoulder (top-center of each arm rect)
-    if (aR) {
-      gsap.set(aR, { transformOrigin: '268px 340px', force3D: true });
-      // Wave greeting: arm lifts & swings
-      gsap.timeline({ delay: 0.75 })
-        .to(aR, { rotation: -35, duration: 0.2, ease: 'power2.out' })
-        .to(aR, { rotation: 14, duration: 0.25, ease: 'power2.inOut' })
-        .to(aR, { rotation: -30, duration: 0.2, ease: 'power2.inOut' })
-        .to(aR, { rotation: 10, duration: 0.25, ease: 'power2.inOut' })
-        .to(aR, { rotation: -20, duration: 0.2, ease: 'power2.inOut' })
-        .to(aR, { rotation: 0, duration: 0.45, ease: 'back.out(1.5)' })
-        .then(() => {
-          gsap.to(aR, { rotation: -5, duration: 3, ease: 'sine.inOut', yoyo: true, repeat: -1, force3D: true });
-        });
-    }
-    if (aL) {
-      gsap.set(aL, { transformOrigin: '52px 340px', force3D: true });
-      gsap.to(aL, { rotation: 4, duration: 3.5, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 0.5, force3D: true });
-    }
-
-    // Cursor tracking
-    const onPointerMove = (e: PointerEvent) => {
-      if (!head) return;
-      const rect = head.closest('svg')?.getBoundingClientRect();
-      if (!rect) return;
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      const dx = (e.clientX - cx) / window.innerWidth;
-      const dy = (e.clientY - cy) / window.innerHeight;
-      gsap.to(head, {
-        rotationY: dx * 6,
-        rotationX: -dy * 4,
-        transformOrigin: '160px 220px',
-        duration: 0.65,
-        ease: 'power2.out',
-      });
-    };
-    window.addEventListener('pointermove', onPointerMove);
-
-    return () => {
-      clearTimeout(hiTimer);
-      clearTimeout(blinkTimer);
-      floatTween.kill();
-      window.removeEventListener('pointermove', onPointerMove);
-    };
-  }, []);
-
-  return (
-    <div className="relative w-full">
-      {hiVisible && (
-        <div
-          className="absolute top-1 left-1/2 -translate-x-1/2 z-10 text-sm font-semibold text-cyan-300 pointer-events-none select-none whitespace-nowrap"
-          style={{ textShadow: '0 0 14px rgba(0,180,216,0.9)', animation: 'fadeSlideIn 0.4s ease forwards' }}
-        >
-          Hi there! 👋
-        </div>
-      )}
-      <svg
-        viewBox="0 0 320 440"
-        width="100%"
-        height="290"
-        role="presentation"
-        aria-hidden
-        style={{ filter: 'drop-shadow(0 24px 56px rgba(0,180,216,0.14))' }}
-      >
-        <defs>
-          <radialGradient id="rb-head-grad" cx="0.42" cy="0.28" r="0.85">
-            <stop offset="0" stopColor="#1E1E26" />
-            <stop offset="0.5" stopColor="#111116" />
-            <stop offset="1" stopColor="#0C0C10" />
-          </radialGradient>
-          <radialGradient id="rb-iris-l" cx="0.35" cy="0.3" r="0.85">
-            <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.95" />
-            <stop offset="0.22" stopColor="#80EFFF" />
-            <stop offset="0.58" stopColor="#00B4D8" />
-            <stop offset="1" stopColor="#023E8A" />
-          </radialGradient>
-          <radialGradient id="rb-iris-r" cx="0.35" cy="0.3" r="0.85">
-            <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.95" />
-            <stop offset="0.22" stopColor="#80EFFF" />
-            <stop offset="0.58" stopColor="#00B4D8" />
-            <stop offset="1" stopColor="#023E8A" />
-          </radialGradient>
-          <radialGradient id="rb-arm-grad" cx="0.5" cy="0" r="1">
-            <stop offset="0" stopColor="#1A1A1E" />
-            <stop offset="1" stopColor="#0C0C10" />
-          </radialGradient>
-          <filter id="rb-eye-glow" x="-80%" y="-80%" width="260%" height="260%">
-            <feGaussianBlur stdDeviation="7" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-          <filter id="rb-head-shadow" x="-20%" y="-10%" width="140%" height="130%">
-            <feDropShadow dx="0" dy="10" stdDeviation="14" floodColor="#000" floodOpacity="0.65" />
-          </filter>
-          <clipPath id="rb-eye-clip-l"><ellipse cx="118" cy="155" rx="40" ry="20" /></clipPath>
-          <clipPath id="rb-eye-clip-r"><ellipse cx="202" cy="155" rx="40" ry="20" /></clipPath>
-        </defs>
-
-        {/* Left arm — gentle sway, pivot at shoulder (52,340) */}
-        <g ref={armL}>
-          {/* Upper arm tube */}
-          <rect x="40" y="338" width="24" height="44" rx="12" fill="#131318" stroke="#22222A" strokeWidth="1.2" />
-          {/* Elbow joint sphere */}
-          <circle cx="52" cy="384" r="13" fill="#1A1A22" stroke="#2A2A36" strokeWidth="1" />
-          <circle cx="52" cy="384" r="7" fill="#111118" />
-          {/* Forearm tube */}
-          <rect x="40" y="382" width="24" height="40" rx="12" fill="#111116" stroke="#22222A" strokeWidth="1.2" />
-          {/* Wrist */}
-          <circle cx="52" cy="424" r="10" fill="#1A1A22" stroke="#2A2A36" strokeWidth="1" />
-          {/* Hand — robotic claw shape */}
-          <rect x="42" y="420" width="20" height="14" rx="4" fill="#141418" stroke="#22222A" strokeWidth="0.9" />
-          <path d="M43 434 Q40 442 40 448" stroke="#22222A" strokeWidth="5" strokeLinecap="round" fill="none" />
-          <path d="M52 435 Q52 443 52 449" stroke="#22222A" strokeWidth="5" strokeLinecap="round" fill="none" />
-          <path d="M61 434 Q64 442 64 448" stroke="#22222A" strokeWidth="5" strokeLinecap="round" fill="none" />
-          {/* Cyan accent on elbow */}
-          <circle cx="52" cy="384" r="13" fill="none" stroke="#00D4FF" strokeWidth="0.5" opacity="0.3" />
-        </g>
-
-        {/* Right arm — waves on entry, pivot at shoulder (268,340) */}
-        <g ref={armR}>
-          {/* Upper arm tube */}
-          <rect x="256" y="338" width="24" height="44" rx="12" fill="#131318" stroke="#22222A" strokeWidth="1.2" />
-          {/* Elbow joint sphere */}
-          <circle cx="268" cy="384" r="13" fill="#1A1A22" stroke="#2A2A36" strokeWidth="1" />
-          <circle cx="268" cy="384" r="7" fill="#111118" />
-          {/* Forearm tube */}
-          <rect x="256" y="382" width="24" height="40" rx="12" fill="#111116" stroke="#22222A" strokeWidth="1.2" />
-          {/* Wrist */}
-          <circle cx="268" cy="424" r="10" fill="#1A1A22" stroke="#2A2A36" strokeWidth="1" />
-          {/* Hand */}
-          <rect x="258" y="420" width="20" height="14" rx="4" fill="#141418" stroke="#22222A" strokeWidth="0.9" />
-          <path d="M259 434 Q256 442 256 448" stroke="#22222A" strokeWidth="5" strokeLinecap="round" fill="none" />
-          <path d="M268 435 Q268 443 268 449" stroke="#22222A" strokeWidth="5" strokeLinecap="round" fill="none" />
-          <path d="M277 434 Q280 442 280 448" stroke="#22222A" strokeWidth="5" strokeLinecap="round" fill="none" />
-          {/* Cyan accent on elbow */}
-          <circle cx="268" cy="384" r="13" fill="none" stroke="#00D4FF" strokeWidth="0.5" opacity="0.3" />
-        </g>
-
-        {/* Body */}
-        <g ref={bodyG} filter="url(#rb-head-shadow)">
-          {/* Head dome */}
-          <ellipse cx="160" cy="150" rx="100" ry="120" fill="url(#rb-head-grad)" />
-          <line x1="160" y1="32" x2="160" y2="265" stroke="#1A1A1E" strokeWidth="0.8" opacity="0.55" />
-
-          {/* Eye sockets */}
-          <ellipse cx="118" cy="155" rx="42" ry="22" fill="#080808" />
-          <ellipse cx="202" cy="155" rx="42" ry="22" fill="#080808" />
-
-          {/* Eye glows */}
-          <ellipse cx="118" cy="155" rx="36" ry="32" fill="#00B4D8" opacity="0.3" filter="url(#rb-eye-glow)" />
-          <ellipse cx="202" cy="155" rx="36" ry="32" fill="#00B4D8" opacity="0.3" filter="url(#rb-eye-glow)" />
-
-          {/* Irises */}
-          <ellipse ref={eyeIrisL} cx="118" cy="155" rx="30" ry="28" fill="url(#rb-iris-l)" clipPath="url(#rb-eye-clip-l)" />
-          <ellipse ref={eyeIrisR} cx="202" cy="155" rx="30" ry="28" fill="url(#rb-iris-r)" clipPath="url(#rb-eye-clip-r)" />
-
-          {/* Detail rings */}
-          {[8, 14, 20].map(r => (
-            <g key={r}>
-              <circle cx="118" cy="155" r={r} fill="none" stroke="white" strokeWidth="0.5" opacity="0.12" clipPath="url(#rb-eye-clip-l)" />
-              <circle cx="202" cy="155" r={r} fill="none" stroke="white" strokeWidth="0.5" opacity="0.12" clipPath="url(#rb-eye-clip-r)" />
-            </g>
-          ))}
-
-          {/* Pupils */}
-          <circle cx="118" cy="155" r="7" fill="#001233" clipPath="url(#rb-eye-clip-l)" />
-          <circle cx="202" cy="155" r="7" fill="#001233" clipPath="url(#rb-eye-clip-r)" />
-
-          {/* Highlights */}
-          <ellipse cx="112" cy="148" rx="6" ry="4" fill="white" opacity="0.8" clipPath="url(#rb-eye-clip-l)" />
-          <ellipse cx="196" cy="148" rx="6" ry="4" fill="white" opacity="0.8" clipPath="url(#rb-eye-clip-r)" />
-
-          {/* Socket rims */}
-          <ellipse cx="118" cy="155" rx="42" ry="22" fill="none" stroke="#00D4FF" strokeWidth="0.8" opacity="0.45" />
-          <ellipse cx="202" cy="155" rx="42" ry="22" fill="none" stroke="#00D4FF" strokeWidth="0.8" opacity="0.45" />
-
-          {/* Neck */}
-          <path d="M130 268 Q127 292 127 312 L193 312 Q193 292 190 268 Z" fill="#0C0C10" stroke="#1A1A1E" strokeWidth="0.8" />
-          <line x1="120" y1="302" x2="200" y2="302" stroke="#00D4FF" strokeWidth="1.1" opacity="0.55" />
-
-          {/* Shoulders */}
-          <path d="M55 330 Q78 315 127 330 L127 365 Q78 368 50 352 Z" fill="#0D0D11" stroke="#1A1A1E" strokeWidth="0.7" />
-          <path d="M265 330 Q242 315 193 330 L193 365 Q242 368 270 352 Z" fill="#0D0D11" stroke="#1A1A1E" strokeWidth="0.7" />
-
-          {/* Chest */}
-          <path d="M127 330 L127 395 Q127 406 160 406 Q193 406 193 395 L193 330 Z" fill="#0C0C10" stroke="#1A1A1E" strokeWidth="0.7" />
-          <line x1="127" y1="330" x2="193" y2="330" stroke="#00D4FF" strokeWidth="0.6" opacity="0.45" />
-
-          {/* Chest detail grill */}
-          {[348, 360, 372].map((y, i) => (
-            <line key={i} x1="140" y1={y} x2="180" y2={y} stroke="#1E1E26" strokeWidth="1.2" strokeLinecap="round" />
-          ))}
-        </g>
-      </svg>
-    </div>
-  );
-}
 
 export function Hero() {
   const root = useRef<HTMLDivElement>(null);
@@ -409,11 +167,18 @@ export function Hero() {
             </div>
           </div>
 
-          <div ref={qr} className="relative flex flex-col items-center gap-8">
-            <div className="w-full max-w-[320px] mx-auto">
-              <RobotBust />
+          <div ref={qr} className="relative flex flex-col items-center gap-6">
+            {/* Interactive 3D robot — Spline scene */}
+            <div className="robot-3d relative w-full h-[360px] md:h-[420px] rounded-[28px] overflow-hidden"
+              style={{ background: 'radial-gradient(120% 120% at 50% 0%, rgba(20,20,26,0.6), rgba(0,0,0,0.85))', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <Spotlight className="-top-24 left-10 md:-top-16 md:left-24" fill="rgba(120,200,255,0.55)" />
+              <SplineScene
+                scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
+                className="w-full h-full"
+              />
             </div>
-            <div className="relative w-full max-w-[280px] mx-auto aspect-square">
+            {/* QR mosaic — kept as the core product visual */}
+            <div className="relative w-full max-w-[260px] mx-auto aspect-square">
               <QrMosaic />
             </div>
           </div>

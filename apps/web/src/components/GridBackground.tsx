@@ -101,8 +101,9 @@ export function GridBackground() {
       {/* Ambient halo following the cursor */}
       <div ref={spotRef} className="absolute inset-0" />
 
-      {/* Edge vignette → blends into page bg */}
-      <div className="absolute inset-0" style={{
+      {/* Edge vignette → blends into page bg (neutralised in dark mode so the
+          global aurora shows through — see .grid-bg-vignette in globals.css) */}
+      <div className="grid-bg-vignette absolute inset-0" style={{
         background: 'radial-gradient(ellipse 100% 60% at 50% 0%, transparent 45%, var(--bg) 100%)',
       }} />
     </div>

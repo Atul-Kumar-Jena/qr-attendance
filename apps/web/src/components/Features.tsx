@@ -590,51 +590,64 @@ export function Features() {
     try {
       ctx = gsap.context(() => {
         const cards = gsap.utils.toArray<HTMLElement>('.feat-card');
-        if (cards.length < 2 || !deck.current || !root.current) return;
+        const ring = deck.current;
+        if (cards.length < 2 || !ring || !root.current) return;
 
-        /* ── Smooth stacked card scroll ────────────────────────────────────
-           Cards are all stacked (absolute, same position). A GSAP timeline
-           drives each transition: the current card gently scales down + fades
-           out upward while the next card rises in from slightly below.
-           The timeline is scrubbed by a pinned ScrollTrigger — very smooth.
+        /* ── Spiral / 3D wheel carousel ────────────────────────────────────
+           Cards are arranged around a vertical cylinder. Scrolling rotates the
+           cylinder so each card sweeps to the front. Cards facing away curve
+           back and fade — a smooth rotating spiral.
         ── */
-        const SCROLL_PER_CARD = 700;
-        const totalScroll = (cards.length - 1) * SCROLL_PER_CARD;
+        const n = cards.length;
+        const STEP = 360 / n;             // angle between cards
+        const RADIUS = 560;               // cylinder radius (px)
 
-        // Stack cards — first card visible, rest invisible below
+        // Position each card around the ring
         cards.forEach((card, i) => {
           gsap.set(card, {
-            position: 'absolute', top: 0, left: 0,
-            zIndex: cards.length - i,
-            ...(i > 0 ? { autoAlpha: 0, y: 32, scale: 0.96 } : {}),
+            position: 'absolute',
+            top: '50%', left: '50%',
+            xPercent: -50, yPercent: -50,
+            rotationY: i * STEP,
+            transformOrigin: `50% 50% -${RADIUS}px`,
+            z: 0,
           });
         });
 
-        // Build master timeline — one segment per card transition
-        const tl = gsap.timeline({ defaults: { ease: 'power2.inOut' } });
-        for (let i = 0; i < cards.length - 1; i++) {
-          tl
-            // outgoing: fade up + slight scale-down
-            .to(cards[i], { autoAlpha: 0, y: -24, scale: 0.94, duration: 1 }, i)
-            // incoming: rise + fade in
-            .fromTo(
-              cards[i + 1],
-              { autoAlpha: 0, y: 32, scale: 0.96 },
-              { autoAlpha: 1, y: 0, scale: 1, duration: 1 },
-              i,      // overlap with exit — feels simultaneous
-            );
-        }
+        // The ring itself — we rotate this group
+        gsap.set(ring, { transformStyle: 'preserve-3d' });
 
-        // Scrub the timeline through scroll — scrub:1.8 = natural lag
+        const rotation = { v: 0 };
+        const apply = () => {
+          gsap.set(ring, { rotationY: rotation.v });
+          // Dim + disable cards that face away from the viewer
+          cards.forEach((card, i) => {
+            const angle = ((i * STEP + rotation.v) % 360 + 360) % 360;
+            const facing = angle > 180 ? 360 - angle : angle; // 0 = front
+            const op = gsap.utils.clamp(0, 1, 1 - facing / 90);
+            gsap.set(card, {
+              autoAlpha: op * op,
+              pointerEvents: facing < 25 ? 'auto' : 'none',
+            });
+          });
+        };
+        apply();
+
+        const totalScroll = (n - 1) * 360;
+
         ScrollTrigger.create({
           trigger: root.current,
           pin: true,
           start: 'top top',
           end: () => `+=${totalScroll}`,
-          scrub: 1.8,
+          scrub: 1.4,
           invalidateOnRefresh: true,
           anticipatePin: 1,
-          animation: tl,
+          onUpdate: (self) => {
+            // Rotate backwards so card 0 → card n-1 sweep to front
+            rotation.v = -self.progress * (n - 1) * STEP;
+            apply();
+          },
         });
 
         // Section heading fade-in
@@ -667,25 +680,25 @@ export function Features() {
           </p>
         </div>
 
-        {/* Desktop — stacked card scroll deck */}
-        <div className="hidden md:flex gap-12 px-[8vw] items-start">
-          {/* Card deck — fills 460px, cards stacked inside */}
-          <div ref={deck} style={{ width: 460, height: 580, position: 'relative', flexShrink: 0 }}>
+        {/* Desktop — 3D spiral wheel carousel */}
+        <div className="hidden md:flex items-center justify-center" style={{ perspective: '1800px', height: 620 }}>
+          {/* The rotating ring */}
+          <div ref={deck} style={{ width: 420, height: 540, position: 'relative', transformStyle: 'preserve-3d' }}>
             {FEATS.map((f, i) => (
               <article
                 key={f.t}
                 onClick={() => openFeature(i)}
                 className="feat-card rounded-[32px] overflow-hidden cursor-pointer group will-change-transform"
                 style={{
-                  width: 460, height: 580,
-                  background: 'rgba(10,10,12,0.96)',
-                  border: '1px solid rgba(255,255,255,0.09)',
-                  boxShadow: '0 32px 80px -16px rgba(0,0,0,0.75), 0 1px 0 rgba(255,255,255,0.07) inset',
+                  width: 420, height: 540,
+                  background: 'rgba(10,10,12,0.97)',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  boxShadow: '0 40px 100px -20px rgba(0,0,0,0.85), 0 1px 0 rgba(255,255,255,0.08) inset',
                 }}
               >
                 {/* Large ghost number */}
                 <div className="absolute top-5 left-7 font-display font-extrabold select-none pointer-events-none"
-                  style={{ fontSize: '5.8rem', lineHeight: 1, color: 'rgba(255,255,255,0.05)', letterSpacing: '-0.06em' }}>
+                  style={{ fontSize: '5.4rem', lineHeight: 1, color: 'rgba(255,255,255,0.055)', letterSpacing: '-0.06em' }}>
                   {String(i + 1).padStart(2, '0')}
                 </div>
 
@@ -700,8 +713,8 @@ export function Features() {
                 </div>
 
                 {/* Illustration — fills center */}
-                <div className="absolute inset-0 flex items-center justify-center px-10 pt-14 pb-44 overflow-hidden">
-                  <div className="w-full opacity-80 group-hover:opacity-100 transition-opacity duration-500">
+                <div className="absolute inset-0 flex items-center justify-center px-9 pt-14 pb-44 overflow-hidden">
+                  <div className="w-full opacity-85 group-hover:opacity-100 transition-opacity duration-500">
                     <f.Illu />
                   </div>
                 </div>
@@ -709,13 +722,13 @@ export function Features() {
                 {/* Content gradient footer */}
                 <div className="absolute bottom-0 left-0 right-0 px-8 pb-8 pt-14"
                   style={{ background: 'linear-gradient(to top, rgba(8,8,10,1) 58%, transparent)' }}>
-                  <h3 className="font-display text-[1.6rem] leading-tight text-white font-bold tracking-tight">{f.t}</h3>
+                  <h3 className="font-display text-[1.55rem] leading-tight text-white font-bold tracking-tight">{f.t}</h3>
                   <p className="mt-1.5 text-[12.5px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.42)' }}>{f.d}</p>
                   <div className="mt-5 flex items-center justify-between">
                     <span className="font-mono text-[9px] tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.2)' }}>
                       {String(i + 1).padStart(2, '0')} / {FEATS.length}
                     </span>
-                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-250"
+                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                       style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                         <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
@@ -728,27 +741,10 @@ export function Features() {
             ))}
           </div>
 
-          {/* Side info panel — visible alongside the deck */}
-          <div className="flex flex-col justify-center py-8 flex-1 min-w-0">
-            <div className="flex flex-col gap-2 mb-6">
-              {FEATS.map((f, i) => (
-                <button
-                  key={f.t}
-                  onClick={() => openFeature(i)}
-                  className="text-left flex items-center gap-3 group/btn"
-                  style={{ opacity: 0.35, transition: 'opacity 0.2s' }}
-                  onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                  onMouseLeave={e => (e.currentTarget.style.opacity = '0.35')}
-                >
-                  <span className="font-mono text-[10px] shrink-0" style={{ color: 'rgba(255,255,255,0.4)', width: '2ch' }}>
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                  <span className="font-display text-[1rem] text-white font-medium leading-tight">{f.t}</span>
-                </button>
-              ))}
-            </div>
-            <p className="text-[11px] text-ink-mute/60 font-mono tracking-wider">↓ scroll to browse</p>
-          </div>
+          {/* Scroll hint */}
+          <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[11px] text-ink-mute/50 font-mono tracking-wider pointer-events-none">
+            ↓ scroll to rotate · click to expand
+          </p>
         </div>
 
         {/* Mobile — vertical tap-through list */}
