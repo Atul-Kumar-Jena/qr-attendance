@@ -936,6 +936,18 @@ button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
   outline-offset: 2px;
   border-radius: 6px;
 }
+
+/* ── Smooth rendering for animated elements ─────────────────────────────── */
+.feat-card, .tier, .hero-cta {
+  will-change: transform, opacity;
+  transform: translateZ(0); /* force GPU layer */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Smooth scroll on iOS */
+html { -webkit-overflow-scrolling: touch; }
+
 /* Glass cards transition smoothly on hover-driven border/shadow changes. */
 .glass { transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; }
 

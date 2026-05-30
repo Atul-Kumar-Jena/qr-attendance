@@ -62,25 +62,24 @@ function RobotBust() {
       y: -8, duration: 2.2, ease: 'sine.inOut', yoyo: true, repeat: -1,
     });
 
-    // Arm wave — right arm waves after greeting, then idle gentle sway
+    // Arms — pivot at shoulder (top-center of each arm rect)
     if (aR) {
-      gsap.set(aR, { transformOrigin: '245px 340px' });
-      // Wave greeting (3 swings)
-      gsap.timeline({ delay: 0.8 })
-        .to(aR, { rotation: -28, duration: 0.22, ease: 'power2.out' })
-        .to(aR, { rotation: 12, duration: 0.28, ease: 'power2.inOut' })
-        .to(aR, { rotation: -24, duration: 0.22, ease: 'power2.inOut' })
-        .to(aR, { rotation: 8, duration: 0.28, ease: 'power2.inOut' })
-        .to(aR, { rotation: -18, duration: 0.22, ease: 'power2.inOut' })
-        .to(aR, { rotation: 0, duration: 0.4, ease: 'back.out(1.4)' })
+      gsap.set(aR, { transformOrigin: '268px 340px', force3D: true });
+      // Wave greeting: arm lifts & swings
+      gsap.timeline({ delay: 0.75 })
+        .to(aR, { rotation: -35, duration: 0.2, ease: 'power2.out' })
+        .to(aR, { rotation: 14, duration: 0.25, ease: 'power2.inOut' })
+        .to(aR, { rotation: -30, duration: 0.2, ease: 'power2.inOut' })
+        .to(aR, { rotation: 10, duration: 0.25, ease: 'power2.inOut' })
+        .to(aR, { rotation: -20, duration: 0.2, ease: 'power2.inOut' })
+        .to(aR, { rotation: 0, duration: 0.45, ease: 'back.out(1.5)' })
         .then(() => {
-          // idle gentle sway
-          gsap.to(aR, { rotation: -6, duration: 2.8, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+          gsap.to(aR, { rotation: -5, duration: 3, ease: 'sine.inOut', yoyo: true, repeat: -1, force3D: true });
         });
     }
     if (aL) {
-      gsap.set(aL, { transformOrigin: '75px 340px' });
-      gsap.to(aL, { rotation: 5, duration: 3.2, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 0.6 });
+      gsap.set(aL, { transformOrigin: '52px 340px', force3D: true });
+      gsap.to(aL, { rotation: 4, duration: 3.5, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 0.5, force3D: true });
     }
 
     // Cursor tracking
@@ -161,24 +160,44 @@ function RobotBust() {
           <clipPath id="rb-eye-clip-r"><ellipse cx="202" cy="155" rx="40" ry="20" /></clipPath>
         </defs>
 
-        {/* Left arm */}
+        {/* Left arm — gentle sway, pivot at shoulder (52,340) */}
         <g ref={armL}>
-          <path d="M55 335 Q40 360 36 390 Q34 406 42 412" stroke="#1A1A1E" strokeWidth="14" strokeLinecap="round" fill="none" />
-          <path d="M55 335 Q40 360 36 390 Q34 406 42 412" stroke="#141418" strokeWidth="12" strokeLinecap="round" fill="none" />
-          {/* Hand L */}
-          <ellipse cx="44" cy="416" rx="10" ry="7" fill="#141418" stroke="#1A1A1E" strokeWidth="0.8" />
+          {/* Upper arm tube */}
+          <rect x="40" y="338" width="24" height="44" rx="12" fill="#131318" stroke="#22222A" strokeWidth="1.2" />
+          {/* Elbow joint sphere */}
+          <circle cx="52" cy="384" r="13" fill="#1A1A22" stroke="#2A2A36" strokeWidth="1" />
+          <circle cx="52" cy="384" r="7" fill="#111118" />
+          {/* Forearm tube */}
+          <rect x="40" y="382" width="24" height="40" rx="12" fill="#111116" stroke="#22222A" strokeWidth="1.2" />
+          {/* Wrist */}
+          <circle cx="52" cy="424" r="10" fill="#1A1A22" stroke="#2A2A36" strokeWidth="1" />
+          {/* Hand — robotic claw shape */}
+          <rect x="42" y="420" width="20" height="14" rx="4" fill="#141418" stroke="#22222A" strokeWidth="0.9" />
+          <path d="M43 434 Q40 442 40 448" stroke="#22222A" strokeWidth="5" strokeLinecap="round" fill="none" />
+          <path d="M52 435 Q52 443 52 449" stroke="#22222A" strokeWidth="5" strokeLinecap="round" fill="none" />
+          <path d="M61 434 Q64 442 64 448" stroke="#22222A" strokeWidth="5" strokeLinecap="round" fill="none" />
+          {/* Cyan accent on elbow */}
+          <circle cx="52" cy="384" r="13" fill="none" stroke="#00D4FF" strokeWidth="0.5" opacity="0.3" />
         </g>
 
-        {/* Right arm — the one that waves */}
+        {/* Right arm — waves on entry, pivot at shoulder (268,340) */}
         <g ref={armR}>
-          <path d="M265 335 Q280 360 284 390 Q286 406 278 412" stroke="#1A1A1E" strokeWidth="14" strokeLinecap="round" fill="none" />
-          <path d="M265 335 Q280 360 284 390 Q286 406 278 412" stroke="#141418" strokeWidth="12" strokeLinecap="round" fill="none" />
-          {/* Hand R */}
-          <ellipse cx="276" cy="416" rx="10" ry="7" fill="#141418" stroke="#1A1A1E" strokeWidth="0.8" />
-          {/* Wave fingers (subtle) */}
-          <path d="M272 416 Q268 422 266 428" stroke="#1E1E24" strokeWidth="3.5" strokeLinecap="round" fill="none" />
-          <path d="M276 418 Q276 425 275 431" stroke="#1E1E24" strokeWidth="3.5" strokeLinecap="round" fill="none" />
-          <path d="M281 416 Q284 422 285 428" stroke="#1E1E24" strokeWidth="3.5" strokeLinecap="round" fill="none" />
+          {/* Upper arm tube */}
+          <rect x="256" y="338" width="24" height="44" rx="12" fill="#131318" stroke="#22222A" strokeWidth="1.2" />
+          {/* Elbow joint sphere */}
+          <circle cx="268" cy="384" r="13" fill="#1A1A22" stroke="#2A2A36" strokeWidth="1" />
+          <circle cx="268" cy="384" r="7" fill="#111118" />
+          {/* Forearm tube */}
+          <rect x="256" y="382" width="24" height="40" rx="12" fill="#111116" stroke="#22222A" strokeWidth="1.2" />
+          {/* Wrist */}
+          <circle cx="268" cy="424" r="10" fill="#1A1A22" stroke="#2A2A36" strokeWidth="1" />
+          {/* Hand */}
+          <rect x="258" y="420" width="20" height="14" rx="4" fill="#141418" stroke="#22222A" strokeWidth="0.9" />
+          <path d="M259 434 Q256 442 256 448" stroke="#22222A" strokeWidth="5" strokeLinecap="round" fill="none" />
+          <path d="M268 435 Q268 443 268 449" stroke="#22222A" strokeWidth="5" strokeLinecap="round" fill="none" />
+          <path d="M277 434 Q280 442 280 448" stroke="#22222A" strokeWidth="5" strokeLinecap="round" fill="none" />
+          {/* Cyan accent on elbow */}
+          <circle cx="268" cy="384" r="13" fill="none" stroke="#00D4FF" strokeWidth="0.5" opacity="0.3" />
         </g>
 
         {/* Body */}
