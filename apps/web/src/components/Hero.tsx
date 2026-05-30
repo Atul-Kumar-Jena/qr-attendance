@@ -85,7 +85,7 @@ export function Hero() {
           start: 'top top', end: '+=500', scrub: 1.2,
           animation: gsap.timeline()
             .to('.hero-line',  { yPercent: -12, opacity: 0.5 }, 0)
-            .to(qr.current,   { scale: 0.88, rotate: -3, yPercent: -8 }, 0)
+            .to(qr.current,   { yPercent: -4 }, 0)
             .to(orb.current,  { scale: 0.65, opacity: 0.35 }, 0),
         });
 
