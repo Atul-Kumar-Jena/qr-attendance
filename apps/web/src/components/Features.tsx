@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { initGSAP } from '@/lib/gsap-init';
 
 /* ─── Per-feature illustrations ─────────────────────────────────────────── */
 
@@ -516,360 +518,197 @@ function FeatureOverlay({
   );
 }
 
-/* ─── Cinematic flythrough constants ─────────────────────────────────────── */
+/* ─── Spiral gallery ─────────────────────────────────────────────────────── */
 /*
-  The scene works exactly like the reference implementation:
-  - A tall div creates scroll distance (the "timeline")
-  - A `position:sticky` 100vh div is the fixed "lens" (never moves visually)
-  - Inside: a preserve-3d "camera rig" div — rAF moves it forward in Z (+Z = camera forward)
-  - Cards sit at fixed world X/Y/Z positions inside the rig
-  - Each rAF frame: read scrollY → compute cameraZ, pan X/Y → update rig.transform
-  - Per card: compute distance from camera → set blur, opacity, idle rotation
-  - When a card enters the focus zone → flash project name at bottom centre
+  The page does NOT scroll past these cards. The section pins to the viewport
+  and scrolling winds a spiral of feature cards: the card at the front sits
+  large + sharp at the centre, the rest wind outward along the spiral — smaller,
+  dimmer, softly blurred. A big editorial title names the current feature, an
+  info panel describes it, and a counter + progress bar + vertical rail frame
+  the scene. Wrap-around keeps the spiral full at both ends.
 
-  No GSAP/React DOM mutations in the hot path → no insertBefore crashes.
-  Deterministic rand() keeps SSR and client positions identical.
+  Pure rAF transforms via gsap.ticker (no React DOM churn in the hot path) and a
+  pinned ScrollTrigger (robust under Lenis) — same engine the rest of the site
+  already uses.
 */
-const PERSPECTIVE  = 900;   // px — matches CSS perspective on the sticky viewport
-const CARD_SPACING = 820;   // Z gap between consecutive card world positions
-const FIRST_Z      = -500;  // world-Z of card[0] (negative = in front of rig start)
-const TOTAL_DEPTH  = Math.abs(FIRST_Z) + FEATS.length * CARD_SPACING + 800;
-const FOCUS_DIST   = 340;   // Z distance at which a card is "in focus" → label flash
-const MAX_BLUR     = 10;    // px blur at the far distance
-const BLUR_DIST    = 1400;  // Z distance that maps to MAX_BLUR
+const N_FEATS     = FEATS.length;
+const SPIN_TURN   = 0.8;    // radians of spiral rotation between consecutive cards
+const RADIAL_STEP = 150;    // px the spiral expands per card away from the focus
+const Y_SQUASH    = 0.62;   // flatten the spiral vertically so it reads as a fan
 
-// Deterministic seeded RNG — same output on server and client, no hydration mismatch
-function seededRand(seed: number): number {
-  const s = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
-  return s - Math.floor(s);
-}
+const clampSp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
 
-type CardScene = {
-  x: number; y: number; z: number;
-  w: number; h: number;
-  baseRotX: number; baseRotY: number;
-  rotSpeedX: number; rotSpeedY: number;
-  rotPhaseX: number; rotPhaseY: number;
-};
-
-// Precompute all card world positions at module load — pure math, SSR-safe
-const SCENE: CardScene[] = FEATS.map((_, i) => {
-  const portrait = seededRand(i * 3 + 5) > 0.5;
-  return {
-    x:        (seededRand(i * 2 + 1) - 0.5) * 1500,
-    y:        (seededRand(i * 3 + 7) - 0.5) * 680,
-    z:        FIRST_Z - i * CARD_SPACING + (seededRand(i * 5 + 9) - 0.5) * 200,
-    w:        portrait ? 330 : 420,
-    h:        portrait ? 460 : 310,
-    baseRotX: (seededRand(i * 17 + 2) - 0.5) * 16,
-    baseRotY: (seededRand(i * 19 + 4) - 0.5) * 26,
-    rotSpeedX: (seededRand(i * 5  + 2) - 0.5) * 0.45,
-    rotSpeedY: (seededRand(i * 7  + 4) - 0.5) * 0.45,
-    rotPhaseX: seededRand(i * 11 + 1) * Math.PI * 2,
-    rotPhaseY: seededRand(i * 13 + 6) * Math.PI * 2,
-  };
-});
-
-// Height of the tall scroll container — gives enough scroll to fly past every card
-const SCENE_HEIGHT = `${FEATS.length * 100 + 120}vh`;
-
-const clamp = (v: number, lo: number, hi: number) =>
-  v < lo ? lo : v > hi ? hi : v;
-
-/* ─── Main component ─────────────────────────────────────────────────────── */
 export function Features() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const sceneRef   = useRef<HTMLDivElement>(null);   // tall scroll-space div
-  const rigRef     = useRef<HTMLDivElement>(null);   // moving camera rig
-  const labelRef   = useRef<HTMLDivElement>(null);   // project-name flash
-  const cardRefs   = useRef<Array<HTMLDivElement | null>>([]);
-  const inFocusRef = useRef<boolean[]>(FEATS.map(() => false));
+  const sectionRef  = useRef<HTMLDivElement>(null);
+  const pinRef      = useRef<HTMLDivElement>(null);
+  const titleRef    = useRef<HTMLDivElement>(null);
+  const metaRef     = useRef<HTMLDivElement>(null);
+  const infoRef     = useRef<HTMLParagraphElement>(null);
+  const counterRef  = useRef<HTMLDivElement>(null);
+  const progressRef = useRef<HTMLSpanElement>(null);
+  const cardRefs    = useRef<Array<HTMLDivElement | null>>([]);
   const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (window.matchMedia('(max-width: 900px)').matches) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const small  = window.matchMedia('(max-width: 900px)').matches;
+    if (reduce || small) return; // static fallback list stays
 
-    const scene = sceneRef.current;
-    const rig   = rigRef.current;
-    const label = labelRef.current;
-    if (!scene || !rig || !label) return;
+    initGSAP();
 
-    let rafId      = 0;
-    let smoothProg = 0;
-    let labelTimer: ReturnType<typeof setTimeout> | null = null;
-    let alive      = true;
+    const section  = sectionRef.current!;
+    const pin      = pinRef.current!;
+    const titleEl  = titleRef.current!;
+    const metaEl   = metaRef.current!;
+    const infoEl   = infoRef.current!;
+    const counterEl = counterRef.current!;
+    const progressEl = progressRef.current!;
 
-    const tick = (ts: number) => {
-      if (!alive) return;
-      rafId = requestAnimationFrame(tick);
+    section.classList.add('sp-active');
 
-      const t = ts * 0.001; // seconds elapsed
+    let targetF = 0;   // focus index from scroll (0 .. N-1)
+    let smoothF = 0;   // eased — gives the spin inertia
+    let active  = false;
+    let lastShown = -1;
 
-      // ── Scroll → normalized progress for this section only ──────────────
-      // We measure how far the scene div has scrolled past the viewport top.
-      const rect  = scene.getBoundingClientRect();
-      const total = scene.offsetHeight - window.innerHeight;
-      const rawProg = total > 0 ? clamp(-rect.top / total, 0, 1) : 0;
+    const st = ScrollTrigger.create({
+      trigger: pin,
+      start: 'top top',
+      end: () => '+=' + Math.round(window.innerHeight * (N_FEATS * 0.85)),
+      pin,
+      pinSpacing: true,
+      scrub: true,
+      invalidateOnRefresh: true,
+      onUpdate: (self) => { targetF = self.progress * (N_FEATS - 1); },
+      onToggle: (self) => { active = self.isActive; },
+    });
 
-      // Lerp for cinematic inertia (layered on Lenis if active)
-      smoothProg += (rawProg - smoothProg) * 0.08;
-      const prog = smoothProg;
+    const update = () => {
+      if (!active) return;
+      smoothF += (targetF - smoothF) * 0.09;
+      const f = smoothF;
 
-      // ── Camera rig transform ────────────────────────────────────────────
-      // Moving rig in +Z = camera flying forward through the scene.
-      // Pan X/Y via slow sine waves for cinematic drift.
-      const cameraZ =  prog * TOTAL_DEPTH;
-      const cameraX =  Math.sin(prog * Math.PI * 4.5) * 185;
-      const cameraY =  Math.sin(prog * Math.PI * 3.0 + 1.0) * 65;
+      const focus = clampSp(Math.round(f), 0, N_FEATS - 1);
+      const prog  = N_FEATS > 1 ? f / (N_FEATS - 1) : 0;
+      progressEl.style.transform = `scaleX(${clampSp(prog, 0.02, 1).toFixed(3)})`;
 
-      rig.style.transform =
-        `translate3d(${-cameraX}px, ${-cameraY}px, ${cameraZ}px)`;
+      if (focus !== lastShown) {
+        lastShown = focus;
+        titleEl.textContent   = FEATS[focus].t;
+        metaEl.textContent    = FEATS[focus].tags.join('   ·   ');
+        infoEl.textContent    = FEATS[focus].d;
+        counterEl.textContent = String(focus + 1).padStart(2, '0') + ' / ' + String(N_FEATS).padStart(2, '0');
+      }
 
-      // ── Per-card update ─────────────────────────────────────────────────
-      cardRefs.current.forEach((card, i) => {
-        if (!card) return;
-        const p = SCENE[i];
+      for (let i = 0; i < N_FEATS; i++) {
+        const card = cardRefs.current[i];
+        if (!card) continue;
 
-        // net > 0 → card has passed the camera; net < 0 → still ahead
-        const net      = p.z + cameraZ;
-        const distance = Math.abs(net);
+        // Wrap to the nearest spiral seat so both arms stay populated.
+        let rel = i - f;
+        if (rel >  N_FEATS / 2) rel -= N_FEATS;
+        else if (rel < -N_FEATS / 2) rel += N_FEATS;
 
-        // Depth-of-field blur
-        const blur = clamp((distance / BLUR_DIST) * MAX_BLUR, 0, MAX_BLUR);
+        const a      = Math.abs(rel);
+        const angle  = rel * SPIN_TURN - Math.PI / 2;       // focus seat points up-front
+        const radius = a * RADIAL_STEP;
+        const x      = Math.cos(angle) * radius;
+        const y      = Math.sin(angle) * radius * Y_SQUASH;
 
-        // Opacity: slow fade-in as card approaches, fast fade-out after passing
-        const fadeRange = net > 0 ? 480 : 2200;
-        const opacity   = clamp(1 - distance / fadeRange, 0, 1);
+        const scale   = clampSp(1.16 - a * 0.16, 0.34, 1.16);
+        const opacity = clampSp(1.12 - a * 0.2, 0, 1);
+        const blur    = clampSp((a - 0.6) * 1.6, 0, 7);
+        const tilt    = Math.sin(rel * 0.7) * 7;            // gentle spiral lean
 
-        // Independent idle float rotation per card
-        const rx = p.baseRotX + Math.sin(t * p.rotSpeedX + p.rotPhaseX) * 8;
-        const ry = p.baseRotY + Math.sin(t * p.rotSpeedY + p.rotPhaseY) * 10;
-
-        card.style.opacity        = String(opacity);
-        card.style.filter         = blur > 0.1 ? `blur(${blur.toFixed(1)}px)` : 'none';
-        card.style.transform      =
-          `translate(-50%,-50%) ` +
-          `translate3d(${p.x}px,${p.y}px,${p.z}px) ` +
-          `rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`;
-        // Only catch clicks on cards that are close and in front of camera
-        card.style.pointerEvents  = (opacity > 0.2 && net < 300) ? 'auto' : 'none';
-
-        // ── Label flash ───────────────────────────────────────────────────
-        const isInFocus = distance < FOCUS_DIST;
-        if (isInFocus && !inFocusRef.current[i]) {
-          inFocusRef.current[i] = true;
-          if (label) {
-            label.textContent    = FEATS[i].t;
-            label.style.opacity  = '1';
-            if (labelTimer) clearTimeout(labelTimer);
-            labelTimer = setTimeout(() => {
-              if (label) label.style.opacity = '0';
-            }, 650);
-          }
-        } else if (!isInFocus) {
-          inFocusRef.current[i] = false;
-        }
-      });
+        card.style.transform =
+          `translate(-50%,-50%) translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) ` +
+          `scale(${scale.toFixed(3)}) rotate(${tilt.toFixed(2)}deg)`;
+        card.style.opacity = opacity.toFixed(3);
+        card.style.filter  = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : 'none';
+        card.style.zIndex  = String(500 - Math.round(a * 12));
+        card.style.pointerEvents = a < 0.55 ? 'auto' : 'none';
+        card.classList.toggle('is-focus', a < 0.55);
+      }
     };
 
-    rafId = requestAnimationFrame(tick);
+    gsap.ticker.add(update);
+    ScrollTrigger.refresh();
 
     return () => {
-      alive = false;
-      cancelAnimationFrame(rafId);
-      if (labelTimer) clearTimeout(labelTimer);
+      gsap.ticker.remove(update);
+      st.kill();
+      section.classList.remove('sp-active');
     };
   }, []);
 
   return (
     <>
       {expanded !== null && (
-        <FeatureOverlay
-          feat={FEATS[expanded]}
-          index={expanded}
-          onClose={() => setExpanded(null)}
-        />
+        <FeatureOverlay feat={FEATS[expanded]} index={expanded} onClose={() => setExpanded(null)} />
       )}
 
-      <section id="features" ref={sectionRef}>
+      <section id="features" ref={sectionRef} className="sp-root">
+        {/* ── Desktop: pinned spiral ───────────────────────────────────────── */}
+        <div ref={pinRef} className="sp-pin">
+          <div className="sp-scene">
+            {/* Editorial label — names the feature at the front of the spiral */}
+            <div className="sp-label">
+              <span className="sp-kicker">02 — Features</span>
+              <div ref={titleRef} className="sp-title">{FEATS[0].t}</div>
+              <div ref={metaRef} className="sp-meta">{FEATS[0].tags.join('   ·   ')}</div>
+              <div className="sp-info"><p ref={infoRef}>{FEATS[0].d}</p></div>
+            </div>
 
-        {/* ── Section heading (scrolls normally, above the sticky scene) ─── */}
-        <div className="feat-head container pt-24 pb-6 md:pt-32 md:pb-8">
-          <span className="inline-block text-[10px] tracking-[0.28em] text-ink-mute uppercase mb-4 px-3 py-1 rounded-full border border-ink/10 dark:border-white/10">
-            02 — Features
-          </span>
-          <h2 className="font-display text-[2.4rem] lg:text-[4rem] leading-[1.02] tracking-tightish max-w-3xl">
-            Eight building blocks. <em className="not-italic text-accent">One verdict.</em>
-          </h2>
-          <p className="mt-4 text-[14px] text-ink-mute max-w-lg leading-relaxed hidden md:block">
-            Scroll to fly through the gallery · click any card to read more
-          </p>
-        </div>
-
-        {/* ── Desktop: cinematic 3D flythrough ─────────────────────────────
-            Architecture (matches reference implementation exactly):
-            sceneRef  — tall div, provides scroll distance ("timeline")
-            sticky    — 100vh fixed-position lens, never moves visually
-            rigRef    — preserve-3d camera rig; rAF moves it in Z+X+Y
-            cards     — fixed world positions; rAF sets transform+blur+opacity
-        ────────────────────────────────────────────────────────────────── */}
-        <div
-          ref={sceneRef}
-          className="hidden md:block"
-          style={{ height: SCENE_HEIGHT }}
-        >
-          {/* Sticky 100vh viewport — the CSS perspective container */}
-          <div
-            className="sticky top-0 h-screen overflow-hidden"
-            style={{
-              perspective: `${PERSPECTIVE}px`,
-              perspectiveOrigin: '50% 50%',
-            }}
-          >
-            {/* Camera rig — rAF translates this forward in Z every frame */}
-            <div
-              ref={rigRef}
-              className="absolute inset-0"
-              style={{
-                transformStyle: 'preserve-3d',
-                willChange: 'transform',
-              }}
-            >
+            {/* The spiral of cards */}
+            <div className="sp-stage">
               {FEATS.map((f, i) => (
                 <div
                   key={f.t}
-                  ref={el => { cardRefs.current[i] = el; }}
+                  ref={(el) => { cardRefs.current[i] = el; }}
                   onClick={() => setExpanded(i)}
-                  className="feat-card absolute rounded-[28px] overflow-hidden"
-                  style={{
-                    width:  SCENE[i].w,
-                    height: SCENE[i].h,
-                    top:    '50%',
-                    left:   '50%',
-                    cursor: 'pointer',
-                    background:       'rgba(10,10,12,0.97)',
-                    border:           '1px solid rgba(255,255,255,0.10)',
-                    boxShadow:        '0 40px 100px -20px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.08)',
-                    backfaceVisibility: 'hidden',
-                    willChange:       'transform, filter, opacity',
-                    // Initial rAF-managed values (opacity + transform set per frame)
-                    opacity:   0,
-                    transform: `translate(-50%,-50%) translate3d(${SCENE[i].x}px,${SCENE[i].y}px,${SCENE[i].z}px)`,
-                  }}
+                  className="sp-card"
                 >
-                  {/* Ghost index number */}
-                  <div
-                    className="absolute top-4 left-6 font-display font-extrabold select-none pointer-events-none"
-                    style={{ fontSize: '4.4rem', lineHeight: 1, color: 'rgba(255,255,255,0.05)', letterSpacing: '-0.06em' }}
-                  >
-                    {String(i + 1).padStart(2, '0')}
-                  </div>
-
-                  {/* First tag pill */}
-                  <div className="absolute top-5 right-5 z-10">
-                    <span
-                      className="text-[9px] tracking-[0.18em] uppercase font-mono px-2.5 py-1 rounded-full"
-                      style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.38)', border: '1px solid rgba(255,255,255,0.09)' }}
-                    >
-                      {f.tags[0]}
-                    </span>
-                  </div>
-
-                  {/* Illustration */}
-                  <div className="absolute inset-0 flex items-center justify-center px-8 pt-12 pb-36 overflow-hidden">
-                    <div className="w-full opacity-85">
-                      <f.Illu />
-                    </div>
-                  </div>
-
-                  {/* Gradient footer with title */}
-                  <div
-                    className="absolute bottom-0 left-0 right-0 px-7 pb-6 pt-12"
-                    style={{ background: 'linear-gradient(to top, rgba(8,8,10,1) 55%, transparent)' }}
-                  >
-                    <h3 className="font-display text-[1.35rem] leading-tight text-white font-bold tracking-tight">{f.t}</h3>
-                    <p
-                      className="mt-1.5 text-[12px] leading-relaxed line-clamp-2"
-                      style={{ color: 'rgba(255,255,255,0.40)' }}
-                    >{f.d}</p>
-                    <div className="mt-4 flex items-center justify-between">
-                      <span className="font-mono text-[9px] tracking-[0.2em] uppercase" style={{ color: 'rgba(255,255,255,0.18)' }}>
-                        {String(i + 1).padStart(2, '0')} / {FEATS.length}
-                      </span>
-                      <span className="font-mono text-[9px] tracking-widest uppercase flex items-center gap-1.5" style={{ color: 'rgba(255,255,255,0.32)' }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                          <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
-                        </svg>
-                        Expand
-                      </span>
-                    </div>
+                  <div className="sp-card-num">{String(i + 1).padStart(2, '0')}</div>
+                  <span className="sp-card-tag">{f.tags[0]}</span>
+                  <div className="sp-card-illu"><f.Illu /></div>
+                  <div className="sp-card-foot">
+                    <h3>{f.t}</h3>
+                    <span className="sp-card-expand">Expand ↗</span>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Project-name label — flashes at bottom-centre when a card enters focus */}
-            <div
-              ref={labelRef}
-              className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 pointer-events-none select-none"
-              style={{
-                fontFamily:      'ui-monospace, monospace',
-                fontSize:        '13px',
-                letterSpacing:   '0.28em',
-                textTransform:   'uppercase',
-                color:           'rgba(255,255,255,0.9)',
-                opacity:         0,
-                transition:      'opacity 0.35s ease',
-                textShadow:      '0 2px 20px rgba(0,0,0,0.8)',
-                whiteSpace:      'nowrap',
-              }}
-            />
-
-            {/* Scroll hint */}
-            <p className="absolute bottom-7 right-8 text-[10px] font-mono text-white/18 tracking-widest pointer-events-none select-none z-20">
-              ↓ scroll to fly through
-            </p>
-
-            {/* Radial vignette — darkens edges so cards pop from centre */}
-            <div
-              aria-hidden
-              className="absolute inset-0 pointer-events-none z-[1]"
-              style={{ background: 'radial-gradient(ellipse 72% 62% at 50% 50%, transparent 35%, rgba(0,0,0,0.75) 100%)' }}
-            />
+            {/* HUD */}
+            <div className="sp-rail">showreel · attendly · 2025 · showreel · attendly · 2025</div>
+            <div ref={counterRef} className="sp-counter">01 / {String(N_FEATS).padStart(2, '0')}</div>
+            <div className="sp-progress"><span ref={progressRef} /></div>
+            <p className="sp-hint">↓ scroll to wind through</p>
           </div>
         </div>
 
-        {/* ── Mobile: vertical tap-through list ────────────────────────────── */}
-        <div className="container space-y-2.5 md:hidden pb-10">
+        {/* ── Mobile / reduced-motion: tap-through list ────────────────────── */}
+        <div className="sp-fallback container">
+          <div className="sp-fallback-head">
+            <span className="text-[10px] tracking-[0.28em] text-ink-mute uppercase">02 — Features</span>
+            <h2 className="font-display text-[2rem] leading-tight mt-3 text-ink">
+              Eight building blocks. One verdict.
+            </h2>
+          </div>
           {FEATS.map((f, i) => (
-            <div
-              key={f.t}
-              onClick={() => setExpanded(i)}
-              className="relative rounded-[20px] overflow-hidden cursor-pointer active:scale-[0.99] transition-transform duration-100 flex items-center gap-4 px-5 py-4"
-              style={{
-                background: 'rgba(10,10,12,0.94)',
-                border:     '1px solid rgba(255,255,255,0.07)',
-                boxShadow:  '0 2px 16px rgba(0,0,0,0.35)',
-              }}
-            >
-              <span
-                className="font-display font-extrabold shrink-0"
-                style={{ fontSize: '2.4rem', lineHeight: 1, color: 'rgba(255,255,255,0.06)', letterSpacing: '-0.06em', width: '2.5rem' }}
-              >
-                {String(i + 1).padStart(2, '0')}
-              </span>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-display text-[1.05rem] leading-tight text-white font-bold">{f.t}</h3>
-                <p className="mt-0.5 text-[11px] leading-relaxed line-clamp-2" style={{ color: 'rgba(255,255,255,0.35)' }}>{f.d}</p>
+            <div key={f.t} onClick={() => setExpanded(i)} className="sp-fallback-card">
+              <span className="sp-fallback-num">{String(i + 1).padStart(2, '0')}</span>
+              <div className="min-w-0">
+                <h3>{f.t}</h3>
+                <p>{f.d}</p>
               </div>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="2.2" strokeLinecap="round" className="shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="shrink-0 opacity-40">
                 <path d="M7 17L17 7M17 7H7M17 7v10"/>
               </svg>
             </div>
           ))}
         </div>
-
       </section>
     </>
   );
