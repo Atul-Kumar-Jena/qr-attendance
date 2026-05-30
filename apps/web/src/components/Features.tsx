@@ -2,10 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { initGSAP } from '@/lib/gsap-init';
-
-if (typeof window !== 'undefined') initGSAP();
 
 /* ─── Per-feature illustrations ─────────────────────────────────────────── */
 
@@ -572,76 +568,159 @@ export function Features() {
     // Update card styles based on current trackZ progress
     const updateCards = (progress: number) => {
       const trackZ  = progress * n * Z_STEP;
-      let activeI   = 0;
-      let minDist   = Infinity;
 
+/* ─── 3D flythrough scene constants ──────────────────────────────────────── */
+/* The camera (a #rig div) travels forward along +Z as you scroll. Cards sit at
+   fixed world positions scattered across X/Y/Z. As the camera passes each card
+   it grows sharp + large, flashes its label, then flies past and fades.       */
+
+const PERSPECTIVE  = 900;   // must match CSS perspective on the viewport
+const CARD_SPACING = 850;   // Z gap between consecutive cards
+const FIRST_Z      = -700;  // world-Z of the first (nearest) card
+const TOTAL_DEPTH  =        // how far the camera travels over the full scroll
+  Math.abs(FIRST_Z) + FEATS.length * CARD_SPACING + 700;
+const FOCUS_DIST   = 360;   // within this Z-distance a card is "in focus"
+const MAX_BLUR     = 11;    // px of blur at the far plane
+const BLUR_DIST    = 1500;  // distance at which blur reaches MAX_BLUR
+
+/* Deterministic pseudo-random so server + client markup match (no hydration
+   mismatch). Same seed → same value on every render. */
+function rand(seed: number) {
+  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+type CardPos = {
+  x: number; y: number; z: number;          // fixed world position
+  w: number; h: number;                      // card size (varied)
+  baseRotX: number; baseRotY: number;        // static tilt
+  rotSpeedX: number; rotSpeedY: number;      // idle float speed
+  rotPhaseX: number; rotPhaseY: number;      // idle float phase
+};
+
+// Precompute every card's scene placement — pure math, SSR-safe.
+const SCENE: CardPos[] = FEATS.map((_, i) => {
+  const portrait = rand(i * 3 + 5) > 0.5;
+  return {
+    x: (rand(i * 2 + 1) - 0.5) * 1500,
+    y: (rand(i * 3 + 7) - 0.5) * 680,
+    z: FIRST_Z - i * CARD_SPACING + (rand(i * 5 + 9) - 0.5) * 220,
+    w: portrait ? 330 : 420,
+    h: portrait ? 460 : 320,
+    baseRotX: (rand(i * 17 + 2) - 0.5) * 16,
+    baseRotY: (rand(i * 19 + 4) - 0.5) * 26,
+    rotSpeedX: (rand(i * 5 + 2) - 0.5) * 0.45,
+    rotSpeedY: (rand(i * 7 + 4) - 0.5) * 0.45,
+    rotPhaseX: rand(i * 11 + 1) * Math.PI * 2,
+    rotPhaseY: rand(i * 13 + 6) * Math.PI * 2,
+  };
+});
+
+// Scroll container height: enough scroll distance to fly through every card.
+const SCENE_H = `${FEATS.length * 95 + 110}vh`;
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+/* ─── Main component ─────────────────────────────────────────────────────── */
+export function Features() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const sceneRef   = useRef<HTMLDivElement>(null);  // tall scroll container
+  const rigRef     = useRef<HTMLDivElement>(null);  // the moving "camera rig"
+  const labelRef   = useRef<HTMLDivElement>(null);  // project-name flash
+  const cardRefs   = useRef<Array<HTMLDivElement | null>>([]);
+  const focusRef   = useRef<boolean[]>(FEATS.map(() => false));
+  const [expanded, setExpanded] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(max-width: 900px)').matches) return;
+
+    const scene = sceneRef.current;
+    const rig   = rigRef.current;
+    const label = labelRef.current;
+    if (!scene || !rig || !label) return;
+
+    let raf = 0;
+    let smoothProg = 0;
+    let labelTimer: ReturnType<typeof setTimeout> | null = null;
+    let running = true;
+
+    const loop = (ts: number) => {
+      if (!running) return;
+      raf = requestAnimationFrame(loop);
+      const t = ts * 0.001; // seconds
+
+      // ── Scroll → normalized progress for THIS section ──────────────────
+      const rect  = scene.getBoundingClientRect();
+      const total = scene.offsetHeight - window.innerHeight;
+      const raw   = total > 0 ? clamp(-rect.top / total, 0, 1) : 0;
+      // Inertial smoothing (layered on top of Lenis for extra silkiness)
+      smoothProg += (raw - smoothProg) * 0.09;
+      const progress = smoothProg;
+
+      // ── Camera rig movement ────────────────────────────────────────────
+      const cameraZ = progress * TOTAL_DEPTH;                 // forward travel
+      const cameraX = Math.sin(progress * Math.PI * 4.5) * 190; // pan L/R
+      const cameraY = Math.sin(progress * Math.PI * 3 + 1) * 70; // subtle up/down
+      rig.style.transform =
+        `translate3d(${-cameraX}px, ${-cameraY}px, ${cameraZ}px)`;
+
+      // ── Per-card update ────────────────────────────────────────────────
+      let focusIdx = -1;
+      let focusMin = Infinity;
+
+      cardRefs.current.forEach((el, i) => {
+        if (!el) return;
+        const p = SCENE[i];
+        const net      = p.z + cameraZ;        // <0 ahead, ~0 at camera, >0 passed
+        const distance = Math.abs(net);
+
+        // Blur grows with distance
+        const blur = clamp((distance / BLUR_DIST) * MAX_BLUR, 0, MAX_BLUR);
+
+        // Opacity: approaching cards fade slowly; passed cards vanish fast
+        const fadeRange = net > 0 ? 520 : 2100;
+        const opacity   = clamp(1 - distance / fadeRange, 0, 1);
+
+        // Independent idle float
+        const rx = p.baseRotX + Math.sin(t * p.rotSpeedX + p.rotPhaseX) * 8;
+        const ry = p.baseRotY + Math.sin(t * p.rotSpeedY + p.rotPhaseY) * 10;
+
+        el.style.opacity = String(opacity);
+        el.style.filter  = blur > 0.15 ? `blur(${blur.toFixed(1)}px)` : 'none';
+        el.style.transform =
+          `translate(-50%, -50%) translate3d(${p.x}px, ${p.y}px, ${p.z}px) ` +
+          `rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`;
+        // Cards behind the camera shouldn't catch clicks
+        el.style.pointerEvents = opacity > 0.25 && net < 250 ? 'auto' : 'none';
+
+        if (distance < focusMin) { focusMin = distance; focusIdx = i; }
+      });
+
+      // ── Project-name label flash ───────────────────────────────────────
       cardRefs.current.forEach((_, i) => {
-        const dist = Math.abs(SPIRAL_POS[i].z + trackZ);
-        if (dist < minDist) { minDist = dist; activeI = i; }
-      });
-
-      cardRefs.current.forEach((card, i) => {
-        if (!card) return;
-        const worldZ = SPIRAL_POS[i].z + trackZ;
-        const dist   = Math.abs(worldZ);
-        const t      = Math.max(0, 1 - dist / (Z_STEP * 0.88));
-        const scale  = 0.5 + 0.5 * t;
-        const opac   = 0.05 + 0.95 * t * t;
-
-        card.style.opacity   = String(Math.max(0.05, opac));
-        card.style.transform = [
-          `translateX(${SPIRAL_POS[i].x}px)`,
-          `translateY(${SPIRAL_POS[i].y}px)`,
-          `translateZ(${SPIRAL_POS[i].z}px)`,
-          `scale(${scale})`,
-        ].join(' ');
-      });
-
-      dotRefs.current.forEach((dot, i) => {
-        if (!dot) return;
-        dot.style.background   = i === activeI ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.18)';
-        dot.style.transform    = `scale(${i === activeI ? 1.6 : 1})`;
-        dot.style.transition   = 'transform 0.3s, background 0.3s';
+        const p = SCENE[i];
+        const distance = Math.abs(p.z + cameraZ);
+        const inFocus  = distance < FOCUS_DIST;
+        if (inFocus && !focusRef.current[i]) {
+          focusRef.current[i] = true;
+          label.textContent = FEATS[i].t;
+          label.style.opacity = '1';
+          if (labelTimer) clearTimeout(labelTimer);
+          labelTimer = setTimeout(() => { label.style.opacity = '0'; }, 650);
+        } else if (!inFocus) {
+          focusRef.current[i] = false;
+        }
       });
     };
 
-    // Set initial state before any scroll
-    updateCards(0);
+    raf = requestAnimationFrame(loop);
 
-    let ctx: ReturnType<typeof gsap.context> | undefined;
-    try {
-      ctx = gsap.context(() => {
-        const tl = gsap.timeline();
-        tl.to(track, {
-          z: n * Z_STEP,
-          rotationZ: -90,
-          ease: 'none',
-        });
-
-        ScrollTrigger.create({
-          trigger: spiral,
-          start: 'top top',
-          end: 'bottom bottom',
-          scrub: 1.5,
-          animation: tl,
-          invalidateOnRefresh: true,
-          onUpdate: (self) => updateCards(self.progress),
-        });
-
-        // Heading entrance
-        if (sectionRef.current) {
-          const head = sectionRef.current.querySelector<HTMLElement>('.feat-head');
-          if (head) {
-            gsap.from(head, {
-              opacity: 0, y: 28, duration: 0.9, ease: 'power3.out',
-              scrollTrigger: { trigger: head, start: 'top 88%' },
-            });
-          }
-        }
-      });
-    } catch { /* GSAP must never crash the page */ }
-
-    return () => { try { ctx?.revert(); } catch {} };
+    return () => {
+      running = false;
+      cancelAnimationFrame(raf);
+      if (labelTimer) clearTimeout(labelTimer);
+    };
   }, []);
 
   return (
@@ -651,9 +730,8 @@ export function Features() {
       )}
 
       <section id="features" ref={sectionRef}>
-
-        {/* ── Section heading ───────────────────────────────────────────────── */}
-        <div className="feat-head container pt-24 pb-6 md:pt-32 md:pb-10">
+        {/* ── Heading ──────────────────────────────────────────────────────── */}
+        <div className="feat-head container pt-24 pb-6 md:pt-32 md:pb-8">
           <span className="inline-block text-[10px] tracking-[0.28em] text-ink-mute uppercase mb-4 px-3 py-1 rounded-full border border-ink/10 dark:border-white/10">
             02 — Features
           </span>
@@ -661,114 +739,84 @@ export function Features() {
             Eight building blocks. <em className="not-italic text-accent">One verdict.</em>
           </h2>
           <p className="mt-4 text-[14px] text-ink-mute max-w-lg leading-relaxed hidden md:block">
-            Scroll to fly through the spiral · click any card to read more
+            Scroll to fly through the gallery · click any card to read more
           </p>
         </div>
 
-        {/* ── Desktop: 3D logarithmic spiral ───────────────────────────────── */}
+        {/* ── Desktop: 3D cinematic flythrough ─────────────────────────────── */}
         {/*
-            Architecture:
-            1. spiralRef  — tall div that creates the scroll space (height = 100vh + n*Z_STEP)
-            2. sticky div — always 100vh, pinned to top during spiralRef scroll
-            3. trackRef   — preserve-3d; GSAP only moves z + rotationZ (no layout changes)
-            4. card wrappers — absolute positioned in JSX (no GSAP layout changes)
-            5. inner cards  — opacity + scale updated via direct style writes in onUpdate
-
-            React never sees transforms change (only opacity/transform CSS on leaves).
-            No insertBefore conflicts possible.
+            scene  — tall scroll container (gives scroll distance)
+            sticky — 100vh viewport, the fixed "camera lens" (perspective here)
+            rig    — preserve-3d; rAF moves this in Z (forward) + X/Y (pan)
+            cards  — fixed world positions; rAF sets rotation/blur/opacity
+            No GSAP/React DOM mutation → no insertBefore crashes.
         */}
-        <div
-          ref={spiralRef}
-          className="hidden md:block"
-          style={{ height: SPIRAL_H }}
-        >
-          {/* Sticky 3D viewport */}
+        <div ref={sceneRef} className="hidden md:block" style={{ height: SCENE_H }}>
           <div
             className="sticky top-0 h-screen overflow-hidden"
-            style={{ perspective: '1200px' }}
+            style={{ perspective: `${PERSPECTIVE}px`, perspectiveOrigin: '50% 50%' }}
           >
-            {/* 3D track — GSAP moves this element in Z and rotates it */}
             <div
-              ref={trackRef}
+              ref={rigRef}
               className="absolute inset-0"
-              style={{
-                transformStyle: 'preserve-3d',
-                willChange: 'transform',
-              }}
+              style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
             >
               {FEATS.map((f, i) => (
-                /* Wrapper: fixed 3D position from JSX — NEVER touched by GSAP */
                 <div
                   key={f.t}
-                  className="absolute"
+                  ref={el => { cardRefs.current[i] = el; }}
+                  onClick={() => setExpanded(i)}
+                  className="feat-card absolute rounded-[28px] overflow-hidden cursor-pointer"
                   style={{
-                    width: CARD_W,
-                    height: CARD_H,
+                    width: SCENE[i].w,
+                    height: SCENE[i].h,
                     top: '50%',
                     left: '50%',
-                    marginLeft: -(CARD_W / 2),
-                    marginTop: -(CARD_H / 2),
-                    /* Base 3D position — the inner card's transform will override scale */
-                    transform: `translateX(${SPIRAL_POS[i].x}px) translateY(${SPIRAL_POS[i].y}px) translateZ(${SPIRAL_POS[i].z}px)`,
+                    background: 'rgba(10,10,12,0.97)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                    boxShadow: '0 40px 100px -20px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.08)',
                     transformStyle: 'preserve-3d',
+                    backfaceVisibility: 'hidden',
+                    willChange: 'transform, filter, opacity',
+                    opacity: 0,
+                    transform: `translate(-50%, -50%) translate3d(${SCENE[i].x}px, ${SCENE[i].y}px, ${SCENE[i].z}px)`,
                   }}
                 >
-                  {/* Inner card — GSAP sets opacity + full transform (X/Y/Z + scale) */}
-                  <div
-                    ref={el => { cardRefs.current[i] = el; }}
-                    className="feat-card w-full h-full rounded-[32px] overflow-hidden cursor-pointer"
-                    style={{
-                      background: 'rgba(10,10,12,0.97)',
-                      border: '1px solid rgba(255,255,255,0.10)',
-                      boxShadow: '0 40px 100px -20px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.08)',
-                      opacity: 0,
-                      willChange: 'transform, opacity',
-                      backfaceVisibility: 'hidden',
-                      /* transform is set by updateCards() */
-                      transform: `translateX(${SPIRAL_POS[i].x}px) translateY(${SPIRAL_POS[i].y}px) translateZ(${SPIRAL_POS[i].z}px) scale(0.5)`,
-                    }}
-                    onClick={() => setExpanded(i)}
-                  >
-                    {/* Ghost number */}
-                    <div
-                      className="absolute top-5 left-7 font-display font-extrabold select-none pointer-events-none"
-                      style={{ fontSize: '5.4rem', lineHeight: 1, color: 'rgba(255,255,255,0.05)', letterSpacing: '-0.06em' }}
-                    >
-                      {String(i + 1).padStart(2, '0')}
-                    </div>
+                  {/* Ghost number */}
+                  <div className="absolute top-4 left-6 font-display font-extrabold select-none pointer-events-none"
+                    style={{ fontSize: '4.6rem', lineHeight: 1, color: 'rgba(255,255,255,0.05)', letterSpacing: '-0.06em' }}>
+                    {String(i + 1).padStart(2, '0')}
+                  </div>
 
-                    {/* Tag */}
-                    <div className="absolute top-7 right-7 z-10">
-                      <span style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.38)', border: '1px solid rgba(255,255,255,0.09)' }}
-                        className="text-[9px] tracking-[0.18em] uppercase font-mono px-2.5 py-1 rounded-full">
-                        {f.tags[0]}
+                  {/* Tag */}
+                  <div className="absolute top-6 right-6 z-10">
+                    <span style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.09)' }}
+                      className="text-[9px] tracking-[0.18em] uppercase font-mono px-2.5 py-1 rounded-full">
+                      {f.tags[0]}
+                    </span>
+                  </div>
+
+                  {/* Illustration */}
+                  <div className="absolute inset-0 flex items-center justify-center px-8 pt-12 pb-36 overflow-hidden">
+                    <div className="w-full opacity-85">
+                      <f.Illu />
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="absolute bottom-0 left-0 right-0 px-7 pb-7 pt-12"
+                    style={{ background: 'linear-gradient(to top, rgba(8,8,10,1) 55%, transparent)' }}>
+                    <h3 className="font-display text-[1.4rem] leading-tight text-white font-bold tracking-tight">{f.t}</h3>
+                    <p className="mt-1.5 text-[12px] leading-relaxed line-clamp-2" style={{ color: 'rgba(255,255,255,0.42)' }}>{f.d}</p>
+                    <div className="mt-4 flex items-center justify-between">
+                      <span className="font-mono text-[9px] tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.18)' }}>
+                        {String(i + 1).padStart(2, '0')} / {FEATS.length}
                       </span>
-                    </div>
-
-                    {/* Illustration */}
-                    <div className="absolute inset-0 flex items-center justify-center px-9 pt-14 pb-44 overflow-hidden">
-                      <div className="w-full opacity-80 hover:opacity-100 transition-opacity duration-500">
-                        <f.Illu />
-                      </div>
-                    </div>
-
-                    {/* Footer gradient */}
-                    <div
-                      className="absolute bottom-0 left-0 right-0 px-8 pb-8 pt-14"
-                      style={{ background: 'linear-gradient(to top, rgba(8,8,10,1) 55%, transparent)' }}
-                    >
-                      <h3 className="font-display text-[1.55rem] leading-tight text-white font-bold tracking-tight">{f.t}</h3>
-                      <p className="mt-1.5 text-[12.5px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.42)' }}>{f.d}</p>
-                      <div className="mt-5 flex items-center justify-between">
-                        <span className="font-mono text-[9px] tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.18)' }}>
-                          {String(i + 1).padStart(2, '0')} / {FEATS.length}
-                        </span>
-                        <div className="flex items-center gap-1.5" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '10px' }}>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
-                          </svg>
-                          <span className="font-mono tracking-widest uppercase text-[9px]">Expand</span>
-                        </div>
+                      <div className="flex items-center gap-1.5" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '10px' }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                        </svg>
+                        <span className="font-mono tracking-widest uppercase text-[9px]">Expand</span>
                       </div>
                     </div>
                   </div>
@@ -776,35 +824,29 @@ export function Features() {
               ))}
             </div>
 
-            {/* Progress dots */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2.5 z-10">
-              {FEATS.map((_, i) => (
-                <div
-                  key={i}
-                  ref={el => { dotRefs.current[i] = el; }}
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: 'rgba(255,255,255,0.18)', transition: 'transform 0.3s, background 0.3s' }}
-                />
-              ))}
-            </div>
-
-            {/* Hint */}
-            <p className="absolute bottom-7 right-8 text-[10px] font-mono text-white/20 tracking-widest pointer-events-none select-none">
-              ↓ scroll · click to expand
-            </p>
-
-            {/* Ambient vignette */}
+            {/* Project-name flash — bottom center */}
             <div
-              aria-hidden
-              className="absolute inset-0 pointer-events-none z-[1]"
+              ref={labelRef}
+              className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 pointer-events-none select-none font-mono text-white"
               style={{
-                background: 'radial-gradient(ellipse 80% 60% at 50% 50%, transparent 40%, rgba(0,0,0,0.6) 100%)',
+                fontSize: '13px', letterSpacing: '0.28em', textTransform: 'uppercase',
+                opacity: 0, transition: 'opacity 0.35s ease',
+                textShadow: '0 2px 20px rgba(0,0,0,0.8)',
               }}
             />
+
+            {/* Hint */}
+            <p className="absolute bottom-7 right-8 text-[10px] font-mono text-white/20 tracking-widest pointer-events-none select-none z-20">
+              ↓ scroll to fly through
+            </p>
+
+            {/* Depth vignette */}
+            <div aria-hidden className="absolute inset-0 pointer-events-none z-[1]"
+              style={{ background: 'radial-gradient(ellipse 75% 65% at 50% 50%, transparent 38%, rgba(0,0,0,0.72) 100%)' }} />
           </div>
         </div>
 
-        {/* ── Mobile: vertical list ─────────────────────────────────────────── */}
+        {/* ── Mobile: vertical list ────────────────────────────────────────── */}
         <div className="container space-y-2.5 md:hidden pb-10">
           {FEATS.map((f, i) => (
             <div
@@ -817,10 +859,8 @@ export function Features() {
                 boxShadow: '0 2px 16px rgba(0,0,0,0.35)',
               }}
             >
-              <span
-                className="font-display font-extrabold shrink-0"
-                style={{ fontSize: '2.4rem', lineHeight: 1, color: 'rgba(255,255,255,0.06)', letterSpacing: '-0.06em', width: '2.5rem' }}
-              >
+              <span className="font-display font-extrabold shrink-0"
+                style={{ fontSize: '2.4rem', lineHeight: 1, color: 'rgba(255,255,255,0.06)', letterSpacing: '-0.06em', width: '2.5rem' }}>
                 {String(i + 1).padStart(2, '0')}
               </span>
               <div className="flex-1 min-w-0">
@@ -833,7 +873,6 @@ export function Features() {
             </div>
           ))}
         </div>
-
       </section>
     </>
   );
