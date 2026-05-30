@@ -518,129 +518,100 @@ function FeatureOverlay({
   );
 }
 
-/* ─── Spiral gallery ─────────────────────────────────────────────────────── */
-/*
-  The page does NOT scroll past these cards. The section pins to the viewport
-  and scrolling winds a spiral of feature cards: the card at the front sits
-  large + sharp at the centre, the rest wind outward along the spiral — smaller,
-  dimmer, softly blurred. A big editorial title names the current feature, an
-  info panel describes it, and a counter + progress bar + vertical rail frame
-  the scene. Wrap-around keeps the spiral full at both ends.
 
-  Pure rAF transforms via gsap.ticker (no React DOM churn in the hot path) and a
-  pinned ScrollTrigger (robust under Lenis) — same engine the rest of the site
-  already uses.
+/* ─── 3D spiral flythrough gallery ───────────────────────────────────────── */
+/*
+  Fixed-viewport 3D spiral (à la editorial showreel sites). The page does NOT
+  scroll past the cards — the section pins and scrolling winds a spiral of
+  warped cards through 3D space: the front card sits large + sharp near centre,
+  the rest wind outward and recede, tilted toward the axis, softly blurred. A
+  floating pill names the front card, a rotating "showreel" badge sits in the
+  corner, a spiral / list toggle switches views, all over a faint grid.
+  Wrap-around keeps the spiral full at both ends. Pinned ScrollTrigger (robust
+  under Lenis) + gsap.ticker rAF; no React DOM churn in the hot path.
 */
-const N_FEATS     = FEATS.length;
-const SPIN_TURN   = 0.8;    // radians of spiral rotation between consecutive cards
-const RADIAL_STEP = 150;    // px the spiral expands per card away from the focus
-const Y_SQUASH    = 0.62;   // flatten the spiral vertically so it reads as a fan
+const N_FEATS  = FEATS.length;
+const SP_SPIN   = 0.74;   // radians between consecutive cards along the spiral
+const SP_R0     = 40;     // radius of the focus seat
+const SP_RGROW  = 156;    // radius growth per card away from focus
+const SP_ZDEPTH = 150;    // how much each step recedes in Z
+const SP_YFLAT  = 0.58;   // vertical squash of the spiral
 
 const clampSp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
+const wrapRel = (r: number) => { while (r > N_FEATS / 2) r -= N_FEATS; while (r < -N_FEATS / 2) r += N_FEATS; return r; };
+
+// Mixed portrait / landscape sizes, deterministic per card.
+const CARD_DIMS = FEATS.map((_, i) => (i % 3 === 1 ? { w: 230, h: 312 } : { w: 322, h: 214 }));
 
 export function Features() {
-  const sectionRef  = useRef<HTMLDivElement>(null);
-  const pinRef      = useRef<HTMLDivElement>(null);
-  const titleRef    = useRef<HTMLDivElement>(null);
-  const metaRef     = useRef<HTMLDivElement>(null);
-  const infoRef     = useRef<HTMLParagraphElement>(null);
-  const counterRef  = useRef<HTMLDivElement>(null);
-  const progressRef = useRef<HTMLSpanElement>(null);
-  const cardRefs    = useRef<Array<HTMLDivElement | null>>([]);
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const pinRef     = useRef<HTMLDivElement>(null);
+  const cardRefs   = useRef<Array<HTMLDivElement | null>>([]);
+  const [mode, setMode] = useState<'spiral' | 'list'>('spiral');
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  const [focusIdx, setFocusIdx] = useState(0);
   const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const small  = window.matchMedia('(max-width: 900px)').matches;
-    if (reduce || small) return; // static fallback list stays
+    if (reduce || small) return;
 
     initGSAP();
-
-    const section  = sectionRef.current!;
-    const pin      = pinRef.current!;
-    const titleEl  = titleRef.current!;
-    const metaEl   = metaRef.current!;
-    const infoEl   = infoRef.current!;
-    const counterEl = counterRef.current!;
-    const progressEl = progressRef.current!;
-
+    const section = sectionRef.current!;
+    const pin = pinRef.current!;
     section.classList.add('sp-active');
 
-    let targetF = 0;   // focus index from scroll (0 .. N-1)
-    let smoothF = 0;   // eased — gives the spin inertia
-    let active  = false;
-    let lastShown = -1;
+    let targetF = 0, smoothF = 0, active = false, lastFocus = -1;
 
     const st = ScrollTrigger.create({
-      trigger: pin,
-      start: 'top top',
-      end: () => '+=' + Math.round(window.innerHeight * (N_FEATS * 0.85)),
-      pin,
-      pinSpacing: true,
-      scrub: true,
-      invalidateOnRefresh: true,
-      onUpdate: (self) => { targetF = self.progress * (N_FEATS - 1); },
-      onToggle: (self) => { active = self.isActive; },
+      trigger: pin, start: 'top top',
+      end: () => '+=' + Math.round(window.innerHeight * (N_FEATS * 0.92)),
+      pin, pinSpacing: true, scrub: true, invalidateOnRefresh: true,
+      onUpdate: (s) => { targetF = s.progress * (N_FEATS - 1); },
+      onToggle: (s) => { active = s.isActive; },
     });
 
-    const update = () => {
-      if (!active) return;
-      smoothF += (targetF - smoothF) * 0.09;
-      const f = smoothF;
-
-      const focus = clampSp(Math.round(f), 0, N_FEATS - 1);
-      const prog  = N_FEATS > 1 ? f / (N_FEATS - 1) : 0;
-      progressEl.style.transform = `scaleX(${clampSp(prog, 0.02, 1).toFixed(3)})`;
-
-      if (focus !== lastShown) {
-        lastShown = focus;
-        titleEl.textContent   = FEATS[focus].t;
-        metaEl.textContent    = FEATS[focus].tags.join('   ·   ');
-        infoEl.textContent    = FEATS[focus].d;
-        counterEl.textContent = String(focus + 1).padStart(2, '0') + ' / ' + String(N_FEATS).padStart(2, '0');
-      }
+    const update = (time: number) => {
+      if (!active || modeRef.current !== 'spiral') return;
+      smoothF += (targetF - smoothF) * 0.085;
+      const phase = smoothF;
+      const focus = clampSp(Math.round(phase), 0, N_FEATS - 1);
+      if (focus !== lastFocus) { lastFocus = focus; setFocusIdx(focus); }
 
       for (let i = 0; i < N_FEATS; i++) {
         const card = cardRefs.current[i];
         if (!card) continue;
-
-        // Wrap to the nearest spiral seat so both arms stay populated.
-        let rel = i - f;
-        if (rel >  N_FEATS / 2) rel -= N_FEATS;
-        else if (rel < -N_FEATS / 2) rel += N_FEATS;
-
-        const a      = Math.abs(rel);
-        const angle  = rel * SPIN_TURN - Math.PI / 2;       // focus seat points up-front
-        const radius = a * RADIAL_STEP;
-        const x      = Math.cos(angle) * radius;
-        const y      = Math.sin(angle) * radius * Y_SQUASH;
-
-        const scale   = clampSp(1.16 - a * 0.16, 0.34, 1.16);
-        const opacity = clampSp(1.12 - a * 0.2, 0, 1);
-        const blur    = clampSp((a - 0.6) * 1.6, 0, 7);
-        const tilt    = Math.sin(rel * 0.7) * 7;            // gentle spiral lean
-
+        const rel = wrapRel(i - phase);
+        const a = Math.abs(rel);
+        const ang = rel * SP_SPIN - Math.PI / 2;
+        const rad = SP_R0 + a * SP_RGROW;
+        const x = Math.cos(ang) * rad;
+        const y = Math.sin(ang) * rad * SP_YFLAT;
+        const z = -a * SP_ZDEPTH;
+        const idleY = Math.sin(time * 0.6 + i * 1.7) * 3;
+        const idleX = Math.cos(time * 0.5 + i * 2.3) * 2.4;
+        const rotY = clampSp(-x * 0.045, -32, 32) + idleY;
+        const rotX = clampSp(y * 0.05, -22, 22) + idleX;
+        const opacity = clampSp(1.16 - a * 0.15, 0, 1);
+        const blur = clampSp((a - 0.7) * 1.5, 0, 6);
         card.style.transform =
-          `translate(-50%,-50%) translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) ` +
-          `scale(${scale.toFixed(3)}) rotate(${tilt.toFixed(2)}deg)`;
+          `translate(-50%,-50%) translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) ` +
+          `rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
         card.style.opacity = opacity.toFixed(3);
-        card.style.filter  = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : 'none';
-        card.style.zIndex  = String(500 - Math.round(a * 12));
-        card.style.pointerEvents = a < 0.55 ? 'auto' : 'none';
-        card.classList.toggle('is-focus', a < 0.55);
+        card.style.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : 'none';
+        card.style.pointerEvents = a < 0.6 ? 'auto' : 'none';
       }
     };
 
     gsap.ticker.add(update);
     ScrollTrigger.refresh();
-
-    return () => {
-      gsap.ticker.remove(update);
-      st.kill();
-      section.classList.remove('sp-active');
-    };
+    return () => { gsap.ticker.remove(update); st.kill(); section.classList.remove('sp-active'); };
   }, []);
+
+  const FocusIllu = FEATS[focusIdx].Illu;
 
   return (
     <>
@@ -648,53 +619,74 @@ export function Features() {
         <FeatureOverlay feat={FEATS[expanded]} index={expanded} onClose={() => setExpanded(null)} />
       )}
 
-      <section id="features" ref={sectionRef} className="sp-root">
-        {/* ── Desktop: pinned spiral ───────────────────────────────────────── */}
+      <section id="features" ref={sectionRef} className={`sp-root${mode === 'list' ? ' is-list' : ''}`}>
         <div ref={pinRef} className="sp-pin">
           <div className="sp-scene">
-            {/* Editorial label — names the feature at the front of the spiral */}
-            <div className="sp-label">
-              <span className="sp-kicker">02 — Features</span>
-              <div ref={titleRef} className="sp-title">{FEATS[0].t}</div>
-              <div ref={metaRef} className="sp-meta">{FEATS[0].tags.join('   ·   ')}</div>
-              <div className="sp-info"><p ref={infoRef}>{FEATS[0].d}</p></div>
+            <div className="sp-grid" aria-hidden />
+
+            {/* spiral / list toggle */}
+            <div className="sp-toggle">
+              <button type="button" className={mode === 'spiral' ? 'on' : ''} onClick={() => setMode('spiral')}>spiral</button>
+              <span className="sp-dot" />
+              <button type="button" className={mode === 'list' ? 'on' : ''} onClick={() => setMode('list')}>list</button>
             </div>
 
-            {/* The spiral of cards */}
-            <div className="sp-stage">
+            {/* 3D world of warped cards */}
+            <div className="sp-world">
               {FEATS.map((f, i) => (
                 <div
                   key={f.t}
                   ref={(el) => { cardRefs.current[i] = el; }}
                   onClick={() => setExpanded(i)}
                   className="sp-card"
+                  style={{ width: CARD_DIMS[i].w, height: CARD_DIMS[i].h }}
                 >
-                  <div className="sp-card-num">{String(i + 1).padStart(2, '0')}</div>
-                  <span className="sp-card-tag">{f.tags[0]}</span>
                   <div className="sp-card-illu"><f.Illu /></div>
-                  <div className="sp-card-foot">
-                    <h3>{f.t}</h3>
-                    <span className="sp-card-expand">Expand ↗</span>
-                  </div>
+                  <span className="sp-card-tag">{f.tags[0]}</span>
                 </div>
               ))}
             </div>
 
-            {/* HUD */}
-            <div className="sp-rail">showreel · attendly · 2025 · showreel · attendly · 2025</div>
-            <div ref={counterRef} className="sp-counter">01 / {String(N_FEATS).padStart(2, '0')}</div>
-            <div className="sp-progress"><span ref={progressRef} /></div>
-            <p className="sp-hint">↓ scroll to wind through</p>
+            {/* floating name pill */}
+            <div className="sp-tip">
+              <div className="sp-tip-thumb"><FocusIllu /></div>
+              <span className="sp-tip-name">{FEATS[focusIdx].t}</span>
+            </div>
+
+            {/* rotating showreel badge */}
+            <div className="sp-badge" aria-hidden>
+              <svg viewBox="0 0 120 120" className="sp-badge-ring">
+                <defs>
+                  <path id="spBadgePath" d="M60,60 m-44,0 a44,44 0 1,1 88,0 a44,44 0 1,1 -88,0" />
+                </defs>
+                <text className="sp-badge-text">
+                  <textPath href="#spBadgePath" startOffset="0">showreel · attendly · 2025 · showreel · attendly · 2025 · </textPath>
+                </text>
+              </svg>
+              <span className="sp-badge-core" />
+            </div>
+
+            {/* list view */}
+            <div className="sp-listview">
+              {FEATS.map((f, i) => (
+                <div key={f.t} className="sp-listrow" onClick={() => setExpanded(i)}>
+                  <span className="sp-listrow-n">{String(i + 1).padStart(2, '0')}</span>
+                  <div className="sp-listrow-main">
+                    <h3>{f.t}</h3>
+                    <p>{f.d}</p>
+                  </div>
+                  <span className="sp-listrow-tag">{f.tags[0]}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* ── Mobile / reduced-motion: tap-through list ────────────────────── */}
+        {/* mobile / reduced-motion fallback */}
         <div className="sp-fallback container">
           <div className="sp-fallback-head">
             <span className="text-[10px] tracking-[0.28em] text-ink-mute uppercase">02 — Features</span>
-            <h2 className="font-display text-[2rem] leading-tight mt-3 text-ink">
-              Eight building blocks. One verdict.
-            </h2>
+            <h2 className="font-display text-[2rem] leading-tight mt-3 text-ink">Eight building blocks. One verdict.</h2>
           </div>
           {FEATS.map((f, i) => (
             <div key={f.t} onClick={() => setExpanded(i)} className="sp-fallback-card">
@@ -703,9 +695,6 @@ export function Features() {
                 <h3>{f.t}</h3>
                 <p>{f.d}</p>
               </div>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="shrink-0 opacity-40">
-                <path d="M7 17L17 7M17 7H7M17 7v10"/>
-              </svg>
             </div>
           ))}
         </div>
