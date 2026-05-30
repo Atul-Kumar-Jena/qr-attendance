@@ -590,80 +590,56 @@ export function Features() {
     try {
       ctx = gsap.context(() => {
         const cards = gsap.utils.toArray<HTMLElement>('.feat-card');
-        if (cards.length === 0 || !deck.current || !root.current) return;
+        if (cards.length < 2 || !deck.current || !root.current) return;
 
-        /* ── Spiral scroll deck ─────────────────────────────────────────────
-           Each card is absolutely stacked. As you scroll, the top card
-           rotates out (rotate + scale-down + fade) while the next rises in.
-           The whole deck is pinned for the full scroll duration.
-        ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── */
-        const CARD_HEIGHT = 560;
-        const SCROLL_PER_CARD = 600;
-        const totalScroll = (cards.length - 1) * SCROLL_PER_CARD + 200;
+        /* ── Smooth stacked card scroll ────────────────────────────────────
+           Cards are all stacked (absolute, same position). A GSAP timeline
+           drives each transition: the current card gently scales down + fades
+           out upward while the next card rises in from slightly below.
+           The timeline is scrubbed by a pinned ScrollTrigger — very smooth.
+        ── */
+        const SCROLL_PER_CARD = 700;
+        const totalScroll = (cards.length - 1) * SCROLL_PER_CARD;
 
-        // Stack all cards at same position; last card on top
+        // Stack cards — first card visible, rest invisible below
         cards.forEach((card, i) => {
           gsap.set(card, {
-            position: 'absolute',
-            top: 0, left: '50%',
-            xPercent: -50,
-            zIndex: i,
-            transformOrigin: '50% 110%',
+            position: 'absolute', top: 0, left: 0,
+            zIndex: cards.length - i,
+            ...(i > 0 ? { autoAlpha: 0, y: 32, scale: 0.96 } : {}),
           });
         });
 
-        // Set deck height to match card
-        if (deck.current) {
-          deck.current.style.height = CARD_HEIGHT + 'px';
-          deck.current.style.position = 'relative';
+        // Build master timeline — one segment per card transition
+        const tl = gsap.timeline({ defaults: { ease: 'power2.inOut' } });
+        for (let i = 0; i < cards.length - 1; i++) {
+          tl
+            // outgoing: fade up + slight scale-down
+            .to(cards[i], { autoAlpha: 0, y: -24, scale: 0.94, duration: 1 }, i)
+            // incoming: rise + fade in
+            .fromTo(
+              cards[i + 1],
+              { autoAlpha: 0, y: 32, scale: 0.96 },
+              { autoAlpha: 1, y: 0, scale: 1, duration: 1 },
+              i,      // overlap with exit — feels simultaneous
+            );
         }
 
-        // Pin the entire section
+        // Scrub the timeline through scroll — scrub:1.8 = natural lag
         ScrollTrigger.create({
           trigger: root.current,
           pin: true,
           start: 'top top',
           end: () => `+=${totalScroll}`,
-          scrub: 1.2,
+          scrub: 1.8,
           invalidateOnRefresh: true,
           anticipatePin: 1,
-          onUpdate: (self) => {
-            const prog = self.progress * (cards.length - 1);
-            cards.forEach((card, i) => {
-              const cardProg = prog - i; // -1 → 0 → 1
-              if (cardProg < -1 || cardProg > 1) {
-                // off-screen — hide
-                gsap.set(card, { autoAlpha: 0, zIndex: i });
-                return;
-              }
-              if (cardProg <= 0) {
-                // incoming: rise from below-left, subtle rotation
-                const t = cardProg + 1; // 0 → 1
-                gsap.set(card, {
-                  autoAlpha: t,
-                  zIndex: i,
-                  scale: 0.88 + 0.12 * t,
-                  rotation: (1 - t) * -8,
-                  y: (1 - t) * 60,
-                });
-              } else {
-                // outgoing: spiral out — rotate & shrink upward
-                const t = cardProg; // 0 → 1
-                gsap.set(card, {
-                  autoAlpha: 1 - t,
-                  zIndex: cards.length + 1,
-                  scale: 1 - 0.15 * t,
-                  rotation: t * 12,
-                  y: -t * 40,
-                });
-              }
-            });
-          },
+          animation: tl,
         });
 
         // Section heading fade-in
         gsap.from('.feat-head h2', {
-          opacity: 0, y: 24, duration: 0.9, ease: 'power3.out',
+          opacity: 0, y: 20, duration: 0.9, ease: 'power3.out',
           immediateRender: false,
           scrollTrigger: { trigger: '.feat-head', start: 'top 92%' },
         });
@@ -679,66 +655,68 @@ export function Features() {
       )}
 
       <section id="features" ref={root} className="py-24 md:py-32">
-        <div className="feat-head container mb-16">
+        <div className="feat-head container mb-12">
           <span className="inline-block text-[10px] tracking-[0.28em] text-ink-mute uppercase mb-4 px-3 py-1 rounded-full border border-ink/10 dark:border-white/10">
             02 — Features
           </span>
           <h2 className="font-display text-[2.4rem] lg:text-[4rem] leading-[1.02] tracking-tightish max-w-3xl">
             Eight building blocks. <em className="not-italic text-accent">One verdict.</em>
           </h2>
-          <p className="mt-4 text-[15px] text-ink-mute max-w-xl leading-relaxed">
-            Scroll through — click any card to explore.
+          <p className="mt-4 text-[14px] text-ink-mute max-w-lg leading-relaxed hidden md:block">
+            Scroll to cycle through — click any card to read more.
           </p>
         </div>
 
-        {/* Desktop — spiral scroll deck */}
-        <div className="hidden md:block" style={{ perspective: '1200px' }}>
-          <div ref={deck} className="mx-auto" style={{ maxWidth: '460px', height: '560px', position: 'relative' }}>
+        {/* Desktop — stacked card scroll deck */}
+        <div className="hidden md:flex gap-12 px-[8vw] items-start">
+          {/* Card deck — fills 460px, cards stacked inside */}
+          <div ref={deck} style={{ width: 460, height: 580, position: 'relative', flexShrink: 0 }}>
             {FEATS.map((f, i) => (
               <article
                 key={f.t}
                 onClick={() => openFeature(i)}
-                className="feat-card w-[460px] h-[560px] rounded-[32px] overflow-hidden cursor-pointer group will-change-transform"
+                className="feat-card rounded-[32px] overflow-hidden cursor-pointer group will-change-transform"
                 style={{
-                  background: 'rgba(10,10,12,0.94)',
+                  width: 460, height: 580,
+                  background: 'rgba(10,10,12,0.96)',
                   border: '1px solid rgba(255,255,255,0.09)',
-                  boxShadow: '0 30px 80px -15px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.07) inset',
+                  boxShadow: '0 32px 80px -16px rgba(0,0,0,0.75), 0 1px 0 rgba(255,255,255,0.07) inset',
                 }}
               >
-                {/* Dominant number */}
+                {/* Large ghost number */}
                 <div className="absolute top-5 left-7 font-display font-extrabold select-none pointer-events-none"
-                  style={{ fontSize: '5.8rem', lineHeight: 1, color: 'rgba(255,255,255,0.055)', letterSpacing: '-0.06em' }}>
+                  style={{ fontSize: '5.8rem', lineHeight: 1, color: 'rgba(255,255,255,0.05)', letterSpacing: '-0.06em' }}>
                   {String(i + 1).padStart(2, '0')}
                 </div>
 
-                {/* Tag */}
+                {/* Tag — top right */}
                 <div className="absolute top-7 right-7 z-10">
                   {f.tags.slice(0, 1).map((t) => (
-                    <span key={t} style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.09)' }}
+                    <span key={t} style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.38)', border: '1px solid rgba(255,255,255,0.09)' }}
                       className="text-[9px] tracking-[0.18em] uppercase font-mono px-2.5 py-1 rounded-full">
                       {t}
                     </span>
                   ))}
                 </div>
 
-                {/* Illustration */}
-                <div className="absolute inset-0 flex items-center justify-center px-10 pt-16 pb-44 overflow-hidden">
-                  <div className="w-full opacity-75 group-hover:opacity-100 transition-opacity duration-700">
+                {/* Illustration — fills center */}
+                <div className="absolute inset-0 flex items-center justify-center px-10 pt-14 pb-44 overflow-hidden">
+                  <div className="w-full opacity-80 group-hover:opacity-100 transition-opacity duration-500">
                     <f.Illu />
                   </div>
                 </div>
 
-                {/* Bottom content */}
-                <div className="absolute bottom-0 left-0 right-0 px-8 pb-8 pt-16"
-                  style={{ background: 'linear-gradient(to top, rgba(6,6,8,1) 55%, transparent)' }}>
-                  <h3 className="font-display text-[1.65rem] leading-tight text-white font-bold tracking-tight">{f.t}</h3>
-                  <p className="mt-2 text-[12.5px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.42)' }}>{f.d}</p>
-                  <div className="mt-4 flex items-center justify-between">
-                    <span className="font-mono text-[9px] tracking-[0.2em] uppercase" style={{ color: 'rgba(255,255,255,0.22)' }}>
-                      {String(i + 1).padStart(2, '0')} of {FEATS.length}
+                {/* Content gradient footer */}
+                <div className="absolute bottom-0 left-0 right-0 px-8 pb-8 pt-14"
+                  style={{ background: 'linear-gradient(to top, rgba(8,8,10,1) 58%, transparent)' }}>
+                  <h3 className="font-display text-[1.6rem] leading-tight text-white font-bold tracking-tight">{f.t}</h3>
+                  <p className="mt-1.5 text-[12.5px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.42)' }}>{f.d}</p>
+                  <div className="mt-5 flex items-center justify-between">
+                    <span className="font-mono text-[9px] tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                      {String(i + 1).padStart(2, '0')} / {FEATS.length}
                     </span>
-                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                      style={{ color: 'rgba(255,255,255,0.45)', fontSize: '10px' }}>
+                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-250"
+                      style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                         <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
                       </svg>
@@ -749,29 +727,52 @@ export function Features() {
               </article>
             ))}
           </div>
+
+          {/* Side info panel — visible alongside the deck */}
+          <div className="flex flex-col justify-center py-8 flex-1 min-w-0">
+            <div className="flex flex-col gap-2 mb-6">
+              {FEATS.map((f, i) => (
+                <button
+                  key={f.t}
+                  onClick={() => openFeature(i)}
+                  className="text-left flex items-center gap-3 group/btn"
+                  style={{ opacity: 0.35, transition: 'opacity 0.2s' }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = '0.35')}
+                >
+                  <span className="font-mono text-[10px] shrink-0" style={{ color: 'rgba(255,255,255,0.4)', width: '2ch' }}>
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <span className="font-display text-[1rem] text-white font-medium leading-tight">{f.t}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-ink-mute/60 font-mono tracking-wider">↓ scroll to browse</p>
+          </div>
         </div>
 
-        {/* Mobile — editorial numbered list */}
-        <div className="container space-y-3 md:hidden">
+        {/* Mobile — vertical tap-through list */}
+        <div className="container space-y-2.5 md:hidden">
           {FEATS.map((f, i) => (
             <div
               key={f.t}
               onClick={() => openFeature(i)}
-              className="relative rounded-[22px] overflow-hidden cursor-pointer active:scale-[0.98] transition-transform duration-150 flex items-center gap-4 px-5 py-4"
+              className="relative rounded-[20px] overflow-hidden cursor-pointer active:scale-[0.99] transition-transform duration-100 flex items-center gap-4 px-5 py-4"
               style={{
-                background: 'rgba(10,10,12,0.92)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'rgba(10,10,12,0.94)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                boxShadow: '0 2px 16px rgba(0,0,0,0.35)',
               }}
             >
-              <span className="font-display font-extrabold shrink-0 w-10 text-center"
-                style={{ fontSize: '2.6rem', lineHeight: 1, color: 'rgba(255,255,255,0.07)', letterSpacing: '-0.06em' }}>
+              <span className="font-display font-extrabold shrink-0"
+                style={{ fontSize: '2.4rem', lineHeight: 1, color: 'rgba(255,255,255,0.06)', letterSpacing: '-0.06em', width: '2.5rem' }}>
                 {String(i + 1).padStart(2, '0')}
               </span>
               <div className="flex-1 min-w-0">
-                <h3 className="font-display text-[1.1rem] leading-tight text-white font-bold">{f.t}</h3>
-                <p className="mt-0.5 text-[11.5px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.38)' }}>{f.d}</p>
+                <h3 className="font-display text-[1.05rem] leading-tight text-white font-bold">{f.t}</h3>
+                <p className="mt-0.5 text-[11px] leading-relaxed line-clamp-2" style={{ color: 'rgba(255,255,255,0.35)' }}>{f.d}</p>
               </div>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2" strokeLinecap="round" className="shrink-0">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="2.2" strokeLinecap="round" className="shrink-0">
                 <path d="M7 17L17 7M17 7H7M17 7v10"/>
               </svg>
             </div>
