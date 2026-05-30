@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initGSAP } from '@/lib/gsap-init';
@@ -468,9 +468,119 @@ const FEATS: Array<{
   },
 ];
 
+/* ─── Full-screen overlay ────────────────────────────────────────────────── */
+function FeatureOverlay({
+  feat, index, onClose,
+}: {
+  feat: typeof FEATS[0]; index: number; onClose: () => void;
+}) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    const el = overlayRef.current;
+    const ct = contentRef.current;
+    if (!el || !ct) return;
+    gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: 'power2.out' });
+    gsap.fromTo(ct,
+      { opacity: 0, y: 40, scale: 0.96 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.48, ease: 'power4.out', delay: 0.1 },
+    );
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    window.addEventListener('keydown', esc);
+    return () => {
+      window.removeEventListener('keydown', esc);
+      document.body.style.overflow = '';
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const close = useCallback(() => {
+    const el = overlayRef.current;
+    const ct = contentRef.current;
+    if (!el || !ct) { onClose(); return; }
+    gsap.to(ct, { opacity: 0, y: 30, scale: 0.97, duration: 0.3, ease: 'power3.in' });
+    gsap.to(el, { opacity: 0, duration: 0.35, ease: 'power2.in', onComplete: onClose });
+  }, [onClose]);
+
+  return (
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-8"
+      style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) close(); }}
+    >
+      <div
+        ref={contentRef}
+        className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[2rem] border border-white/12"
+        style={{ background: 'rgba(10,10,12,0.96)', boxShadow: '0 40px 120px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.08)' }}
+      >
+        {/* Close */}
+        <button
+          onClick={close}
+          aria-label="Close"
+          className="absolute top-5 right-5 z-10 w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-200"
+          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.14)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+
+        {/* Illustration banner */}
+        <div className="h-[260px] md:h-[320px] flex items-center justify-center px-8 pt-8 pb-4 relative overflow-hidden">
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 60%, rgba(180,180,190,0.06) 0%, transparent 70%)' }} />
+          <div className="w-full max-w-[360px]">
+            <feat.Illu />
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="px-8 md:px-12 pb-12 pt-6 border-t border-white/8">
+          <div className="flex items-start justify-between mb-4 gap-4">
+            <div>
+              <span className="font-mono text-[10px] text-white/30 tracking-wider block mb-2">
+                {String(index + 1).padStart(2, '0')} / {FEATS.length}
+              </span>
+              <h3 className="font-display text-[2rem] md:text-[2.6rem] leading-tight text-white">{feat.t}</h3>
+            </div>
+            <div className="flex flex-wrap gap-1.5 justify-end shrink-0 mt-2">
+              {feat.tags.map((t) => (
+                <span key={t} className="text-[9.5px] tracking-wider uppercase font-mono px-2.5 py-1 rounded-full bg-white/8 text-white/60 border border-white/12">{t}</span>
+              ))}
+            </div>
+          </div>
+          <p className="text-[15px] text-white/60 leading-relaxed max-w-2xl mb-8">{feat.d}</p>
+          <ul className="space-y-3">
+            {feat.bullets.map((b, bi) => (
+              <li key={b} className="flex items-start gap-3 group/bullet">
+                <span
+                  className="mt-1 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono font-bold"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' }}
+                >
+                  {bi + 1}
+                </span>
+                <span className="text-[14px] text-white/70 leading-snug">{b}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main component ─────────────────────────────────────────────────────── */
 export function Features() {
   const root  = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState<number | null>(null);
+
+  const openFeature = useCallback((i: number) => setExpanded(i), []);
+  const closeFeature = useCallback(() => setExpanded(null), []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -481,10 +591,8 @@ export function Features() {
       ctx = gsap.context(() => {
         const cards = gsap.utils.toArray<HTMLElement>('.feat-card');
         if (cards.length === 0 || !track.current || !root.current) return;
-        // Card width 380px + gap-5 (20px) = 400px slot
         const total = (cards.length - 1) * 400;
 
-        // Horizontal pin-scrub carousel
         gsap.to(track.current, {
           x: () => `-${total}px`,
           ease: 'none',
@@ -498,7 +606,6 @@ export function Features() {
           },
         });
 
-        // Section heading subtle fade-up (safe: default state is visible)
         gsap.from('.feat-head h2', {
           opacity: 0, y: 20, duration: 0.8, ease: 'power3.out',
           immediateRender: false,
@@ -510,87 +617,100 @@ export function Features() {
   }, []);
 
   return (
-    <section id="features" ref={root} className="py-24">
-      <div className="feat-head container mb-16">
-        <span className="text-[11px] tracking-[0.3em] text-ink-mute uppercase">[ 02 — features ]</span>
-        <h2 className="mt-4 font-display text-[2.5rem] lg:text-[4rem] leading-[1.02] tracking-tightish max-w-3xl">
-          Eight building blocks. <em className="not-italic text-accent">One verdict.</em>
-        </h2>
-      </div>
+    <>
+      {expanded !== null && (
+        <FeatureOverlay feat={FEATS[expanded]} index={expanded} onClose={closeFeature} />
+      )}
 
-      {/* Desktop — horizontal scroll carousel.
-          Fixed card height so footer height differences don't squeeze the
-          illustration area. All illustrations have viewBox 280x180. */}
-      <div className="hidden md:block overflow-hidden">
-        <div ref={track} className="flex gap-5 pl-[8vw] will-change-transform">
-          {FEATS.map((f, i) => (
-            <article
-              key={f.t}
-              className="feat-card relative shrink-0 w-[380px] h-[560px] rounded-3xl glass border border-ink/8 dark:border-white/10 flex flex-col overflow-hidden hover:border-accent/30 transition-colors duration-300 group"
-            >
-              {/* Illustration: fixed height */}
-              <div className="relative h-[220px] flex items-center justify-center px-5 pt-5 overflow-hidden flex-shrink-0">
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  style={{ background:'radial-gradient(ellipse at 50% 50%, rgba(140,140,148,0.08) 0%, transparent 70%)' }} />
-                <f.Illu />
-              </div>
-              {/* Footer fills the rest */}
-              <div className="flex-1 px-7 pt-5 pb-7 border-t border-ink/6 dark:border-white/6 flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-[10px] text-ink-mute tracking-wider">
-                    {String(i + 1).padStart(2, '0')} / {FEATS.length}
-                  </span>
-                  <div className="flex flex-wrap gap-1 justify-end">
-                    {f.tags.slice(0, 2).map((t) => (
-                      <span key={t} className="text-[9.5px] tracking-wider uppercase font-mono px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">{t}</span>
-                    ))}
+      <section id="features" ref={root} className="py-24 md:py-32">
+        <div className="feat-head container mb-16">
+          <span className="inline-block text-[10px] tracking-[0.28em] text-ink-mute uppercase mb-4 px-3 py-1 rounded-full border border-ink/10 dark:border-white/10">
+            02 — Features
+          </span>
+          <h2 className="font-display text-[2.4rem] lg:text-[4rem] leading-[1.02] tracking-tightish max-w-3xl">
+            Eight building blocks. <em className="not-italic text-accent">One verdict.</em>
+          </h2>
+          <p className="mt-4 text-[15px] text-ink-mute max-w-xl leading-relaxed">
+            Click any card to explore the full feature details.
+          </p>
+        </div>
+
+        {/* Desktop — horizontal scroll carousel */}
+        <div className="hidden md:block overflow-hidden">
+          <div ref={track} className="flex gap-5 pl-[8vw] will-change-transform">
+            {FEATS.map((f, i) => (
+              <article
+                key={f.t}
+                onClick={() => openFeature(i)}
+                className="feat-card relative shrink-0 w-[380px] h-[560px] rounded-[28px] glass border border-ink/8 dark:border-white/10 flex flex-col overflow-hidden cursor-pointer group transition-all duration-300 hover:border-white/20 hover:-translate-y-1"
+                style={{ boxShadow: '0 2px 0 rgba(255,255,255,0.04) inset, 0 0 0 0 rgba(255,255,255,0)' }}
+              >
+                {/* Hover glow */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-[28px]"
+                  style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(200,200,210,0.07) 0%, transparent 65%)' }} />
+
+                {/* Illustration */}
+                <div className="relative h-[220px] flex items-center justify-center px-5 pt-5 overflow-hidden flex-shrink-0">
+                  <f.Illu />
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 px-7 pt-5 pb-7 border-t border-ink/6 dark:border-white/6 flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-mono text-[10px] text-ink-mute tracking-wider">
+                      {String(i + 1).padStart(2, '0')} / {FEATS.length}
+                    </span>
+                    <div className="flex flex-wrap gap-1 justify-end">
+                      {f.tags.slice(0, 2).map((t) => (
+                        <span key={t} className="text-[9px] tracking-wider uppercase font-mono px-2 py-0.5 rounded-full bg-accent/8 text-ink-mute border border-ink/10 dark:border-white/10">{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <h3 className="font-display text-[1.5rem] leading-tight text-ink dark:text-white">{f.t}</h3>
+                  <p className="mt-2 text-[12.5px] text-ink-mute leading-relaxed flex-1">{f.d}</p>
+                  {/* Expand hint */}
+                  <div className="mt-4 flex items-center gap-2 text-[11px] text-ink-mute/60 group-hover:text-ink-mute transition-colors duration-200">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                    </svg>
+                    <span className="font-mono tracking-wide">Expand details</span>
                   </div>
                 </div>
-                <h3 className="font-display text-[1.55rem] leading-tight text-ink dark:text-cream-50">{f.t}</h3>
-                <p className="mt-2 text-[12.5px] text-ink-mute leading-relaxed">{f.d}</p>
-                <ul className="mt-3 space-y-1.5 text-[12px] text-ink-mute/90">
-                  {f.bullets.map((b) => (
-                    <li key={b} className="flex items-start gap-2">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="mt-1 flex-shrink-0">
-                        <polyline points="20 6 9 17 4 12"/>
-                      </svg>
-                      <span className="leading-snug">{b}</span>
-                    </li>
-                  ))}
-                </ul>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        {/* Mobile grid */}
+        <div className="container grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
+          {FEATS.map((f, i) => (
+            <div
+              key={f.t}
+              onClick={() => openFeature(i)}
+              className="rounded-[20px] glass border border-ink/8 dark:border-white/10 overflow-hidden cursor-pointer active:scale-[0.98] transition-transform duration-200"
+            >
+              <div className="h-[170px] flex items-center justify-center px-4 pt-4">
+                <f.Illu />
               </div>
-            </article>
+              <div className="p-5 border-t border-ink/6">
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {f.tags.slice(0, 2).map((t) => (
+                    <span key={t} className="text-[9px] tracking-wider uppercase font-mono px-2 py-0.5 rounded-full bg-accent/8 text-ink-mute border border-ink/10 dark:border-white/10">{t}</span>
+                  ))}
+                </div>
+                <h3 className="font-display text-[1.25rem] leading-tight">{f.t}</h3>
+                <p className="mt-1.5 text-[12px] text-ink-mute leading-relaxed">{f.d}</p>
+                <div className="mt-3 flex items-center gap-1.5 text-[10.5px] text-ink-mute/50 font-mono">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                  </svg>
+                  Tap to expand
+                </div>
+              </div>
+            </div>
           ))}
         </div>
-      </div>
-
-      {/* Mobile grid — also fixed illustration height for consistency */}
-      <div className="container grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
-        {FEATS.map((f) => (
-          <div key={f.t} className="rounded-2xl glass border border-ink/8 overflow-hidden">
-            <div className="h-[170px] flex items-center justify-center px-4 pt-4">
-              <f.Illu />
-            </div>
-            <div className="p-5 border-t border-ink/6">
-              <div className="flex flex-wrap gap-1 mb-2">
-                {f.tags.slice(0, 2).map((t) => (
-                  <span key={t} className="text-[9.5px] tracking-wider uppercase font-mono px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">{t}</span>
-                ))}
-              </div>
-              <h3 className="font-display text-[1.3rem] leading-tight">{f.t}</h3>
-              <p className="mt-1.5 text-[12px] text-ink-mute leading-relaxed">{f.d}</p>
-              <ul className="mt-2.5 space-y-1 text-[11.5px] text-ink-mute/90">
-                {f.bullets.slice(0, 3).map((b) => (
-                  <li key={b} className="flex items-start gap-1.5">
-                    <span className="text-accent mt-0.5">›</span>
-                    <span className="leading-snug">{b}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
+      </section>
+    </>
   );
 }

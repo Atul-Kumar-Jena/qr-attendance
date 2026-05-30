@@ -3,33 +3,28 @@
 @tailwind utilities;
 @import 'driver.js/dist/driver.css';
 
-/* ─── Design tokens · MONOCHROME ─────────────────────────────────────────── */
+/* ─── Design tokens · pure black/white ──────────────────────────────────── */
 :root {
-  --bg:        #FAFAF9;
-  --bg-2:      #F2F2F0;
-  --ink:       #16161A;
-  --ink-soft:  #3A3A40;
-  --ink-mute:  #6E6E76;
-  /* RGB channels for the foreground — Tailwind ink classes read these so every
-     text/border/bg-ink variant inverts cleanly with the theme. */
-  --ink-rgb:       22 22 26;
-  --ink-soft-rgb:  58 58 64;
-  --ink-mute-rgb:  110 110 118;
-  --line:      rgba(22, 22, 26, 0.08);
-  /* Monochrome "accent" cascade — RGB channels so Tailwind alpha modifiers
-     (bg-accent/20 etc.) work and flip automatically per light/dark/section-dark. */
-  --accent-rgb:   22 22 26;    /* ink black   */
-  --accent-2-rgb: 58 58 64;    /* dark grey   */
-  --accent-3-rgb: 110 110 118; /* mid grey    */
-  --accent:    #16161A;
-  --accent-2:  #3A3A40;
-  --accent-3:  #6E6E76;
-  /* Natural light-spread grid (theme-aware) */
-  --grid-line: rgba(22, 22, 26, 0.045);
-  --grid-dot:  rgba(22, 22, 26, 0.10);
-  --glow:      rgba(22, 22, 26, 0.06);
-  --glow-2:    rgba(22, 22, 26, 0.04);
-  --page-bg:   #FAFAF9; /* true body bg — NOT overridden by .section-dark */
+  --bg:        #FFFFFF;
+  --bg-2:      #F5F5F5;
+  --ink:       #000000;
+  --ink-soft:  #1A1A1A;
+  --ink-mute:  #6B6B6B;
+  --ink-rgb:       0 0 0;
+  --ink-soft-rgb:  26 26 26;
+  --ink-mute-rgb:  107 107 107;
+  --line:      rgba(0, 0, 0, 0.10);
+  --accent-rgb:   0 0 0;
+  --accent-2-rgb: 26 26 26;
+  --accent-3-rgb: 107 107 107;
+  --accent:    #000000;
+  --accent-2:  #1A1A1A;
+  --accent-3:  #6B6B6B;
+  --grid-line: rgba(0, 0, 0, 0.04);
+  --grid-dot:  rgba(0, 0, 0, 0.08);
+  --glow:      rgba(0, 0, 0, 0.05);
+  --glow-2:    rgba(0, 0, 0, 0.03);
+  --page-bg:   #FFFFFF;
   --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -124,9 +119,62 @@ h1, h2, h3 {
 /* ─── Glass card ─────────────────────────────────────────────────────────── */
 .glass {
   background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid var(--line);
+  box-shadow: 0 2px 0 rgba(255,255,255,0.6) inset, 0 8px 32px -8px rgba(0,0,0,0.06);
+}
+
+/* ─── Apple-style premium button ─────────────────────────────────────────── */
+.btn-premium {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.75rem;
+  border-radius: 980px; /* pill */
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1),
+              box-shadow 0.22s ease,
+              background-color 0.18s ease;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-premium:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: 0 4px 16px -4px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.08) inset;
+}
+.btn-primary:hover {
+  box-shadow: 0 6px 24px -4px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.08) inset;
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(var(--ink-rgb) / 0.18);
+  color: var(--ink);
+}
+.btn-ghost:hover {
+  background: rgba(var(--ink-rgb) / 0.05);
+  border-color: rgba(var(--ink-rgb) / 0.28);
+}
+
+/* ─── Premium card hover (Apple-style lift) ──────────────────────────────── */
+.card-lift {
+  transition: transform 0.28s cubic-bezier(.34,1.3,.64,1),
+              box-shadow 0.28s ease;
+}
+.card-lift:hover {
+  transform: translateY(-4px) scale(1.005);
+  box-shadow: 0 20px 60px -12px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.06) inset;
+}
+html.dark .card-lift:hover {
+  box-shadow: 0 20px 60px -12px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.06) inset;
 }
 
 /* ─── Divider ────────────────────────────────────────────────────────────── */
@@ -262,29 +310,37 @@ body {
 
 /* ─── Dark mode overrides ────────────────────────────────────────────────── */
 html.dark {
-  --bg:        #0A0A0B;
-  --bg-2:      #131316;
-  --ink:       #F4F2EE;
-  --ink-soft:  #C9C7C2;
-  --ink-mute:  #8A8A92;
-  --ink-rgb:       244 242 238;
-  --ink-soft-rgb:  201 199 194;
-  --ink-mute-rgb:  138 138 146;
-  --line:      rgba(244, 242, 238, 0.10);
-  --accent-rgb:   244 242 238; /* off-white  */
-  --accent-2-rgb: 201 199 194; /* light grey */
-  --accent-3-rgb: 138 138 146; /* mid grey   */
-  --accent:    #F4F2EE;
-  --accent-2:  #C9C7C2;
-  --accent-3:  #8A8A92;
-  --grid-line: rgba(244, 242, 238, 0.05);
-  --grid-dot:  rgba(244, 242, 238, 0.09);
-  --glow:      rgba(244, 242, 238, 0.10);
-  --glow-2:    rgba(244, 242, 238, 0.06);
-  --page-bg:   #0A0A0B;
+  --bg:        #000000;
+  --bg-2:      #0A0A0A;
+  --ink:       #FFFFFF;
+  --ink-soft:  #E8E8E8;
+  --ink-mute:  #888888;
+  --ink-rgb:       255 255 255;
+  --ink-soft-rgb:  232 232 232;
+  --ink-mute-rgb:  136 136 136;
+  --line:      rgba(255, 255, 255, 0.10);
+  --accent-rgb:   255 255 255;
+  --accent-2-rgb: 232 232 232;
+  --accent-3-rgb: 136 136 136;
+  --accent:    #FFFFFF;
+  --accent-2:  #E8E8E8;
+  --accent-3:  #888888;
+  --grid-line: rgba(255, 255, 255, 0.04);
+  --grid-dot:  rgba(255, 255, 255, 0.08);
+  --glow:      rgba(255, 255, 255, 0.08);
+  --glow-2:    rgba(255, 255, 255, 0.05);
+  --page-bg:   #000000;
 }
 
-html.dark body { background: var(--bg); color: var(--ink); }
+/* Dark mode: sections transparent so global aurora bleeds through */
+html.dark section:not(.section-dark) {
+  background-color: transparent;
+}
+html.dark body {
+  background: #000000;
+}
+
+html.dark body { background: #000000; color: var(--ink); }
 
 html.dark .glass {
   background: rgba(28, 28, 30, 0.78);
@@ -485,9 +541,14 @@ html.dark a.bg-ink {
 }
 
 .atd-popover .driver-popover-next-btn {
-  background: #16161A !important;
-  color: #FAFAF7 !important;
-  border-color: #16161A !important;
+  background: #000000 !important;
+  color: #FFFFFF !important;
+  border-color: #000000 !important;
+}
+html.dark .atd-popover .driver-popover-next-btn {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #FFFFFF !important;
 }
 
 .atd-popover .driver-popover-next-btn:hover {
@@ -724,26 +785,28 @@ html.theme-transitioning *::after {
 
 /* ── Always-dark "bookend" sections (dark even while site is in light mode) ─ */
 .section-dark {
-  --bg:       #0A0A0B;
-  --bg-2:     #131316;
-  --ink:      #F4F2EE;
-  --ink-soft: #C9C7C2;
-  --ink-mute: #8A8A92;
-  --ink-rgb:       244 242 238;
-  --ink-soft-rgb:  201 199 194;
-  --ink-mute-rgb:  138 138 146;
-  --line:     rgba(244, 242, 238, 0.10);
-  /* white accent cascade so monochrome highlights pop on the dark bg */
-  --accent-rgb:   244 242 238;
-  --accent-2-rgb: 201 199 194;
-  --accent-3-rgb: 138 138 146;
-  --accent:    #F4F2EE;
-  --accent-2:  #C9C7C2;
-  --accent-3:  #8A8A92;
-  background: var(--bg);
+  --bg:       #000000;
+  --bg-2:     #0A0A0A;
+  --ink:      #FFFFFF;
+  --ink-soft: #E8E8E8;
+  --ink-mute: #888888;
+  --ink-rgb:       255 255 255;
+  --ink-soft-rgb:  232 232 232;
+  --ink-mute-rgb:  136 136 136;
+  --line:     rgba(255, 255, 255, 0.10);
+  --accent-rgb:   255 255 255;
+  --accent-2-rgb: 232 232 232;
+  --accent-3-rgb: 136 136 136;
+  --accent:   #FFFFFF;
+  --accent-2: #E8E8E8;
+  --accent-3: #888888;
+  background: transparent;
   color: var(--ink);
   position: relative;
   isolation: isolate;
+}
+html:not(.dark) .section-dark {
+  background: #050507;
 }
 .section-dark .text-ink       { color: var(--ink) !important; }
 .section-dark .text-ink-soft  { color: var(--ink-soft) !important; }
@@ -765,6 +828,18 @@ html.theme-transitioning *::after {
 .section-dark .hover\:text-ink:hover      { color: var(--ink) !important; }
 .section-dark .hover\:bg-cream-100:hover  { background-color: var(--bg-2) !important; }
 .section-dark .hover\:bg-cream-50:hover   { background-color: var(--bg-2) !important; }
+
+/* ── Global aurora blobs (fixed background, dark mode only) ─────────────── */
+.aurora-blob-g {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  mix-blend-mode: screen;
+  will-change: transform;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+html.dark .aurora-blob-g { opacity: 1; }
 
 /* ── Aurora · matte-glass moving colour field ───────────────────────────── */
 .aurora { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
