@@ -533,15 +533,16 @@ function FeatureOverlay({
 const N_FEATS  = FEATS.length;
 const SP_SPIN   = 0.74;   // radians between consecutive cards along the spiral
 const SP_R0     = 40;     // radius of the focus seat
-const SP_RGROW  = 156;    // radius growth per card away from focus
-const SP_ZDEPTH = 150;    // how much each step recedes in Z
+const SP_RGROW  = 168;    // radius growth per card away from focus
+const SP_ZDEPTH = 178;    // how much each step recedes in Z
+const SP_FRONTZ = 340;    // bring the focus card forward → it grows large (hero)
 const SP_YFLAT  = 0.58;   // vertical squash of the spiral
 
 const clampSp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
 const wrapRel = (r: number) => { while (r > N_FEATS / 2) r -= N_FEATS; while (r < -N_FEATS / 2) r += N_FEATS; return r; };
 
 // Mixed portrait / landscape sizes, deterministic per card.
-const CARD_DIMS = FEATS.map((_, i) => (i % 3 === 1 ? { w: 230, h: 312 } : { w: 322, h: 214 }));
+const CARD_DIMS = FEATS.map((_, i) => (i % 3 === 1 ? { w: 252, h: 340 } : { w: 360, h: 236 }));
 
 export function Features() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -590,7 +591,7 @@ export function Features() {
         const rad = SP_R0 + a * SP_RGROW;
         const x = Math.cos(ang) * rad;
         const y = Math.sin(ang) * rad * SP_YFLAT;
-        const z = -a * SP_ZDEPTH;
+        const z = SP_FRONTZ - a * SP_ZDEPTH;
         const idleY = Math.sin(time * 0.6 + i * 1.7) * 3;
         const idleX = Math.cos(time * 0.5 + i * 2.3) * 2.4;
         const rotY = clampSp(-x * 0.045, -32, 32) + idleY;
