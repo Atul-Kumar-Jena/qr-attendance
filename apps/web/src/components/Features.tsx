@@ -635,45 +635,72 @@ export function Features() {
           </p>
         </div>
 
-        {/* Desktop — horizontal scroll carousel */}
+        {/* Desktop — horizontal scroll carousel — pacomepertant.com editorial style */}
         <div className="hidden md:block overflow-hidden">
-          <div ref={track} className="flex gap-5 pl-[8vw] will-change-transform">
+          <div ref={track} className="flex gap-6 pl-[8vw] will-change-transform">
             {FEATS.map((f, i) => (
               <article
                 key={f.t}
                 onClick={() => openFeature(i)}
-                className="feat-card relative shrink-0 w-[380px] h-[560px] rounded-[28px] glass border border-ink/8 dark:border-white/10 flex flex-col overflow-hidden cursor-pointer group transition-all duration-300 hover:border-white/20 hover:-translate-y-1"
-                style={{ boxShadow: '0 2px 0 rgba(255,255,255,0.04) inset, 0 0 0 0 rgba(255,255,255,0)' }}
+                className="feat-card relative shrink-0 w-[400px] h-[580px] rounded-[32px] overflow-hidden cursor-pointer group"
+                style={{
+                  background: 'rgba(12,12,14,0.92)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  boxShadow: '0 4px 60px -10px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.06) inset',
+                  transition: 'transform 0.42s cubic-bezier(.34,1.3,.64,1), box-shadow 0.42s ease, border-color 0.3s ease',
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-10px) scale(1.018)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 30px 80px -10px rgba(0,0,0,0.75), 0 1px 0 rgba(255,255,255,0.10) inset';
+                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.16)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.transform = '';
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 60px -10px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.06) inset';
+                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)';
+                }}
               >
-                {/* Hover glow */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-[28px]"
-                  style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(200,200,210,0.07) 0%, transparent 65%)' }} />
-
-                {/* Illustration */}
-                <div className="relative h-[220px] flex items-center justify-center px-5 pt-5 overflow-hidden flex-shrink-0">
-                  <f.Illu />
+                {/* Large editorial number — dominant visual anchor */}
+                <div className="absolute top-5 left-7 font-display text-[5.5rem] leading-none font-extrabold tracking-tighter select-none pointer-events-none"
+                  style={{ color: 'rgba(255,255,255,0.06)', letterSpacing: '-0.06em' }}>
+                  {String(i + 1).padStart(2, '0')}
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 px-7 pt-5 pb-7 border-t border-ink/6 dark:border-white/6 flex flex-col">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-mono text-[10px] text-ink-mute tracking-wider">
-                      {String(i + 1).padStart(2, '0')} / {FEATS.length}
+                {/* Tags — top right */}
+                <div className="absolute top-6 right-6 flex flex-col gap-1 z-10">
+                  {f.tags.slice(0, 1).map((t) => (
+                    <span key={t} className="text-[9px] tracking-[0.18em] uppercase font-mono px-2.5 py-1 rounded-full"
+                      style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.10)' }}>
+                      {t}
                     </span>
-                    <div className="flex flex-wrap gap-1 justify-end">
-                      {f.tags.slice(0, 2).map((t) => (
-                        <span key={t} className="text-[9px] tracking-wider uppercase font-mono px-2 py-0.5 rounded-full bg-accent/8 text-ink-mute border border-ink/10 dark:border-white/10">{t}</span>
-                      ))}
-                    </div>
+                  ))}
+                </div>
+
+                {/* Illustration — fills most of the card */}
+                <div className="absolute inset-0 flex items-center justify-center px-8 pt-16 pb-40 overflow-hidden">
+                  <div className="w-full opacity-80 group-hover:opacity-100 transition-opacity duration-500 scale-90 group-hover:scale-100 transition-transform duration-500">
+                    <f.Illu />
                   </div>
-                  <h3 className="font-display text-[1.5rem] leading-tight text-ink dark:text-white">{f.t}</h3>
-                  <p className="mt-2 text-[12.5px] text-ink-mute leading-relaxed flex-1">{f.d}</p>
-                  {/* Expand hint */}
-                  <div className="mt-4 flex items-center gap-2 text-[11px] text-ink-mute/60 group-hover:text-ink-mute transition-colors duration-200">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                </div>
+
+                {/* Bottom content — slides up on hover */}
+                <div
+                  className="absolute bottom-0 left-0 right-0 p-7"
+                  style={{ background: 'linear-gradient(to top, rgba(8,8,10,1) 60%, transparent)' }}
+                >
+                  <h3 className="font-display text-[1.6rem] leading-tight text-white font-bold tracking-tight">
+                    {f.t}
+                  </h3>
+                  <p className="mt-1.5 text-[12.5px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                    {f.d}
+                  </p>
+                  {/* Expand cue */}
+                  <div className="mt-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                       <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
                     </svg>
-                    <span className="font-mono tracking-wide">Expand details</span>
+                    <span className="font-mono tracking-widest uppercase text-[9px]">Expand</span>
                   </div>
                 </div>
               </article>
@@ -681,32 +708,33 @@ export function Features() {
           </div>
         </div>
 
-        {/* Mobile grid */}
-        <div className="container grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
+        {/* Mobile grid — editorial list style */}
+        <div className="container space-y-3 md:hidden">
           {FEATS.map((f, i) => (
             <div
               key={f.t}
               onClick={() => openFeature(i)}
-              className="rounded-[20px] glass border border-ink/8 dark:border-white/10 overflow-hidden cursor-pointer active:scale-[0.98] transition-transform duration-200"
+              className="relative rounded-[24px] overflow-hidden cursor-pointer active:scale-[0.98] transition-transform duration-200 flex items-center gap-5 p-5"
+              style={{
+                background: 'rgba(12,12,14,0.9)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 2px 20px -4px rgba(0,0,0,0.4)',
+              }}
             >
-              <div className="h-[170px] flex items-center justify-center px-4 pt-4">
-                <f.Illu />
+              {/* Number */}
+              <span className="font-display text-[3rem] leading-none font-extrabold shrink-0"
+                style={{ color: 'rgba(255,255,255,0.08)', letterSpacing: '-0.06em' }}>
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              {/* Text */}
+              <div className="flex-1 min-w-0">
+                <h3 className="font-display text-[1.15rem] leading-tight text-white font-bold">{f.t}</h3>
+                <p className="mt-1 text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>{f.d}</p>
               </div>
-              <div className="p-5 border-t border-ink/6">
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {f.tags.slice(0, 2).map((t) => (
-                    <span key={t} className="text-[9px] tracking-wider uppercase font-mono px-2 py-0.5 rounded-full bg-accent/8 text-ink-mute border border-ink/10 dark:border-white/10">{t}</span>
-                  ))}
-                </div>
-                <h3 className="font-display text-[1.25rem] leading-tight">{f.t}</h3>
-                <p className="mt-1.5 text-[12px] text-ink-mute leading-relaxed">{f.d}</p>
-                <div className="mt-3 flex items-center gap-1.5 text-[10.5px] text-ink-mute/50 font-mono">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
-                  </svg>
-                  Tap to expand
-                </div>
-              </div>
+              {/* Expand arrow */}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" className="shrink-0">
+                <path d="M7 17L17 7M17 7H7M17 7v10"/>
+              </svg>
             </div>
           ))}
         </div>

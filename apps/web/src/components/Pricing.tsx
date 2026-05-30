@@ -72,8 +72,10 @@ export function Pricing() {
     <section id="pricing" ref={root} className="py-28 lg:py-40">
       <div className="container">
         <div className="mb-16 text-center">
-          <span data-reveal className="text-[11px] tracking-[0.3em] text-ink-mute uppercase">[ 06 — pricing ]</span>
-          <h2 data-reveal className="mt-4 font-display text-[2.5rem] lg:text-[4rem] leading-[1.02] tracking-tightish">
+          <span data-reveal className="inline-block text-[10px] tracking-[0.28em] text-ink-mute uppercase mb-4 px-3 py-1 rounded-full border border-ink/10 dark:border-white/10">
+            06 — Pricing
+          </span>
+          <h2 data-reveal className="font-display text-[2.4rem] lg:text-[4rem] leading-[1.02] tracking-tightish">
             Honest pricing. <em className="not-italic text-accent">No per-scan tax.</em>
           </h2>
           {isLimitedOffer && (
@@ -84,50 +86,53 @@ export function Pricing() {
           )}
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-5">
-          {/* Devs can override tiers globally via SiteConfig → pricingTiers.
-              If they leave it empty the built-in BASE_TIERS render — so the
-              section is never blank. */}
+        <div className="grid lg:grid-cols-3 gap-5 lg:items-start">
           {(config.pricingTiers && config.pricingTiers.length > 0 ? config.pricingTiers : BASE_TIERS).map((t) => {
             const displayPrice = (isLimitedOffer && t.price !== null && t.price > 0)
               ? Math.round(t.price * discountMultiplier)
               : t.price;
 
             return (
-              <TiltCard key={t.name} max={6} className="h-full">
+              <TiltCard key={t.name} max={5} className="h-full">
               <div
-                className={`tier h-full rounded-2xl p-8 border transition-all ${
+                className={`tier h-full rounded-[28px] p-8 border flex flex-col transition-all duration-300 ${
                   t.highlight
-                    ? 'bg-ink dark:bg-[#1A2236] text-cream-50 border-ink dark:border-white/10 shadow-[0_30px_80px_-20px_rgba(11,18,32,0.4)]'
-                    : 'bg-cream-50 border-ink/10'
+                    ? 'bg-ink text-cream-50 border-transparent shadow-[0_40px_100px_-20px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.07)_inset] lg:-translate-y-4'
+                    : 'glass border-ink/10 dark:border-white/10'
                 }`}
               >
-                <div className="flex items-baseline justify-between">
-                  <h3 className="font-display text-[1.6rem]">{t.name}</h3>
-                  {t.highlight && <span className="text-[10px] tracking-widest text-accent uppercase">Most picked</span>}
+                {/* Header */}
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="font-display text-[1.5rem] tracking-tight">{t.name}</h3>
+                  {t.highlight && (
+                    <span className="text-[10px] tracking-[0.15em] uppercase font-mono px-2.5 py-1 rounded-full bg-white/12 text-white/70 border border-white/14">
+                      Most picked
+                    </span>
+                  )}
                 </div>
-                <p className={`mt-1 text-[13px] ${t.highlight ? 'text-cream-50/60' : 'text-ink-mute'}`}>
+                <p className={`text-[13px] leading-relaxed ${t.highlight ? 'text-white/55' : 'text-ink-mute'}`}>
                   {t.pitch}
                 </p>
 
-                <div className="mt-6 flex items-baseline gap-2">
+                {/* Price */}
+                <div className="mt-8 mb-8">
                   {t.price === null ? (
-                    <span className="font-display text-[3rem] leading-none">Custom</span>
+                    <span className="font-display text-[3.2rem] leading-none tracking-tight">Custom</span>
                   ) : (
                     <div className="flex flex-col gap-0.5">
                       {isLimitedOffer && t.price > 0 && (
-                        <span className={`text-[13px] line-through ${t.highlight ? 'text-cream-50/40' : 'text-ink/30'}`}>
+                        <span className={`text-[13px] line-through ${t.highlight ? 'text-white/35' : 'text-ink-mute/60'}`}>
                           ${t.price}/mo
                         </span>
                       )}
-                      <div className="flex items-baseline gap-2">
+                      <div className="flex items-end gap-2">
                         <span
-                          className="price-counter font-display text-[3.4rem] leading-none"
+                          className="price-counter font-display text-[3.6rem] leading-none tracking-tighter"
                           data-v={displayPrice ?? 0}
                         >
                           ${displayPrice ?? 0}
                         </span>
-                        <span className={`text-[12px] ${t.highlight ? 'text-cream-50/60' : 'text-ink-mute'}`}>
+                        <span className={`text-[12px] mb-2 ${t.highlight ? 'text-white/50' : 'text-ink-mute'}`}>
                           {t.unit}
                         </span>
                       </div>
@@ -135,21 +140,34 @@ export function Pricing() {
                   )}
                 </div>
 
-                <ul className="mt-6 space-y-2 text-[13.5px]">
+                {/* Divider */}
+                <div className={`h-px mb-6 ${t.highlight ? 'bg-white/10' : 'bg-ink/8 dark:bg-white/8'}`} />
+
+                {/* Features */}
+                <ul className="space-y-3 text-[13.5px] flex-1">
                   {t.feats.map((f) => (
-                    <li key={f} className="flex items-center gap-2">
-                      <span className={t.highlight ? 'text-accent' : 'text-sage-600'}>✓</span>
-                      {f}
+                    <li key={f} className="flex items-start gap-2.5">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke={t.highlight ? 'rgba(255,255,255,0.8)' : 'var(--accent)'}
+                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                        className="mt-0.5 flex-shrink-0"
+                      >
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      <span className={t.highlight ? 'text-white/80' : 'text-ink-soft dark:text-white/80'}>{f}</span>
                     </li>
                   ))}
                 </ul>
 
+                {/* CTA */}
                 <div className="mt-8">
                   <Magnetic strength={0.2}>
                     <a
                       href="#demo"
-                      className={`inline-flex w-full justify-center items-center rounded-full px-5 py-3 text-[13px] font-medium ${
-                        t.highlight ? 'bg-accent text-cream-50' : 'bg-ink dark:bg-[#1A2236] dark:border dark:border-white/10 text-cream-50'
+                      className={`inline-flex w-full justify-center items-center rounded-full px-5 py-3.5 text-[13.5px] font-semibold transition-all duration-200 ${
+                        t.highlight
+                          ? 'bg-white text-black hover:bg-white/90 shadow-[0_4px_16px_-4px_rgba(255,255,255,0.3)]'
+                          : 'bg-ink text-cream-50 dark:bg-white dark:text-black hover:opacity-90 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.25)]'
                       }`}
                     >
                       {isLimitedOffer && t.price !== null && t.price > 0
