@@ -659,7 +659,7 @@ export function Features() {
                 <div
                   key={f.t}
                   ref={(el) => { cardRefs.current[i] = el; }}
-                  onClick={() => setExpanded(i)}
+                  onClick={() => { window.setTimeout(() => setExpanded(i), 430); }}
                   className="sp-card"
                   style={{ width: CARD_DIMS[i].w, height: CARD_DIMS[i].h }}
                 >
