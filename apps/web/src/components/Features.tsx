@@ -614,12 +614,14 @@ export function Features() {
           });
         });
 
-        // The ring itself — we rotate this group
+        // The ring itself — preserve-3d, tilted slightly so the circular path
+        // reads as a spiral viewed on an angle (the pacomepertant look).
+        const TILT = 7; // degrees
         gsap.set(ring, { transformStyle: 'preserve-3d' });
 
         const rotation = { v: 0 };
         const apply = () => {
-          gsap.set(ring, { rotationY: rotation.v });
+          gsap.set(ring, { rotationX: TILT, rotationY: rotation.v });
           // Dim + disable cards that face away from the viewer
           cards.forEach((card, i) => {
             const angle = ((i * STEP + rotation.v) % 360 + 360) % 360;
