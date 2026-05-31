@@ -40,7 +40,7 @@ export function FeatureRobot() {
     const homeX = () => innerWidth * 0.5 - RW / 2;
     const homeY = () => innerHeight - RH - 14;
     let rx = homeX(), ry = homeY(), prevX = rx, prevY = ry;
-    let walkPhase = 0, scale = 1, py = 0, headY = 0, hr = 0, lean = 0, aL = 4, aR = 8;
+    let walkPhase = 0, scale = 1, px = 0, py = 0, headY = 0, hr = 0, lean = 0, aL = 4, aR = 8;
     let mode: 'idle' | 'travel' | 'jump' | 'perch' = 'idle';
     let card: HTMLElement | null = null;
     let jt0 = 0, jx0 = 0, jy0 = 0, jx1 = 0, jy1 = 0, perchUntil = 0;
