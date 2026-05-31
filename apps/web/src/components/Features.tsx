@@ -568,10 +568,7 @@ export function Features() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const pinRef     = useRef<HTMLDivElement>(null);
   const cardRefs   = useRef<Array<HTMLDivElement | null>>([]);
-  const [mode, setMode] = useState<'spiral' | 'list'>('spiral');
-  const modeRef = useRef(mode);
-  modeRef.current = mode;
-  const [focusIdx, setFocusIdx] = useState(0);
+  const tipNameRef = useRef<HTMLSpanElement>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
@@ -596,11 +593,11 @@ export function Features() {
     });
 
     const update = (time: number) => {
-      if (!active || modeRef.current !== 'spiral') return;
-      smoothF += (targetF - smoothF) * 0.085;
+      if (!active) return;
+      smoothF += (targetF - smoothF) * 0.08;
       const phase = smoothF;
       const focus = clampSp(Math.round(phase), 0, N_FEATS - 1);
-      if (focus !== lastFocus) { lastFocus = focus; setFocusIdx(focus); }
+      if (focus !== lastFocus) { lastFocus = focus; if (tipNameRef.current) tipNameRef.current.textContent = FEATS[focus].t; }
 
       for (let i = 0; i < N_FEATS; i++) {
         const card = cardRefs.current[i];
@@ -617,8 +614,9 @@ export function Features() {
         const rotY = clampSp(-x * 0.06, -42, 42) + idleY + CARD_TILT[i].ry;
         const rotX = clampSp(y * 0.06, -28, 28) + idleX + CARD_TILT[i].rx;
         const rotZ = CARD_TILT[i].rz + Math.sin(time * 0.4 + i) * 1.4;
-        const opacity = clampSp(1.18 - a * 0.14, 0, 1);
-        const blur = clampSp((a - 0.8) * 1.5, 0, 6);
+        // fade fully before the wrap boundary (a≈N/2) so cards never teleport
+        const opacity = clampSp(1.12 - a * 0.33, 0, 1);
+        const blur = clampSp((a - 0.8) * 1.6, 0, 6);
         card.style.transform =
           `translate(-50%,-50%) translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) ` +
           `rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg)`;
@@ -633,25 +631,19 @@ export function Features() {
     return () => { gsap.ticker.remove(update); st.kill(); section.classList.remove('sp-active'); };
   }, []);
 
-  const FocusIllu = FEATS[focusIdx].Illu;
-
   return (
     <>
       {expanded !== null && (
         <FeatureOverlay feat={FEATS[expanded]} index={expanded} onClose={() => setExpanded(null)} />
       )}
 
-      <section id="features" ref={sectionRef} className={`sp-root${mode === 'list' ? ' is-list' : ''}`}>
+      <section id="features" ref={sectionRef} className="sp-root">
         <div ref={pinRef} className="sp-pin">
           <div className="sp-scene">
             <div className="sp-grid" aria-hidden />
 
-            {/* spiral / list toggle */}
-            <div className="sp-toggle">
-              <button type="button" className={mode === 'spiral' ? 'on' : ''} onClick={() => setMode('spiral')}>spiral</button>
-              <span className="sp-dot" />
-              <button type="button" className={mode === 'list' ? 'on' : ''} onClick={() => setMode('list')}>list</button>
-            </div>
+            {/* eyebrow */}
+            <div className="sp-eyebrow">02 — Features · scroll to spin</div>
 
             {/* 3D world of warped cards */}
             <div className="sp-world">
@@ -672,8 +664,8 @@ export function Features() {
 
             {/* floating name pill */}
             <div className="sp-tip">
-              <div className="sp-tip-thumb"><FocusIllu /></div>
-              <span className="sp-tip-name">{FEATS[focusIdx].t}</span>
+              <span className="sp-tip-dot" />
+              <span ref={tipNameRef} className="sp-tip-name">{FEATS[0].t}</span>
             </div>
 
             {/* rotating showreel badge */}
@@ -689,19 +681,6 @@ export function Features() {
               <span className="sp-badge-core" />
             </div>
 
-            {/* list view */}
-            <div className="sp-listview">
-              {FEATS.map((f, i) => (
-                <div key={f.t} className="sp-listrow" onClick={() => setExpanded(i)}>
-                  <span className="sp-listrow-n">{String(i + 1).padStart(2, '0')}</span>
-                  <div className="sp-listrow-main">
-                    <h3>{f.t}</h3>
-                    <p>{f.d}</p>
-                  </div>
-                  <span className="sp-listrow-tag">{f.tags[0]}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 

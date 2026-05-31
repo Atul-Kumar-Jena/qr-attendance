@@ -1164,11 +1164,20 @@ html { -webkit-overflow-scrolling: touch; }
 /* ═══ Feature mascot robot — watches the cursor, waves + points ═════════════ */
 .feature-robot {
   position: fixed; left: 0; top: 0; z-index: 60;
-  width: 96px; height: 120px; pointer-events: none;
-  transform-origin: 50% 100%;            /* feet stay grounded as it shrinks */
-  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.55));
+  width: 340px; height: 340px; pointer-events: none;
+  transform-origin: 50% 50%;
   will-change: transform;
 }
-.fr-eyes { transform-box: view-box; transform-origin: 60px 46px; transition: transform 0.09s ease; }
 @media (max-width: 900px) { .feature-robot { display: none; } }
 @media (prefers-reduced-motion: reduce) { .feature-robot { display: none; } }
+
+/* spiral: simplified chrome (toggle removed) */
+.sp-eyebrow {
+  position: absolute; top: 24px; left: 50%; transform: translateX(-50%); z-index: 8;
+  font: 600 11px/1 ui-monospace, SFMono-Regular, monospace; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--ink-mute); pointer-events: none; white-space: nowrap;
+}
+.sp-tip-dot {
+  flex: none; width: 26px; height: 26px; border-radius: 8px;
+  background: conic-gradient(from 120deg, #00cfee, #6a8cff, #b6ff5c, #ff8a3d, #00cfee);
+}
