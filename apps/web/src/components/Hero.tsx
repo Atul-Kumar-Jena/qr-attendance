@@ -7,7 +7,6 @@ import { Magnetic } from './Magnetic';
 import { initGSAP } from '@/lib/gsap-init';
 import { DemoModal } from './DemoModal';
 import { Aurora } from './Aurora';
-import { SplineScene } from './ui/splite';
 import { Spotlight } from './ui/spotlight';
 
 if (typeof window !== 'undefined') {
@@ -168,14 +167,11 @@ export function Hero() {
           </div>
 
           <div ref={qr} className="relative flex flex-col items-center gap-6">
-            {/* Interactive 3D robot — Spline scene */}
-            <div className="robot-3d relative w-full h-[360px] md:h-[420px] rounded-[28px] overflow-hidden"
+            {/* The guardian robot's window — it boots up here, then walks out */}
+            <div id="guardian-pod" className="robot-3d relative w-full h-[300px] md:h-[340px] rounded-[28px] overflow-hidden"
               style={{ background: 'radial-gradient(120% 120% at 50% 0%, rgba(20,20,26,0.6), rgba(0,0,0,0.85))', border: '1px solid rgba(255,255,255,0.07)' }}>
               <Spotlight className="-top-24 left-10 md:-top-16 md:left-24" fill="rgba(120,200,255,0.55)" />
-              <SplineScene
-                scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
-                className="w-full h-full"
-              />
+              <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-[9px] tracking-[0.34em] uppercase text-white/25 font-mono">guardian · online</span>
             </div>
             {/* QR mosaic — kept as the core product visual */}
             <div className="relative w-full max-w-[260px] mx-auto aspect-square">

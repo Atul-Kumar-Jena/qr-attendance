@@ -39,12 +39,25 @@ export function FeatureRobot() {
     let mx = innerWidth * 0.5, my = innerHeight * 0.4;
     const homeX = () => innerWidth * 0.5 - RW / 2;
     const homeY = () => innerHeight - RH - 14;
-    let rx = homeX(), ry = homeY(), prevX = rx, prevY = ry;
-    let walkPhase = 0, scale = 1, px = 0, py = 0, headY = 0, hr = 0, lean = 0, aL = 4, aR = 8;
-    let mode: 'idle' | 'travel' | 'jump' | 'perch' = 'idle';
+    const podPos = () => {
+      const pod = document.getElementById('guardian-pod');
+      if (!pod) return null;
+      const r = pod.getBoundingClientRect();
+      if (!r.width) return null;
+      return { x: r.left + r.width / 2 - RW / 2, y: r.top + r.height * 0.6 - RH };
+    };
+    let mode: 'intro' | 'exit' | 'idle' | 'travel' | 'jump' | 'perch' = 'idle';
+    const start = podPos();
+    let rx = start ? start.x : homeX();
+    let ry = start ? start.y : homeY();
+    if (start) mode = 'intro';
+    let prevX = rx, prevY = ry;
+    let walkPhase = 0, scale = start ? 1.7 : 1, px = 0, py = 0, headY = 0, hr = 0, lean = 0, aL = 4, aR = 8;
     let card: HTMLElement | null = null;
     let jt0 = 0, jx0 = 0, jy0 = 0, jx1 = 0, jy1 = 0, perchUntil = 0;
     let raf = 0;
+    const leaveWindow = () => { if (mode === 'intro') mode = 'exit'; };
+    const exitTimer = setTimeout(leaveWindow, 1800);
 
     const beside = (r: DOMRect) => ({
       x: clamp(r.left + r.width / 2 - RW / 2 + (mx > r.left + r.width / 2 ? -r.width * 0.34 : r.width * 0.34), 6, innerWidth - RW - 6),
@@ -73,6 +86,7 @@ export function FeatureRobot() {
     };
 
     window.addEventListener('mousemove', onMove, { passive: true });
+    window.addEventListener('scroll', leaveWindow, { passive: true });
     document.addEventListener('mouseover', onOver, true);
     document.addEventListener('mouseout', onOut, true);
     document.addEventListener('click', onClick, true);
@@ -88,16 +102,19 @@ export function FeatureRobot() {
         if (p >= 1) { mode = 'perch'; perchUntil = now + 1300; }
       } else {
         let tx = homeX(), ty = homeY() + Math.sin(now * 0.002) * 3;
-        if (mode === 'travel' && card) { const b = beside(card.getBoundingClientRect()); tx = b.x; ty = b.y; }
+        if (mode === 'intro') { const p = podPos(); if (p) { tx = p.x; ty = p.y; } else { mode = 'idle'; } }
+        else if (mode === 'travel' && card) { const b = beside(card.getBoundingClientRect()); tx = b.x; ty = b.y; }
         else if (mode === 'perch' && card) { const o = onTop(card.getBoundingClientRect()); tx = o.x; ty = o.y; if (now > perchUntil) { mode = 'idle'; card = null; } }
         dist = Math.hypot(tx - rx, ty - ry);
-        rx = lerp(rx, tx, 0.1);
-        ry = lerp(ry, ty, 0.1);
+        const ease = mode === 'intro' ? 0.2 : 0.1;
+        rx = lerp(rx, tx, ease);
+        ry = lerp(ry, ty, ease);
         side = tx + RW / 2 < innerWidth / 2 ? -1 : 1;
+        if (mode === 'exit' && dist < 16) mode = 'idle';
       }
 
       const moved = Math.hypot(rx - prevX, ry - prevY); prevX = rx; prevY = ry;
-      const walking = mode === 'travel' && moved > 0.35;
+      const walking = (mode === 'travel' || mode === 'exit') && moved > 0.35;
       if (walking) walkPhase += 0.34;
       const arrived = (mode === 'travel' && dist < 12) || mode === 'perch';
       if (arrived || mode === 'travel') curious = 1;
@@ -108,8 +125,12 @@ export function FeatureRobot() {
       legR.current?.setAttribute('transform', `rotate(${(-swing).toFixed(1)} 67 116)`);
       const bob = walking ? -Math.abs(Math.sin(walkPhase)) * 3 : 0;
 
-      // shrink as it heads to an element ("becomes small, walks down")
-      scale = lerp(scale, mode === 'idle' ? 1 : (arrived ? 0.8 : 0.88), 0.1);
+      // boots up big in its window, then SHRINKS as it walks out and roams
+      let tScale = 1;
+      if (mode === 'intro') tScale = 1.7;
+      else if (mode === 'travel') tScale = arrived ? 0.8 : 0.88;
+      else if (mode === 'perch') tScale = 0.8;
+      scale = lerp(scale, tScale, 0.09);
       el.style.transform = `translate(${rx.toFixed(1)}px, ${(ry + bob).toFixed(1)}px) scale(${scale.toFixed(3)})`;
 
       // EYE CONTACT (State 1): head + eyes lock onto the cursor while idle and
@@ -144,10 +165,12 @@ export function FeatureRobot() {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('scroll', leaveWindow);
       document.removeEventListener('mouseover', onOver, true);
       document.removeEventListener('mouseout', onOut, true);
       document.removeEventListener('click', onClick, true);
       clearTimeout(bt);
+      clearTimeout(exitTimer);
     };
   }, []);
 
