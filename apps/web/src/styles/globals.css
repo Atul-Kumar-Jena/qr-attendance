@@ -1164,11 +1164,9 @@ html { -webkit-overflow-scrolling: touch; }
 /* ═══ Feature mascot robot — watches the cursor, waves + points ═════════════ */
 .feature-robot {
   position: fixed; left: 0; top: 0; z-index: 60;
-  width: 86px; height: 112px; pointer-events: none;
-  transform-origin: 50% 100%;            /* feet stay grounded as it shrinks */
-  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
+  width: 340px; height: 340px; pointer-events: none;
+  transform-origin: 50% 50%;
   will-change: transform;
 }
-.fr-eyes { transform-box: view-box; transform-origin: 60px 46px; transition: transform 0.09s ease; }
 @media (max-width: 900px) { .feature-robot { display: none; } }
 @media (prefers-reduced-motion: reduce) { .feature-robot { display: none; } }
