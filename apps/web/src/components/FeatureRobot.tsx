@@ -36,7 +36,7 @@ export function FeatureRobot() {
     const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-    let mx = innerWidth * 0.5;
+    let mx = innerWidth * 0.5, my = innerHeight * 0.4;
     const homeX = () => innerWidth * 0.5 - RW / 2;
     const homeY = () => innerHeight - RH - 14;
     let rx = homeX(), ry = homeY(), prevX = rx, prevY = ry;
@@ -55,7 +55,7 @@ export function FeatureRobot() {
       y: clamp(r.top - RH * 0.52, 6, innerHeight - RH - 4),
     });
 
-    const onMove = (e: MouseEvent) => { mx = e.clientX; };
+    const onMove = (e: MouseEvent) => { mx = e.clientX; my = e.clientY; };
     const onOver = (e: Event) => {
       const c = (e.target as Element).closest?.('.sp-card') as HTMLElement | null;
       if (c && mode !== 'jump' && mode !== 'perch') { card = c; mode = 'travel'; }
@@ -112,12 +112,15 @@ export function FeatureRobot() {
       scale = lerp(scale, mode === 'idle' ? 1 : (arrived ? 0.8 : 0.88), 0.1);
       el.style.transform = `translate(${rx.toFixed(1)}px, ${(ry + bob).toFixed(1)}px) scale(${scale.toFixed(3)})`;
 
-      // LOOK UP at the user when arrived/perched (not cursor-staring)
-      const upTarget = arrived ? -3.4 : (walking ? 1.6 : -0.6);
-      py = lerp(py, upTarget, 0.14);
-      pupils.current?.setAttribute('transform', `translate(0 ${py.toFixed(2)})`);
+      // EYE CONTACT (State 1): head + eyes lock onto the cursor while idle and
+      // while walking. On arrival/perch (State 2) the gaze lifts UP to the user.
+      const ecx = rx + RW / 2, ecy = ry + RH * 0.30;
+      const ddx = mx - ecx, ddy = my - ecy, dd = Math.hypot(ddx, ddy) || 1;
+      px = lerp(px, arrived ? 0 : clamp((ddx / dd) * 3.4, -3.4, 3.4), 0.18);
+      py = lerp(py, arrived ? -3.3 : clamp((ddy / dd) * 2.8, -2.6, 3.0), 0.16);
+      pupils.current?.setAttribute('transform', `translate(${px.toFixed(2)} ${py.toFixed(2)})`);
       headY = lerp(headY, arrived ? -3.5 : 0, 0.12);
-      hr = lerp(hr, arrived ? side * 7 : 0, 0.1);
+      hr = lerp(hr, arrived ? side * 6 : clamp(ddx * 0.035, -14, 14), 0.12);
       head.current?.setAttribute('transform', `translate(0 ${headY.toFixed(2)}) rotate(${hr.toFixed(2)} 60 50)`);
       lean = lerp(lean, curious ? side * 7 : 0, 0.1);
       bodyG.current?.setAttribute('transform', `rotate(${lean.toFixed(2)} 60 126)`);
