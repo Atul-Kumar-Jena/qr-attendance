@@ -5,7 +5,6 @@ import { PageTransition } from '@/components/PageTransition';
 import { Providers } from '@/components/Providers';
 import { DeepLinkRestore } from '@/components/DeepLinkRestore';
 import { Loader } from '@/components/Loader';
-import { FeatureRobot } from '@/components/FeatureRobot';
 import { GridBackground } from '@/components/GridBackground';
 import { GlobalAurora } from '@/components/GlobalAurora';
 
@@ -32,7 +31,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <GlobalAurora />
         <GridBackground />
         <Loader />
-        <FeatureRobot />
         <Providers>
           <DeepLinkRestore />
           <PageTransition>{children}</PageTransition>

@@ -1057,18 +1057,6 @@ html { -webkit-overflow-scrolling: touch; }
           mask-image: radial-gradient(ellipse 92% 82% at 50% 50%, #000 38%, transparent 92%);
 }
 
-/* spiral / list toggle */
-.sp-toggle {
-  position: absolute; top: 24px; left: 50%; transform: translateX(-50%); z-index: 8;
-  display: flex; align-items: center; gap: 14px;
-}
-.sp-toggle button {
-  background: none; border: none; cursor: pointer; pointer-events: auto;
-  font: 600 13px/1 var(--font-sans); color: var(--ink-mute); transition: color 0.2s;
-}
-.sp-toggle button.on { color: var(--ink); }
-.sp-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ink); opacity: 0.5; }
-
 /* 3D world */
 .sp-world { position: absolute; top: 50%; left: 50%; width: 0; height: 0; transform-style: preserve-3d; z-index: 3; }
 
@@ -1104,10 +1092,10 @@ html { -webkit-overflow-scrolling: touch; }
   background: #fff; box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45); pointer-events: none;
 }
 .sp-tip-thumb {
-  width: 40px; height: 30px; border-radius: 7px; overflow: hidden; background: #111;
-  display: flex; align-items: center; justify-content: center; --accent: #fff;
+  width: 36px; height: 28px; border-radius: 7px; flex: none;
+  background-size: cover; background-position: 50% 50%;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
 }
-.sp-tip-thumb svg { width: 78%; height: auto; }
 .sp-tip-name { font: 700 14px/1 var(--font-sans); letter-spacing: -0.01em; color: #111; white-space: nowrap; }
 
 /* rotating showreel badge */
@@ -1118,27 +1106,6 @@ html { -webkit-overflow-scrolling: touch; }
 .sp-badge-core {
   position: absolute; left: 50%; top: 50%; width: 42px; height: 42px; transform: translate(-50%, -50%);
   border-radius: 50%; background: conic-gradient(from 90deg, #ff8a3d, #c24bff, #3dd6ff, #4dff9e, #ff8a3d);
-}
-
-/* list view (toggle) */
-.sp-listview { position: absolute; inset: 0; z-index: 6; display: none; flex-direction: column; justify-content: center; padding: 11vh 8vw; }
-.sp-root.is-list .sp-listview { display: flex; }
-.sp-root.is-list .sp-world,
-.sp-root.is-list .sp-tip,
-.sp-root.is-list .sp-badge { display: none; }
-.sp-listrow {
-  display: flex; align-items: center; gap: 1.6rem; cursor: pointer;
-  padding: 1.1rem 0.5rem; border-bottom: 1px solid var(--line);
-  max-width: 60rem; width: 100%; margin: 0 auto; transition: padding-left 0.25s ease;
-}
-.sp-listrow:hover { padding-left: 1.3rem; }
-.sp-listrow-n { flex: none; width: 2.6rem; font: 800 1.2rem/1 var(--font-sans); color: var(--ink-mute); letter-spacing: -0.04em; }
-.sp-listrow-main { flex: 1; min-width: 0; }
-.sp-listrow-main h3 { font: 700 1.45rem/1.1 var(--font-sans); color: var(--ink); letter-spacing: -0.02em; }
-.sp-listrow-main p { margin-top: 3px; font-size: 12.5px; line-height: 1.5; color: var(--ink-mute); }
-.sp-listrow-tag {
-  flex: none; font: 500 9px/1 ui-monospace, monospace; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--ink-mute); padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px;
 }
 
 /* static fallback list (mobile / reduced-motion) */
@@ -1161,23 +1128,10 @@ html { -webkit-overflow-scrolling: touch; }
   .sp-fallback { display: block !important; }
 }
 
-/* ═══ Feature mascot robot — watches the cursor, waves + points ═════════════ */
-.feature-robot {
-  position: fixed; left: 0; top: 0; z-index: 60;
-  width: 340px; height: 340px; pointer-events: none;
-  transform-origin: 50% 50%;
-  will-change: transform;
-}
-@media (max-width: 900px) { .feature-robot { display: none; } }
-@media (prefers-reduced-motion: reduce) { .feature-robot { display: none; } }
 
-/* spiral: simplified chrome (toggle removed) */
+/* spiral: minimal eyebrow (no toggle) */
 .sp-eyebrow {
-  position: absolute; top: 24px; left: 50%; transform: translateX(-50%); z-index: 8;
-  font: 600 11px/1 ui-monospace, SFMono-Regular, monospace; letter-spacing: 0.22em;
-  text-transform: uppercase; color: var(--ink-mute); pointer-events: none; white-space: nowrap;
-}
-.sp-tip-dot {
-  flex: none; width: 26px; height: 26px; border-radius: 8px;
-  background: conic-gradient(from 120deg, #00cfee, #6a8cff, #b6ff5c, #ff8a3d, #00cfee);
+  position: absolute; top: 26px; left: 50%; transform: translateX(-50%); z-index: 8;
+  font: 600 12px/1 var(--font-sans); letter-spacing: 0.18em; text-transform: lowercase;
+  color: var(--ink-mute); pointer-events: none; white-space: nowrap;
 }

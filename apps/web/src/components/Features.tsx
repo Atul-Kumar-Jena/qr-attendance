@@ -569,6 +569,7 @@ export function Features() {
   const pinRef     = useRef<HTMLDivElement>(null);
   const cardRefs   = useRef<Array<HTMLDivElement | null>>([]);
   const tipNameRef = useRef<HTMLSpanElement>(null);
+  const tipThumbRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
@@ -597,7 +598,11 @@ export function Features() {
       smoothF += (targetF - smoothF) * 0.08;
       const phase = smoothF;
       const focus = clampSp(Math.round(phase), 0, N_FEATS - 1);
-      if (focus !== lastFocus) { lastFocus = focus; if (tipNameRef.current) tipNameRef.current.textContent = FEATS[focus].t; }
+      if (focus !== lastFocus) {
+        lastFocus = focus;
+        if (tipNameRef.current) tipNameRef.current.textContent = FEATS[focus].t;
+        if (tipThumbRef.current) tipThumbRef.current.style.background = CARD_ART[focus % CARD_ART.length];
+      }
 
       for (let i = 0; i < N_FEATS; i++) {
         const card = cardRefs.current[i];
@@ -643,7 +648,7 @@ export function Features() {
             <div className="sp-grid" aria-hidden />
 
             {/* eyebrow */}
-            <div className="sp-eyebrow">02 — Features · scroll to spin</div>
+            <div className="sp-eyebrow">spiral · features · scroll to spin</div>
 
             {/* 3D world of warped cards */}
             <div className="sp-world">
@@ -662,9 +667,9 @@ export function Features() {
               ))}
             </div>
 
-            {/* floating name pill */}
+            {/* floating name pill — thumb matches the focused card's gradient */}
             <div className="sp-tip">
-              <span className="sp-tip-dot" />
+              <div ref={tipThumbRef} className="sp-tip-thumb" style={{ background: CARD_ART[0] }} />
               <span ref={tipNameRef} className="sp-tip-name">{FEATS[0].t}</span>
             </div>
 
