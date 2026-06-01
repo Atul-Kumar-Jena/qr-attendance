@@ -530,104 +530,134 @@ function FeatureOverlay({
   Wrap-around keeps the spiral full at both ends. Pinned ScrollTrigger (robust
   under Lenis) + gsap.ticker rAF; no React DOM churn in the hot path.
 */
-const N_FEATS  = FEATS.length;
-const SP_SPIN   = 0.74;   // radians between consecutive cards along the spiral
-const SP_R0     = 40;     // radius of the focus seat
-const SP_RGROW  = 198;    // radius growth per card away from focus
-const SP_ZDEPTH = 178;    // how much each step recedes in Z
-const SP_FRONTZ = 340;    // bring the focus card forward → it grows large (hero)
-const SP_YFLAT  = 0.58;   // vertical squash of the spiral
+const N_FEATS = FEATS.length;
 
-const clampSp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
-const wrapRel = (r: number) => { while (r > N_FEATS / 2) r -= N_FEATS; while (r < -N_FEATS / 2) r += N_FEATS; return r; };
+const clampN = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
+const wrap01 = (v: number) => { v %= 1; return v < 0 ? v + 1 : v; };
+const smooth = (a: number, b: number, t: number) => a + (b - a) * (t * t * (3 - 2 * t)); // smoothstep lerp
 
-// Mixed portrait / landscape sizes, deterministic per card.
-const CARD_DIMS = FEATS.map((_, i) => (i % 3 === 1 ? { w: 252, h: 340 } : { w: 372, h: 244 }));
-
-// Vivid full-bleed artwork per card (abstract glows) — matches the showreel look.
-const CARD_ART = [
-  'radial-gradient(120% 90% at 28% 24%, rgba(21,224,255,0.55), transparent 55%), radial-gradient(110% 100% at 72% 82%, rgba(60,72,255,0.45), transparent 60%), linear-gradient(150deg, #0a1230, #050818)',
-  'radial-gradient(80% 70% at 56% 46%, rgba(255,150,70,0.65), transparent 60%), radial-gradient(130% 100% at 28% 18%, rgba(255,255,255,0.85), transparent 55%), linear-gradient(150deg, #f4efe8, #d7cfc4)',
-  'radial-gradient(95% 85% at 48% 50%, rgba(180,255,60,0.5), transparent 55%), radial-gradient(120% 95% at 76% 70%, rgba(10,255,200,0.45), transparent 60%), linear-gradient(150deg, #0a2417, #04140d)',
-  'radial-gradient(72% 62% at 50% 44%, rgba(255,94,196,0.6), transparent 55%), radial-gradient(120% 100% at 30% 72%, rgba(106,59,255,0.55), transparent 60%), linear-gradient(150deg, #1a0f3a, #08061c)',
-  'radial-gradient(100% 80% at 50% 28%, rgba(201,205,214,0.7), transparent 60%), linear-gradient(160deg, #3b414d, #12151b)',
-  'radial-gradient(92% 80% at 44% 56%, rgba(255,178,77,0.7), transparent 60%), radial-gradient(120% 100% at 72% 20%, rgba(255,110,46,0.55), transparent 55%), linear-gradient(150deg, #2a1a0a, #140b04)',
-  'radial-gradient(100% 90% at 38% 38%, rgba(25,211,255,0.55), transparent 55%), radial-gradient(110% 100% at 76% 76%, rgba(31,107,255,0.5), transparent 60%), linear-gradient(150deg, #07223a, #03101d)',
-  'radial-gradient(82% 72% at 34% 40%, rgba(124,155,255,0.65), transparent 55%), radial-gradient(95% 82% at 70% 66%, rgba(182,255,92,0.45), transparent 60%), linear-gradient(150deg, #14204a, #0a1230)',
+// ── The shared ribbon ───────────────────────────────────────────────────────
+// One 3D path every card rides like a bead on a wire: enter top-right deep-back
+// → swoop to front-centre (huge, sharp) → swing right → exit bottom-left, the
+// card tumbling all the way. nx,ny ∈ [-1,1] (x→right, y→down); z px (+ near, − far).
+const PERSPECTIVE_Z = 1100; // MUST match .sp-scene { perspective } in globals.css
+type WP = { u: number; nx: number; ny: number; z: number; rx: number; ry: number; rz: number };
+const WAYPOINTS: WP[] = [
+  { u: 0.00, nx:  0.78, ny: -0.72, z: -2400, rx: -20, ry:  48, rz:  20 }, // enter top-right, deep back
+  { u: 0.42, nx:  0.00, ny: -0.02, z:   620, rx:   0, ry:   0, rz:   0 }, // FRONT centre — huge, sharp
+  { u: 0.70, nx:  0.64, ny:  0.06, z:  -150, rx:   8, ry: -30, rz: -16 }, // swing right
+  { u: 1.00, nx: -0.74, ny:  0.74, z:   260, rx:  18, ry: -62, rz: -36 }, // exit bottom-left
 ];
 
-// Deterministic per-card base tilt so the scatter reads varied like the reference.
+function samplePath(u: number) {
+  let a = WAYPOINTS[0], b = WAYPOINTS[WAYPOINTS.length - 1];
+  for (let k = 0; k < WAYPOINTS.length - 1; k++) {
+    if (u >= WAYPOINTS[k].u && u <= WAYPOINTS[k + 1].u) { a = WAYPOINTS[k]; b = WAYPOINTS[k + 1]; break; }
+  }
+  const t = clampN((u - a.u) / ((b.u - a.u) || 1), 0, 1);
+  return {
+    nx: smooth(a.nx, b.nx, t), ny: smooth(a.ny, b.ny, t), z: smooth(a.z, b.z, t),
+    rx: smooth(a.rx, b.rx, t), ry: smooth(a.ry, b.ry, t), rz: smooth(a.rz, b.rz, t),
+  };
+}
+
+// Faded at the entry/exit seams so the loop wrap (u: 1→0) is never visible.
+function fadeFromU(u: number) {
+  if (u < 0.04 || u > 0.96) return 0;
+  if (u < 0.16) return (u - 0.04) / 0.12;
+  if (u > 0.84) return (0.96 - u) / 0.12;
+  return 1;
+}
+
+// Flow tuning — all live-editable.
+const AUTO_SPEED  = 0.030;   // ribbon loops ~33s at rest (per second)
+const SCROLL_GAIN = 0.00020; // px scrolled → ribbon advance (signed → reverse-scroll safe)
+const MAX_STEP    = 0.06;    // per-frame clamp (anti-fling / tab-refocus jump)
+const U_FRONT     = 0.42;    // the "hero" parameter (front-centre)
+
+// Mixed thumbnail sizes (mostly landscape, a couple portrait) for variety.
+const CARD_DIMS = FEATS.map((_, i) => (i % 4 === 2 ? { w: 256, h: 332 } : { w: 348, h: 240 }));
+
+// Deterministic idle-tumble phase per card (stable across reloads).
 const seededT = (n: number) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
-const CARD_TILT = FEATS.map((_, i) => ({
-  rz: (seededT(i * 2 + 1) - 0.5) * 14,
-  rx: (seededT(i * 3 + 5) - 0.5) * 8,
-  ry: (seededT(i * 5 + 2) - 0.5) * 10,
-}));
+const CARD_PHASE = FEATS.map((_, i) => seededT(i * 7 + 3) * Math.PI * 2);
 
 export function Features() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const pinRef     = useRef<HTMLDivElement>(null);
-  const cardRefs   = useRef<Array<HTMLDivElement | null>>([]);
-  const tipNameRef = useRef<HTMLSpanElement>(null);
-  const tipThumbRef = useRef<HTMLDivElement>(null);
+  const pinRef      = useRef<HTMLDivElement>(null);
+  const cardRefs    = useRef<Array<HTMLDivElement | null>>([]);
+  const tipNameRef  = useRef<HTMLSpanElement>(null);
+  const tipMiniRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const small  = window.matchMedia('(max-width: 900px)').matches;
-    if (reduce || small) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (window.matchMedia('(max-width: 900px)').matches) return;
+    if (window.matchMedia('(pointer: coarse)').matches) return;
 
     initGSAP();
-    const section = sectionRef.current!;
-    const pin = pinRef.current!;
+    const section = sectionRef.current;
+    const pin = pinRef.current;
+    if (!section || !pin) return;
     section.classList.add('sp-active');
 
-    let targetF = 0, smoothF = 0, active = false, lastFocus = -1;
+    const cur = () => window.scrollY || window.pageYOffset || 0;
+    let phase = 0, lastScroll = cur(), idle = 0, active = false, lastT = -1, lastFocus = -1;
 
+    // Non-scrubbed pin: just holds the stage in view; flow is time + scroll driven
+    // (so there is no stuck-scroll failure mode).
     const st = ScrollTrigger.create({
       trigger: pin, start: 'top top',
-      end: () => '+=' + Math.round(window.innerHeight * (N_FEATS * 0.92)),
-      pin, pinSpacing: true, scrub: true, invalidateOnRefresh: true,
-      onUpdate: (s) => { targetF = s.progress * (N_FEATS - 1); },
-      onToggle: (s) => { active = s.isActive; },
+      end: () => '+=' + Math.round(window.innerHeight * 1.6),
+      pin, pinSpacing: true, invalidateOnRefresh: true,
+      onToggle: (s) => { active = s.isActive; if (s.isActive) { lastScroll = cur(); lastT = -1; } },
     });
 
     const update = (time: number) => {
       if (!active) return;
-      smoothF += (targetF - smoothF) * 0.08;
-      const phase = smoothF;
-      const focus = clampSp(Math.round(phase), 0, N_FEATS - 1);
-      if (focus !== lastFocus) {
-        lastFocus = focus;
-        if (tipNameRef.current) tipNameRef.current.textContent = FEATS[focus].t;
-        if (tipThumbRef.current) tipThumbRef.current.style.background = CARD_ART[focus % CARD_ART.length];
-      }
+      // dt in seconds, clamped so a backgrounded tab / first frame can't fling it
+      let dt = lastT < 0 ? 0.016 : time - lastT;
+      lastT = time;
+      if (dt <= 0 || dt > 0.05) dt = 0.016;
 
+      const sc = cur();
+      const d = sc - lastScroll; lastScroll = sc;
+      idle = Math.abs(d) > 0.5 ? 0 : idle + 1;
+      const drift = idle > 8 ? AUTO_SPEED * dt : 0;                          // drift only at rest
+      const step = clampN(drift + d * SCROLL_GAIN, -MAX_STEP, MAX_STEP);     // scroll up → reverse
+      phase = wrap01(phase + step);
+
+      const SX = 0.44 * window.innerWidth;
+      const SY = 0.44 * window.innerHeight;
+
+      let front = -1, frontDist = 2;
       for (let i = 0; i < N_FEATS; i++) {
         const card = cardRefs.current[i];
         if (!card) continue;
-        const rel = wrapRel(i - phase);
-        const a = Math.abs(rel);
-        const ang = rel * SP_SPIN - Math.PI / 2;
-        const rad = SP_R0 + a * SP_RGROW;
-        const x = Math.cos(ang) * rad;
-        const y = Math.sin(ang) * rad * SP_YFLAT;
-        const z = SP_FRONTZ - a * SP_ZDEPTH;
-        const idleY = Math.sin(time * 0.6 + i * 1.7) * 3;
-        const idleX = Math.cos(time * 0.5 + i * 2.3) * 2.4;
-        const rotY = clampSp(-x * 0.06, -42, 42) + idleY + CARD_TILT[i].ry;
-        const rotX = clampSp(y * 0.06, -28, 28) + idleX + CARD_TILT[i].rx;
-        const rotZ = CARD_TILT[i].rz + Math.sin(time * 0.4 + i) * 1.4;
-        // fade fully before the wrap boundary (a≈N/2) so cards never teleport
-        const opacity = clampSp(1.12 - a * 0.33, 0, 1);
-        const blur = clampSp((a - 0.8) * 1.6, 0, 6);
+        const u = wrap01(i / N_FEATS + phase);
+        const p = samplePath(u);
+        const rotX = p.rx + Math.sin(time * 0.5 + CARD_PHASE[i]) * 4;        // idle tumble
+        const rotY = p.ry + Math.sin(time * 0.4 + CARD_PHASE[i] * 1.3) * 5;
         card.style.transform =
-          `translate(-50%,-50%) translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) ` +
-          `rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg)`;
-        card.style.opacity = opacity.toFixed(3);
+          `translate(-50%,-50%) translate3d(${(p.nx * SX).toFixed(1)}px, ${(p.ny * SY).toFixed(1)}px, ${p.z.toFixed(1)}px) ` +
+          `rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(${p.rz.toFixed(2)}deg)`;
+        card.style.opacity = fadeFromU(u).toFixed(3);
+        const blur = clampN((-p.z) / 2400 * 6, 0, 6);
         card.style.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : 'none';
-        card.style.pointerEvents = a < 0.6 ? 'auto' : 'none';
+        card.style.zIndex = String(Math.round(1000 + p.z));
+        card.style.pointerEvents = (u > 0.30 && u < 0.55) ? 'auto' : 'none'; // only the front card
+        const dd = Math.abs(u - U_FRONT);
+        if (dd < frontDist) { frontDist = dd; front = i; }
+      }
+
+      if (front !== -1 && front !== lastFocus) {
+        lastFocus = front;
+        if (tipNameRef.current) tipNameRef.current.textContent = FEATS[front].t;
+        for (let k = 0; k < tipMiniRefs.current.length; k++) {
+          const m = tipMiniRefs.current[k];
+          if (m) m.style.opacity = k === front ? '1' : '0';
+        }
       }
     };
 
@@ -648,9 +678,9 @@ export function Features() {
             <div className="sp-grid" aria-hidden />
 
             {/* eyebrow */}
-            <div className="sp-eyebrow">spiral · features · scroll to spin</div>
+            <div className="sp-eyebrow">02 · features · scroll to fly</div>
 
-            {/* 3D world of warped cards */}
+            {/* the ribbon of thumbnail cards */}
             <div className="sp-world">
               {FEATS.map((f, i) => (
                 <div
@@ -660,16 +690,32 @@ export function Features() {
                   className="sp-card"
                   style={{ width: CARD_DIMS[i].w, height: CARD_DIMS[i].h }}
                 >
-                  <div className="sp-card-art" style={{ background: CARD_ART[i % CARD_ART.length] }} />
-                  <div className="sp-card-illu"><f.Illu /></div>
-                  <span className="sp-card-tag">{f.tags[0]}</span>
+                  <div className="sp-card-thumb"><f.Illu /></div>
+                  <div className="sp-card-foot">
+                    <h3>{f.t}</h3>
+                    <div className="sp-card-meta">
+                      <span className="sp-card-tag">{f.tags[0]}</span>
+                      <span className="sp-card-idx">{String(i + 1).padStart(2, '0')} / {String(N_FEATS).padStart(2, '0')}</span>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
 
-            {/* floating name pill — thumb matches the focused card's gradient */}
+            {/* floating name pill — mini thumbnail of the card at the front */}
             <div className="sp-tip">
-              <div ref={tipThumbRef} className="sp-tip-thumb" style={{ background: CARD_ART[0] }} />
+              <div className="sp-tip-thumb">
+                {FEATS.map((f, i) => (
+                  <div
+                    key={f.t}
+                    ref={(el) => { tipMiniRefs.current[i] = el; }}
+                    className="sp-tip-mini"
+                    style={{ opacity: i === 0 ? 1 : 0 }}
+                  >
+                    <f.Illu />
+                  </div>
+                ))}
+              </div>
               <span ref={tipNameRef} className="sp-tip-name">{FEATS[0].t}</span>
             </div>
 

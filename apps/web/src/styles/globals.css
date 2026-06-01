@@ -1044,7 +1044,7 @@ html { -webkit-overflow-scrolling: touch; }
 
 .sp-scene {
   position: absolute; inset: 0; overflow: hidden;
-  perspective: 1300px; perspective-origin: 50% 48%;
+  perspective: 1100px; perspective-origin: 50% 48%;
 }
 /* faint editorial grid behind the spiral */
 .sp-grid {
@@ -1072,30 +1072,48 @@ html { -webkit-overflow-scrolling: touch; }
   /* cards are always dark → force the illustration art light in both themes */
   --accent: #ffffff; --accent-2: #e8e8e8; --accent-3: #8a8a8a;
 }
-.sp-card::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(120% 80% at 50% 28%, rgba(255, 255, 255, 0.07), transparent 60%);
+.sp-card::after {                       /* soft top sheen for depth, monochrome */
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 3;
+  background: radial-gradient(120% 80% at 50% 22%, rgba(255, 255, 255, 0.06), transparent 58%);
 }
-.sp-card-art { position: absolute; inset: 0; z-index: 0; }
-.sp-card-illu { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; padding: 26px; opacity: 0.22; mix-blend-mode: soft-light; }
-.sp-card-illu svg { width: 78%; height: auto; }
+/* the thumbnail: feature illustration framed large in the upper area */
+.sp-card-thumb {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 72px; z-index: 1;
+  display: flex; align-items: center; justify-content: center; padding: 26px 26px 8px;
+  background: radial-gradient(110% 90% at 50% 38%, rgba(255, 255, 255, 0.05), transparent 70%);
+}
+.sp-card-thumb svg { width: 84%; height: 84%; }
+/* caption strip — like a gallery label */
+.sp-card-foot {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; height: 72px;
+  padding: 0 16px; display: flex; flex-direction: column; justify-content: center; gap: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+}
+.sp-card-foot h3 { font: 700 1.05rem/1.1 var(--font-sans); letter-spacing: -0.01em; color: #fff; }
+.sp-card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .sp-card-tag {
-  position: absolute; left: 12px; bottom: 10px; z-index: 2;
-  font: 500 8px/1 ui-monospace, monospace; letter-spacing: 0.16em; text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  font: 500 8px/1 ui-monospace, SFMono-Regular, monospace; letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55); padding: 3px 7px; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px;
 }
+.sp-card-idx { font: 500 9px/1 ui-monospace, monospace; letter-spacing: 0.18em; color: rgba(255, 255, 255, 0.32); }
 
-/* floating name pill */
+/* floating name pill — white chip with a dark mini-thumbnail of the front card */
 .sp-tip {
-  position: absolute; left: 50%; bottom: 13%; transform: translateX(-50%); z-index: 7;
+  position: absolute; left: 50%; bottom: 12%; transform: translateX(-50%); z-index: 7;
   display: flex; align-items: center; gap: 12px; padding: 7px 18px 7px 7px; border-radius: 999px;
   background: #fff; box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45); pointer-events: none;
 }
 .sp-tip-thumb {
-  width: 36px; height: 28px; border-radius: 7px; flex: none;
-  background-size: cover; background-position: 50% 50%;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
+  position: relative; width: 40px; height: 30px; border-radius: 8px; flex: none; overflow: hidden;
+  background: #0c0d12; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --accent: #ffffff; --accent-2: #e8e8e8; --accent-3: #8a8a8a;   /* white art on the dark mini */
 }
+.sp-tip-mini {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 5px;
+  transition: opacity 0.3s ease;
+}
+.sp-tip-mini svg { width: 80%; height: 80%; }
 .sp-tip-name { font: 700 14px/1 var(--font-sans); letter-spacing: -0.01em; color: #111; white-space: nowrap; }
 
 /* rotating showreel badge */
