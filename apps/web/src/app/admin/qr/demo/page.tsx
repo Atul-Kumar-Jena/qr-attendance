@@ -126,6 +126,24 @@ export default function QrDisplay() {
 
   useQrDemoTour();
 
+  // Resume an existing session opened via "View QR" in the Sessions panel —
+  // jump straight to the live QR for that exact session instead of the setup.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('atd_resume_session');
+      if (!raw) return;
+      sessionStorage.removeItem('atd_resume_session');
+      const r = JSON.parse(raw);
+      if (r && r.id) {
+        setSubjectName(r.subjectName || '');
+        setClassName(r.className || '');
+        setSessionId(r.id);
+        setStage('live');
+      }
+    } catch { /* ignore malformed handoff */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Load classes for the class picker
   useEffect(() => {
     if (!institutionId) return;

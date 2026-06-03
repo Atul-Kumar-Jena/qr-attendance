@@ -645,7 +645,9 @@ function SessionsPanel() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <Link href="/admin/qr/demo" className="text-[12px] border border-accent/40 text-accent rounded-lg px-3 py-1.5 hover:bg-accent/5 transition-colors">
+                  <Link href="/admin/qr/demo"
+                    onClick={() => { try { sessionStorage.setItem('atd_resume_session', JSON.stringify({ id: s.id, subjectName: s.subjectName, className: s.className })); } catch {} }}
+                    className="text-[12px] border border-accent/40 text-accent rounded-lg px-3 py-1.5 hover:bg-accent/5 transition-colors">
                     View QR
                   </Link>
                   <button onClick={() => endSess(s.id, s)} disabled={ending === s.id}
