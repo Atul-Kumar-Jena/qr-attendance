@@ -18,16 +18,27 @@ const STORAGE_KEY = 'attendly-theme-mode';
 const CYCLE: Mode[] = ['auto', 'light', 'dark'];
 const DEFAULT_MODE: Mode = 'dark'; // dark-first design; matches the pre-paint boot script
 
-// Read the mode the boot script already resolved. On the server (no window) we
-// fall back to the default so the very first client render matches the inline
-// script's class — eliminating the theme flash.
+// Read the mode the boot script already resolved. Prefer the data-mode the
+// inline script wrote onto <html> (the single source of truth that's available
+// synchronously on the client), then localStorage, then the default.
 function getInitialMode(): Mode {
-  if (typeof window === 'undefined') return DEFAULT_MODE;
-  try {
-    return (localStorage.getItem(STORAGE_KEY) as Mode) || DEFAULT_MODE;
-  } catch {
-    return DEFAULT_MODE;
+  if (typeof document !== 'undefined') {
+    const dm = document.documentElement.dataset.mode as Mode | undefined;
+    if (dm === 'light' || dm === 'dark' || dm === 'auto') return dm;
+    try {
+      const s = localStorage.getItem(STORAGE_KEY) as Mode | null;
+      if (s) return s;
+    } catch {}
   }
+  return DEFAULT_MODE;
+}
+
+function getInitialTheme(): Theme {
+  if (typeof document !== 'undefined') {
+    const dt = document.documentElement.dataset.theme as Theme | undefined;
+    if (dt === 'light' || dt === 'dark') return dt;
+  }
+  return resolveTheme(getInitialMode());
 }
 
 interface ThemeCtx {
@@ -56,7 +67,7 @@ function applyTheme(theme: Theme, mode: Mode) {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<Mode>(getInitialMode);
-  const [theme, setTheme] = useState<Theme>(() => resolveTheme(getInitialMode()));
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
 
   // Auto mode: keep the theme in sync with the time of day without a flash on
   // mount (the boot script already applied the correct class).

@@ -24,6 +24,11 @@ function AutoIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fil
 
 function ThemeToggle({ compact, onDark }: { compact?: boolean; onDark?: boolean }) {
   const { mode, setMode } = useTheme();
+  // Static export bakes one mode into the SSR HTML; only reflect the *real*
+  // selected mode after mount so the active pill can never flash on the wrong
+  // option (page theme itself is already correct via the pre-paint boot script).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const options: { m: 'light' | 'auto' | 'dark'; icon: React.ReactNode; label: string }[] = [
     { m: 'light', icon: <SunIcon />,  label: 'Light mode' },
     { m: 'auto',  icon: <AutoIcon />, label: 'Auto (time of day)' },
@@ -31,18 +36,21 @@ function ThemeToggle({ compact, onDark }: { compact?: boolean; onDark?: boolean 
   ];
   return (
     <div className={cn('flex items-center rounded-lg border overflow-hidden transition-colors', onDark ? 'border-white/20' : 'border-ink/10 dark:border-white/10', compact && 'flex-1')} role="group" aria-label="Theme">
-      {options.map(({ m, icon, label }) => (
-        <button key={m} onClick={() => setMode(m)} aria-label={label} aria-pressed={mode === m}
-          className={cn('flex items-center justify-center transition-all duration-200',
-            compact ? 'flex-1 py-2 gap-1.5 text-[12px]' : 'w-7 h-7',
-            mode === m
-              ? (onDark ? 'bg-white/20 text-white' : 'bg-ink dark:bg-white/15 text-cream-50 dark:text-white')
-              : (onDark ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-ink-mute hover:text-ink dark:hover:text-white hover:bg-cream-100 dark:hover:bg-white/5')
-          )}>
-          {icon}
-          {compact && <span>{m.charAt(0).toUpperCase() + m.slice(1)}</span>}
-        </button>
-      ))}
+      {options.map(({ m, icon, label }) => {
+        const active = mounted && mode === m;
+        return (
+          <button key={m} onClick={() => setMode(m)} aria-label={label} aria-pressed={active}
+            className={cn('flex items-center justify-center transition-all duration-200',
+              compact ? 'flex-1 py-2 gap-1.5 text-[12px]' : 'w-7 h-7',
+              active
+                ? (onDark ? 'bg-white/20 text-white' : 'bg-ink dark:bg-white/15 text-cream-50 dark:text-white')
+                : (onDark ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-ink-mute hover:text-ink dark:hover:text-white hover:bg-cream-100 dark:hover:bg-white/5')
+            )}>
+            {icon}
+            {compact && <span>{m.charAt(0).toUpperCase() + m.slice(1)}</span>}
+          </button>
+        );
+      })}
     </div>
   );
 }

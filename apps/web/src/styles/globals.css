@@ -1202,7 +1202,7 @@ html.loaded .preloader { display: none !important; }
 .sp-badge-text { fill: var(--ink-mute); font: 600 8.6px/1 ui-monospace, monospace; letter-spacing: 0.18em; text-transform: uppercase; }
 .sp-badge-core {
   position: absolute; left: 50%; top: 50%; width: 42px; height: 42px; transform: translate(-50%, -50%);
-  border-radius: 50%; background: conic-gradient(from 90deg, #ff8a3d, #c24bff, #3dd6ff, #4dff9e, #ff8a3d);
+  border-radius: 50%; background: conic-gradient(from 90deg, #ffffff, #9a9a9a, #5a5a5a, #d0d0d0, #ffffff);
 }
 
 /* static fallback list (mobile / reduced-motion) */
