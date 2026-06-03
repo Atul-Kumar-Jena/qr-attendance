@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import gsap from 'gsap';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth, roleAtLeast } from '@/context/AuthContext';
 import { auth } from '@/lib/firebase';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -67,26 +67,26 @@ function useQrDemoTour() {
           popoverClass: 'atd-popover',
           steps: [
             {
-              element: '#qr-subject',
+              element: '#qr-class',
               popover: {
-                title: 'Subject / Topic',
-                description: 'Enter the subject or topic for today\'s class. This appears on the live screen.',
+                title: 'Pick your class',
+                description: 'Choose the class you\'re teaching from your institution\'s list (or type one if you haven\'t created it yet).',
                 side: 'bottom',
               },
             },
             {
-              element: '#qr-class',
+              element: '#qr-subject',
               popover: {
-                title: 'Class / Section',
-                description: 'Pick the class from your institution\'s list, or type one manually.',
+                title: 'Today\'s topic',
+                description: 'What you\'re covering today. It shows on the live screen so students know they\'re in the right session.',
                 side: 'bottom',
               },
             },
             {
               element: '#qr-start',
               popover: {
-                title: 'Start Session',
-                description: 'Creates a live Firestore session. The QR rotates every second — impossible to screenshot and reuse.',
+                title: 'Go live',
+                description: 'Generates a live session. The QR re-signs and rotates every few seconds, so a screenshot is useless moments later.',
                 side: 'top',
               },
             },
@@ -100,8 +100,17 @@ function useQrDemoTour() {
 }
 
 export default function QrDisplay() {
-  const { user, institutionId } = useAuth();
+  const { user, role, institutionId, loading } = useAuth();
   const router = useRouter();
+  // Only teachers and above may run an attendance session. Students scan QRs —
+  // they never generate them — so they're redirected away from this screen.
+  const authorized = !!user && roleAtLeast(role, 'teacher');
+  useEffect(() => {
+    if (loading) return;
+    if (!user) { router.replace('/admin'); return; }
+    if (!roleAtLeast(role, 'teacher')) router.replace('/admin');
+  }, [loading, user, role, router]);
+
   const [stage, setStage] = useState<Stage>('setup');
   const [sessionId, setSessionId] = useState('');
   const [subjectName, setSubjectName] = useState('');
@@ -269,45 +278,50 @@ export default function QrDisplay() {
   // Build the QR payload from the server-issued token.
   const qrPayload = sessionId && qrTokenStr ? `attendly://scan?t=${qrTokenStr}` : '';
 
+  // ── Auth guard (teacher+) ────────────────────────────────────────────────────
+  if (loading || !authorized) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0B] text-cream-50 flex flex-col items-center justify-center gap-3">
+        <span className="loader" />
+        <div className="text-[12.5px] text-cream-50/50">{loading ? 'Loading…' : 'Redirecting…'}</div>
+      </div>
+    );
+  }
+
   // ── Setup screen ─────────────────────────────────────────────────────────────
   if (stage === 'setup') {
     return (
       <div className="min-h-screen bg-[#0A0A0B] text-cream-50 flex flex-col items-center justify-center p-8">
         <div className="w-full max-w-md space-y-6">
           <div className="text-center">
-            <div className="font-display text-[2rem] mb-1">Start QR Session</div>
-            <div className="text-[12px] text-cream-50/50">Fill in the details to generate a live attendance QR.</div>
+            <div className="text-[10.5px] tracking-[0.22em] text-cream-50/40 uppercase mb-2">[ attendance ]</div>
+            <div className="font-display text-[2rem] mb-1">Start a session</div>
+            <div className="text-[12.5px] text-cream-50/50">Pick the class you&apos;re teaching and today&apos;s topic — then we generate a live, rotating QR for students to scan.</div>
           </div>
 
           <div className="space-y-4">
-            <div id="qr-subject">
-              <label className="block text-[11px] tracking-wide text-cream-50/50 mb-1.5 uppercase">Subject / Topic</label>
-              <input
-                value={subjectName}
-                onChange={(e) => setSubjectName(e.target.value)}
-                placeholder="e.g. Operating Systems"
-                className="w-full text-[14px] bg-white/8 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-accent/60 text-cream-50 placeholder:text-cream-50/30 transition-colors"
-              />
-            </div>
             <div id="qr-class">
-              <label className="block text-[11px] tracking-wide text-cream-50/50 mb-1.5 uppercase">Class / Section</label>
+              <label className="block text-[11px] tracking-wide text-cream-50/50 mb-1.5 uppercase">Class / Section <span className="text-accent">*</span></label>
               {classes.length > 0 && !customClass ? (
-                <select
-                  value={className}
-                  onChange={(e) => {
-                    if (e.target.value === '__custom') { setCustomClass(true); setClassName(''); }
-                    else setClassName(e.target.value);
-                  }}
-                  className="w-full text-[14px] bg-white/8 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-accent/60 text-cream-50 transition-colors appearance-none"
-                >
-                  <option value="">Select a class…</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.name + (c.section ? ` · ${c.section}` : '')}>
-                      {c.name}{c.section ? ` · ${c.section}` : ''}
-                    </option>
-                  ))}
-                  <option value="__custom">Type manually…</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={className}
+                    onChange={(e) => {
+                      if (e.target.value === '__custom') { setCustomClass(true); setClassName(''); }
+                      else setClassName(e.target.value);
+                    }}
+                    className="w-full text-[14px] bg-white/8 border border-white/10 rounded-xl px-4 py-3 pr-10 focus:outline-none focus:border-accent/60 text-cream-50 transition-colors appearance-none cursor-pointer"
+                  >
+                    <option value="">Select a class…</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.name + (c.section ? ` · ${c.section}` : '')}>
+                        {c.name}{c.section ? ` · ${c.section}` : ''}
+                      </option>
+                    ))}
+                    <option value="__custom">Type manually…</option>
+                  </select>
+                  <svg className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-cream-50/40" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+                </div>
               ) : (
                 <input
                   autoFocus={customClass}
@@ -323,6 +337,20 @@ export default function QrDisplay() {
                   ← pick from list instead
                 </button>
               )}
+              {classes.length === 0 && institutionId && (
+                <p className="mt-1.5 text-[11px] text-cream-50/40">
+                  No classes yet — <button onClick={() => router.push('/admin')} className="text-accent hover:underline">create one in Classes</button>, or type one above.
+                </p>
+              )}
+            </div>
+            <div id="qr-subject">
+              <label className="block text-[11px] tracking-wide text-cream-50/50 mb-1.5 uppercase">Today&apos;s topic <span className="text-accent">*</span></label>
+              <input
+                value={subjectName}
+                onChange={(e) => setSubjectName(e.target.value)}
+                placeholder="e.g. Operating Systems — Deadlocks"
+                className="w-full text-[14px] bg-white/8 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-accent/60 text-cream-50 placeholder:text-cream-50/30 transition-colors"
+              />
             </div>
           </div>
 
@@ -425,10 +453,10 @@ export default function QrDisplay() {
           <div className="rounded-xl border border-cream-50/8 bg-cream-50/[0.025] p-4">
             <div className="text-[10px] tracking-[0.22em] text-cream-50/40 uppercase mb-2">security</div>
             <div className="font-mono text-[12px] text-cream-50/85">
-              Signed by server · HMAC-SHA256 · kid=k1
+              HMAC-SHA256 signed · kid=k1 · single-use
             </div>
             <div className="mt-2 text-[10.5px] text-cream-50/50">
-              Tokens are minted in Cloud Functions and rotate every {ttlSecRef.current}s.
+              The token re-signs and rotates every {ttlSecRef.current}s — a screenshot is useless moments later.
               {qrExp ? (
                 <> · exp in {Math.max(0, qrExp - Math.floor(Date.now() / 1000))}s</>
               ) : null}
