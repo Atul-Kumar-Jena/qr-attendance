@@ -39,6 +39,9 @@ export function Pricing() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // Reduced motion: prices/cards are already in the markup — skip the
+    // count-up + card choreography so nothing is hidden.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let ctx: ReturnType<typeof gsap.context> | undefined;
     try {
       ctx = gsap.context(() => {
@@ -97,9 +100,10 @@ export function Pricing() {
               <div
                 className={`tier h-full rounded-[28px] p-8 border flex flex-col transition-all duration-300 ${
                   t.highlight
-                    ? 'bg-ink text-cream-50 border-transparent shadow-[0_40px_100px_-20px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.07)_inset] lg:-translate-y-4'
+                    ? 'text-cream-50 border-white/12 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.07)_inset] lg:-translate-y-4'
                     : 'glass border-ink/10 dark:border-white/10'
                 }`}
+                style={t.highlight ? { background: 'linear-gradient(160deg, #18181b, #0a0a0b)' } : undefined}
               >
                 {/* Header */}
                 <div className="flex items-center justify-between mb-1">

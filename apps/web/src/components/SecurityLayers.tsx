@@ -29,6 +29,9 @@ export function SecurityLayers() {
 
   useEffect(() => {
     if (typeof window === 'undefined' || !root.current) return;
+    // Reduced motion: everything is visible by default in the markup, so we
+    // simply don't run the hide-then-reveal choreography.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let ctx: ReturnType<typeof gsap.context> | undefined;
     try {
       ctx = gsap.context(() => {
@@ -61,12 +64,14 @@ export function SecurityLayers() {
           });
         });
 
-        // Stagger expand rings
+        // Stagger expand rings (immediateRender:false so a missed trigger never
+        // strands the rings invisible)
         if (rings.current) {
           gsap.from(rings.current.querySelectorAll('circle'), {
             scale: 0, opacity: 0,
             transformOrigin: '50% 50%',
             duration: 1, ease: 'expo.out', stagger: 0.08,
+            immediateRender: false,
             scrollTrigger: { trigger: root.current, start: 'top 65%' },
           });
         }

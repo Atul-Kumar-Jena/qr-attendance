@@ -32,10 +32,18 @@ export function Cursor() {
     // touch devices get no cursor
     if (window.matchMedia('(pointer: coarse)').matches) return;
 
+    // Respect users who prefer reduced motion — keep the native cursor.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
     const ring = ringRef.current!;
     const dot  = dotRef.current!;
     const tip  = tipRef.current!;
     if (!ring || !dot || !tip) return;
+
+    // Only now — once the custom cursor is genuinely mounted and running — do we
+    // let CSS hide the system cursor. If this code never runs (JS error, old
+    // browser), the native cursor stays visible. No more "missing cursor".
+    document.documentElement.classList.add('cursor-ready');
 
     // Cursor state — held outside React
     let cx = -200, cy = -200;
@@ -143,6 +151,7 @@ export function Cursor() {
     document.addEventListener('mouseout', onOut, { passive: true });
 
     return () => {
+      document.documentElement.classList.remove('cursor-ready');
       cancelAnimationFrame(raf);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mousedown', onDown);

@@ -15,6 +15,7 @@ export function MobilePreview() {
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const ctx = gsap.context(() => {
       // Phones parallax at different speeds
       gsap.to('.phone-a', {

@@ -30,7 +30,7 @@ export function Interactive3D() {
             <h2 data-reveal className="font-display text-[2.6rem] lg:text-[4rem] leading-[1.04] tracking-tightish mt-6 text-white">
               Attendance that
               <br />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-accent via-accent-rose to-accent-violet">
+              <span className="text-gradient-silver italic">
                 runs itself.
               </span>
             </h2>

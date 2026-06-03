@@ -20,6 +20,7 @@ export function CTA() {
   const path = useRef<SVGPathElement>(null);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const ctx = gsap.context(() => {
       gsap.fromTo(big.current,
         { scale: 0.6, yPercent: 30, opacity: 0, letterSpacing: '0.4em' },

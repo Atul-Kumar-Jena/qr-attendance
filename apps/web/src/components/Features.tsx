@@ -726,7 +726,7 @@ export function Features() {
                   <path id="spBadgePath" d="M60,60 m-44,0 a44,44 0 1,1 88,0 a44,44 0 1,1 -88,0" />
                 </defs>
                 <text className="sp-badge-text">
-                  <textPath href="#spBadgePath" startOffset="0">showreel · attendly · 2025 · showreel · attendly · 2025 · </textPath>
+                  <textPath href="#spBadgePath" startOffset="0">showreel · attendly · 2026 · showreel · attendly · 2026 · </textPath>
                 </text>
               </svg>
               <span className="sp-badge-core" />

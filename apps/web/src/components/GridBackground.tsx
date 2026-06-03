@@ -87,13 +87,15 @@ export function GridBackground() {
       >
         <div className="absolute inset-0" style={{
           backgroundImage: [
-            'linear-gradient(rgba(140,140,148,0.45) 1px, transparent 1px)',
-            'linear-gradient(90deg, rgba(140,140,148,0.45) 1px, transparent 1px)',
+            'linear-gradient(rgba(var(--ink-mute-rgb) / 0.55) 1px, transparent 1px)',
+            'linear-gradient(90deg, rgba(var(--ink-mute-rgb) / 0.55) 1px, transparent 1px)',
           ].join(', '),
           backgroundSize: G,
         }} />
+        {/* Intersection dots — monochrome, theme-aware (brightens the grid the
+            cursor passes over without breaking the strict black/white palette). */}
         <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle, rgba(255,140,100,0.8) 1.1px, transparent 1.1px)',
+          backgroundImage: 'radial-gradient(circle, rgba(var(--ink-rgb) / 0.85) 1.1px, transparent 1.1px)',
           backgroundSize: G,
         }} />
       </div>

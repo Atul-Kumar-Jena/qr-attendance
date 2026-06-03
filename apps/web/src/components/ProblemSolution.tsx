@@ -35,6 +35,9 @@ export function ProblemSolution() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // Reduced motion: the final numbers are in the markup, content is visible —
+    // skip the reveal + count-up choreography entirely.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let ctx: ReturnType<typeof gsap.context> | undefined;
     try {
       ctx = gsap.context(() => {
@@ -147,7 +150,7 @@ export function ProblemSolution() {
           {STATS.map((s, i) => (
             <div key={i} className="ps-stat-block bg-cream-50 p-7 hover:bg-cream-100 transition-colors">
               <div className="counter-num font-display text-[3.2rem] leading-none text-ink flex items-baseline gap-1.5">
-                <span className="ps-num" data-value={s.v}>0</span>
+                <span className="ps-num" data-value={s.v}>{s.v}</span>
                 {s.s && <span className="text-accent text-[1.6rem]">{s.s}</span>}
               </div>
               <div className="mt-3 text-[12px] leading-[1.5] text-ink-mute max-w-[180px]">{s.l}</div>

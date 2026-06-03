@@ -7,7 +7,6 @@ import { Magnetic } from './Magnetic';
 import { initGSAP } from '@/lib/gsap-init';
 import { DemoModal } from './DemoModal';
 import { Aurora } from './Aurora';
-import { SplineScene } from './ui/splite';
 import { Spotlight } from './ui/spotlight';
 
 if (typeof window !== 'undefined') {
@@ -26,6 +25,9 @@ export function Hero() {
 
   useEffect(() => {
     if (typeof window === 'undefined' || !root.current) return;
+    // Reduced motion: everything is visible by default (no CSS hides it), so we
+    // simply skip the entrance choreography entirely.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let ctx: ReturnType<typeof gsap.context> | undefined;
     try {
       ctx = gsap.context(() => {
@@ -37,23 +39,29 @@ export function Hero() {
           { y: 20, opacity: 0 },
           { y: 0, opacity: 1, duration: 0.9, ease: 'power3.out', delay: 0.1 },
         );
+        // "Decode" the subtext — on-brand for a security product. The real copy
+        // is in the markup (SEO / no-JS), so we prime a scrambled state first to
+        // avoid any blank flash, then resolve it character by character.
         const target = sub.current;
-        if (!target) return;
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*';
-        let frame = 0;
-        const total = 28;
-        const tick = () => {
-          let out = '';
-          for (let i = 0; i < SUB.length; i++) {
-            const p = Math.max(0, Math.min(1, (frame - i * 0.6) / 8));
-            out += p >= 1 ? SUB[i] : chars[Math.floor(Math.random() * chars.length)];
-          }
-          target.textContent = out;
-          frame++;
-          if (frame < total + SUB.length * 0.6) requestAnimationFrame(tick);
-          else target.textContent = SUB;
-        };
-        gsap.delayedCall(1.0, () => requestAnimationFrame(tick));
+        if (target) {
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*';
+          const scrambled = SUB.split('').map((c) => (c === ' ' ? ' ' : chars[Math.floor(Math.random() * chars.length)])).join('');
+          target.textContent = scrambled;
+          let frame = 0;
+          const total = 28;
+          const tick = () => {
+            let out = '';
+            for (let i = 0; i < SUB.length; i++) {
+              const p = Math.max(0, Math.min(1, (frame - i * 0.6) / 8));
+              out += p >= 1 ? SUB[i] : chars[Math.floor(Math.random() * chars.length)];
+            }
+            target.textContent = out;
+            frame++;
+            if (frame < total + SUB.length * 0.6) requestAnimationFrame(tick);
+            else target.textContent = SUB;
+          };
+          gsap.delayedCall(0.5, () => requestAnimationFrame(tick));
+        }
 
         gsap.fromTo('.qr-cell',
           { scale: 0, opacity: 0, rotation: () => gsap.utils.random(-90, 90) },
@@ -136,7 +144,7 @@ export function Hero() {
 
             <div className="mt-8 max-w-[480px] min-h-[88px]">
               <p ref={sub} className="text-[13.5px] leading-[1.75] text-ink-mute font-mono tracking-wide"
-                style={{ wordBreak: 'break-word', whiteSpace: 'normal' }} />
+                style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>{SUB}</p>
             </div>
 
             <div className="mt-10 flex flex-wrap items-center gap-4">
@@ -167,19 +175,14 @@ export function Hero() {
             </div>
           </div>
 
-          <div ref={qr} className="relative flex flex-col items-center gap-6">
-            {/* Interactive 3D robot — Spline scene */}
-            <div className="robot-3d relative w-full h-[360px] md:h-[420px] rounded-[28px] overflow-hidden"
-              style={{ background: 'radial-gradient(120% 120% at 50% 0%, rgba(20,20,26,0.6), rgba(0,0,0,0.85))', border: '1px solid rgba(255,255,255,0.07)' }}>
-              <Spotlight className="-top-24 left-10 md:-top-16 md:left-24" fill="rgba(120,200,255,0.55)" />
-              <SplineScene
-                scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
-                className="w-full h-full"
-              />
-            </div>
-            {/* QR mosaic — kept as the core product visual */}
-            <div className="relative w-full max-w-[260px] mx-auto aspect-square">
+          {/* Single, on-brand centerpiece: a live signed-QR credential. Replaces
+              the heavy external Spline scene — far faster (no multi-MB runtime /
+              network scene), fully on-brand, and great on mobile. */}
+          <div ref={qr} className="relative flex items-center justify-center">
+            <Spotlight className="-top-24 left-1/2 -translate-x-1/2" fill="rgba(255,255,255,0.18)" />
+            <div className="relative w-full max-w-[340px] mx-auto aspect-square">
               <QrMosaic />
+              <OrbitChips />
             </div>
           </div>
         </div>
@@ -308,6 +311,32 @@ function QrMosaic() {
       <div className="absolute bottom-3 right-4 z-20 font-mono text-[9px] text-accent/60 tracking-widest select-none">
         #{tick.toString().padStart(4, '0')} · 1s
       </div>
+    </div>
+  );
+}
+
+/* Floating verification chips that orbit the QR credential — tells the security
+   story at a glance and gives the hero depth without any heavy 3D runtime. */
+function OrbitChips() {
+  const chips = [
+    { label: 'Identity verified', top: '-6%',  left: '-14%', delay: '0s'   },
+    { label: 'Inside geofence',   top: '38%',  left: '92%',  delay: '0.8s' },
+    { label: 'Device attested',   top: '94%',  left: '-8%',  delay: '1.6s' },
+  ];
+  return (
+    <div aria-hidden className="absolute inset-0 pointer-events-none hidden sm:block">
+      {chips.map((c) => (
+        <div
+          key={c.label}
+          className="hero-chip absolute inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/55 px-2.5 py-1.5 text-[10.5px] font-medium tracking-wide text-white/85 backdrop-blur-md whitespace-nowrap"
+          style={{ top: c.top, left: c.left, animation: `iconFloat 6s ease-in-out infinite`, animationDelay: c.delay, boxShadow: '0 8px 24px -10px rgba(0,0,0,0.7)' }}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+          {c.label}
+        </div>
+      ))}
     </div>
   );
 }

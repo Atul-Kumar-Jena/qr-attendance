@@ -30,9 +30,35 @@
 
 /* ─── Base ───────────────────────────────────────────────────────────────── */
 
-/* Hide system cursor on desktop so custom cursor dot is visible */
+/* Hide the system cursor ONLY once the custom cursor has actually mounted
+   (Cursor.tsx adds .cursor-ready). If that JS never runs, the native cursor
+   stays — so the page is never left without a usable pointer. Interactive
+   elements still fall back to the real pointer for safety. */
 @media (pointer: fine) {
-  * { cursor: none !important; }
+  html.cursor-ready,
+  html.cursor-ready * { cursor: none !important; }
+}
+
+/* ─── Skip-to-content (a11y) ─────────────────────────────────────────────── */
+.skip-link {
+  position: fixed;
+  top: 12px; left: 12px;
+  z-index: 2147483647;
+  transform: translateY(-160%);
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 30px -8px rgba(0,0,0,0.4);
+  transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+}
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 html, body {
@@ -964,6 +990,52 @@ button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
   border-radius: 6px;
 }
 
+/* ═══ Premium polish layer ══════════════════════════════════════════════════
+   Small, high-leverage refinements that lift the whole site toward a
+   world-class feel: anchor offsets, balanced headlines, richer elevation. */
+
+/* Anchor jumps land cleanly BELOW the fixed nav instead of hiding under it. */
+:root { scroll-padding-top: 96px; }
+section[id], [data-scroll-anchor] { scroll-margin-top: 96px; }
+
+/* Typographic finesse — no orphans/widows on big type, smoother optical sizing. */
+h1, h2, h3, .font-display { text-wrap: balance; font-optical-sizing: auto; }
+p { text-wrap: pretty; }
+
+/* Layered, soft elevation tokens (used by .card-lift / premium surfaces). */
+:root {
+  --elev-1: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px -4px rgba(0,0,0,0.08);
+  --elev-2: 0 2px 4px rgba(0,0,0,0.05), 0 12px 32px -8px rgba(0,0,0,0.12);
+  --elev-3: 0 4px 8px rgba(0,0,0,0.06), 0 24px 60px -12px rgba(0,0,0,0.18);
+}
+html.dark {
+  --elev-1: 0 1px 2px rgba(0,0,0,0.4), 0 6px 18px -6px rgba(0,0,0,0.6);
+  --elev-2: 0 2px 6px rgba(0,0,0,0.5), 0 16px 40px -10px rgba(0,0,0,0.7);
+  --elev-3: 0 6px 14px rgba(0,0,0,0.55), 0 30px 70px -14px rgba(0,0,0,0.8);
+}
+
+/* Refined selection that adapts to the always-dark bookend sections. */
+.section-dark ::selection { background: #ffffff; color: #000000; }
+
+/* Buttons get a crisp focus ring that matches the pill radius. */
+.btn-premium:focus-visible { outline-offset: 3px; }
+
+/* Images never overflow their box and inherit smooth rounding. */
+img { max-width: 100%; height: auto; }
+
+/* Robust gradient text — solid-white fallback so it is NEVER invisible if
+   background-clip:text is unsupported or a CSS-var gradient fails to resolve. */
+.text-gradient-silver { color: #ffffff; }
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .text-gradient-silver {
+    background-image: linear-gradient(100deg, #ffffff 0%, #d7d9de 45%, #8c8f97 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+}
+
 /* ── Smooth rendering for animated elements ─────────────────────────────── */
 .feat-card, .tier, .hero-cta {
   will-change: transform, opacity;
@@ -983,8 +1055,15 @@ html { -webkit-overflow-scrolling: touch; }
   position: fixed; inset: 0; z-index: 100000;
   background: #0A0A0B;
   display: flex; align-items: center; justify-content: center;
-  /* No-JS / slow-hydration safety: lift away on its own. */
-  animation: preloaderOut 0.6s ease 2.4s forwards;
+  /* No-JS / slow-hydration safety: lift away on its own (fast — never an LCP
+     bottleneck). React removes it sooner; this is only the fallback. */
+  animation: preloaderOut 0.5s ease 1.3s forwards;
+}
+/* Repeat visits within a session (boot script adds .loaded) skip the intro
+   entirely — it never blocks content again. */
+html.loaded .preloader { display: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .preloader { display: none !important; }
 }
 @keyframes preloaderOut {
   to { opacity: 0; transform: translateY(-100%); visibility: hidden; }
