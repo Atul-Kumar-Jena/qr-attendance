@@ -158,7 +158,7 @@ export default function AdminHome() {
         <div className="font-display text-[2.4rem]">Attendly</div>
         <p className="text-ink-mute text-[14px]">Sign in to access the admin panel.</p>
         <AuthModal trigger={
-          <button className="rounded-xl bg-accent text-cream-50 px-6 py-3 text-[14px] font-medium hover:bg-accent/90 transition-all">
+          <button className="rounded-xl btn-solid px-6 py-3 text-[14px] font-medium transition-all">
             Sign in with Google
           </button>
         } />
@@ -280,7 +280,7 @@ export default function AdminHome() {
           </div>
           {roleAtLeast(role, 'teacher') && (
             <Link id="tour-qr-btn" href="/admin/qr/demo"
-              className="rounded-full bg-accent text-cream-50 px-3 py-1.5 sm:px-4 sm:py-2 text-[12px] sm:text-[12.5px] font-medium hover:bg-accent/90 transition-all flex-shrink-0 whitespace-nowrap">
+              className="rounded-full btn-solid px-3 py-1.5 sm:px-4 sm:py-2 text-[12px] sm:text-[12.5px] font-medium transition-all flex-shrink-0 whitespace-nowrap">
               Start QR
             </Link>
           )}
@@ -663,7 +663,7 @@ function SessionsPanel() {
         <div className="rounded-xl border-2 border-dashed border-ink/10 p-8 text-center space-y-3">
           <div className="text-ink-mute text-[13px]">No active sessions right now.</div>
           <Link href="/admin/qr/demo"
-            className="inline-flex items-center gap-2 rounded-xl bg-accent text-cream-50 px-5 py-2.5 text-[13px] font-medium hover:bg-accent/90 transition-all">
+            className="inline-flex items-center gap-2 rounded-xl btn-solid px-5 py-2.5 text-[13px] font-medium transition-all">
             Start a QR session
           </Link>
         </div>
@@ -808,7 +808,7 @@ function StudentsPanel({ role }: { role: Role }) {
       {canAdmin && (
         <div className="flex justify-end">
           <button onClick={() => setShowAddStudent((x) => !x)}
-            className="rounded-xl bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all">
+            className="rounded-xl btn-solid px-4 py-2 text-[12.5px] font-medium transition-all">
             + Add student
           </button>
         </div>
@@ -871,7 +871,7 @@ function StudentsPanel({ role }: { role: Role }) {
                   </div>
                   <div className="flex gap-3">
                     <button onClick={saveEdit} disabled={editSaving || !editForm.fullName || !editForm.rollNo}
-                      className="rounded-lg bg-accent text-cream-50 px-4 py-1.5 text-[12.5px] font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
+                      className="rounded-lg btn-solid px-4 py-1.5 text-[12.5px] font-medium transition-all disabled:opacity-50">
                       {editSaving ? 'Saving…' : 'Save changes'}
                     </button>
                     <button onClick={() => setEditingStudent(false)}
@@ -941,7 +941,7 @@ function StudentsPanel({ role }: { role: Role }) {
                       Private (admin+ only)
                     </label>
                     <button onClick={submitRemark} disabled={remarkSaving || !remarkText.trim()}
-                      className="rounded-lg bg-accent text-cream-50 px-4 py-1.5 text-[12.5px] font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
+                      className="rounded-lg btn-solid px-4 py-1.5 text-[12.5px] font-medium transition-all disabled:opacity-50">
                       {remarkSaving ? 'Saving…' : 'Add remark'}
                     </button>
                   </div>
@@ -1046,7 +1046,7 @@ function ClassesPanel() {
       <div className="flex items-center justify-between">
         <p className="text-[13px] text-ink-mute">Manage class / batch / section records for your institution.</p>
         <button onClick={() => { setShowAdd((x) => !x); setEditingId(null); }}
-          className="rounded-xl bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all flex-shrink-0 ml-4">
+          className="rounded-xl btn-solid px-4 py-2 text-[12.5px] font-medium transition-all flex-shrink-0 ml-4">
           + Add class
         </button>
       </div>
@@ -1466,7 +1466,7 @@ function ManageUsersPanel({ role }: { role: Role }) {
           {roleAtLeast(role, 'admin') && ' Sub-admins you create cannot remove you.'}
         </p>
         <button onClick={() => setShowCreate(true)}
-          className="rounded-xl bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all flex-shrink-0 ml-4">
+          className="rounded-xl btn-solid px-4 py-2 text-[12.5px] font-medium transition-all flex-shrink-0 ml-4">
           + Invite user
         </button>
       </div>
@@ -1663,7 +1663,7 @@ function TeacherPermsPanel() {
           </Card>
 
           <button onClick={savePerms} disabled={saving}
-            className="rounded-xl bg-accent text-cream-50 px-6 py-2.5 text-[13.5px] font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
+            className="rounded-xl btn-solid px-6 py-2.5 text-[13.5px] font-medium transition-all disabled:opacity-50">
             {saving ? 'Saving…' : saved ? 'Saved!' : 'Save permissions'}
           </button>
         </>
@@ -1743,7 +1743,7 @@ function InstitutionPanel() {
       </Card>
 
       <button onClick={saveSettings} disabled={saving}
-        className="rounded-xl bg-accent text-cream-50 px-6 py-2.5 text-[13.5px] font-medium hover:bg-accent/90 transition-all disabled:opacity-60">
+        className="rounded-xl btn-solid px-6 py-2.5 text-[13.5px] font-medium transition-all disabled:opacity-60">
         {saving ? 'Saving…' : saved ? 'Saved!' : 'Save settings'}
       </button>
     </div>
@@ -1821,7 +1821,7 @@ function InstitutionsPanel() {
           </span>
           {isDev && (
             <button onClick={() => setShowCreate((x) => !x)}
-              className="rounded-xl bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all">
+              className="rounded-xl btn-solid px-4 py-2 text-[12.5px] font-medium transition-all">
               + Create institution
             </button>
           )}
@@ -2045,7 +2045,7 @@ function StudentHomePanel() {
               placeholder="e.g. ABC123"
               className="flex-1 text-[14px] text-ink bg-cream-100 border border-ink/10 rounded-lg px-3 py-2.5 focus:outline-none focus:border-accent/50 font-mono tracking-widest" />
             <button onClick={joinInstitution} disabled={joiningInst || !joinInstCode.trim()}
-              className="rounded-lg bg-accent text-cream-50 px-4 py-2.5 text-[13px] font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
+              className="rounded-lg btn-solid px-4 py-2.5 text-[13px] font-medium transition-all disabled:opacity-50">
               {joiningInst ? 'Joining…' : 'Join'}
             </button>
           </div>
@@ -2082,7 +2082,7 @@ function StudentHomePanel() {
             placeholder="Class code (e.g. XY7K3P)"
             className="flex-1 text-[14px] text-ink bg-cream-100 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50 font-mono tracking-widest" />
           <button onClick={joinClass} disabled={joiningClass || !joinClassCode.trim()}
-            className="rounded-lg bg-accent text-cream-50 px-4 py-2 text-[13px] font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
+            className="rounded-lg btn-solid px-4 py-2 text-[13px] font-medium transition-all disabled:opacity-50">
             {joiningClass ? '…' : 'Join'}
           </button>
         </div>

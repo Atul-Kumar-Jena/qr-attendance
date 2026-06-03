@@ -172,7 +172,7 @@ export function OnboardingFlow({ user, onComplete }: Props) {
                   Back
                 </button>
                 <button onClick={handleCreateSolo} disabled={busy}
-                  className="flex-1 rounded-lg bg-accent text-cream-50 px-4 py-2 text-[13px] font-medium hover:bg-accent/90 transition-all disabled:opacity-60">
+                  className="flex-1 rounded-lg btn-solid px-4 py-2 text-[13px] font-medium transition-all disabled:opacity-60">
                   {busy ? 'Setting up…' : 'Create my workspace'}
                 </button>
               </div>
@@ -204,7 +204,7 @@ export function OnboardingFlow({ user, onComplete }: Props) {
                   Back
                 </button>
                 <button onClick={handleJoinInstitution} disabled={busy}
-                  className="flex-1 rounded-lg bg-accent text-cream-50 px-4 py-2 text-[13px] font-medium hover:bg-accent/90 transition-all disabled:opacity-60">
+                  className="flex-1 rounded-lg btn-solid px-4 py-2 text-[13px] font-medium transition-all disabled:opacity-60">
                   {busy ? 'Joining…' : 'Join as professor'}
                 </button>
               </div>
@@ -241,7 +241,7 @@ export function OnboardingFlow({ user, onComplete }: Props) {
                   Back
                 </button>
                 <button onClick={handleCreateInstitution} disabled={busy}
-                  className="flex-1 rounded-lg bg-accent text-cream-50 px-4 py-2 text-[13px] font-medium hover:bg-accent/90 transition-all disabled:opacity-60">
+                  className="flex-1 rounded-lg btn-solid px-4 py-2 text-[13px] font-medium transition-all disabled:opacity-60">
                   {busy ? 'Creating…' : 'Create institution'}
                 </button>
               </div>
@@ -269,7 +269,7 @@ export function OnboardingFlow({ user, onComplete }: Props) {
                   Back
                 </button>
                 <button onClick={handleJoinInstitution} disabled={busy}
-                  className="flex-1 rounded-lg bg-accent text-cream-50 px-4 py-2 text-[13px] font-medium hover:bg-accent/90 transition-all disabled:opacity-60">
+                  className="flex-1 rounded-lg btn-solid px-4 py-2 text-[13px] font-medium transition-all disabled:opacity-60">
                   {busy ? 'Joining…' : 'Join institution'}
                 </button>
               </div>
@@ -315,7 +315,7 @@ export function OnboardingFlow({ user, onComplete }: Props) {
                 </p>
               </div>
               <button onClick={() => { onComplete(); window.location.reload(); }}
-                className="w-full rounded-lg bg-accent text-cream-50 px-4 py-2.5 text-[13px] font-medium hover:bg-accent/90 transition-all">
+                className="w-full rounded-lg btn-solid px-4 py-2.5 text-[13px] font-medium transition-all">
                 Go to dashboard →
               </button>
             </div>
@@ -340,7 +340,7 @@ export function OnboardingFlow({ user, onComplete }: Props) {
                 </div>
               </div>
               <button onClick={() => { onComplete(); window.location.reload(); }}
-                className="w-full rounded-lg bg-accent text-cream-50 px-4 py-2.5 text-[13px] font-medium hover:bg-accent/90 transition-all">
+                className="w-full rounded-lg btn-solid px-4 py-2.5 text-[13px] font-medium transition-all">
                 Open my dashboard →
               </button>
             </div>
@@ -360,7 +360,7 @@ export function OnboardingFlow({ user, onComplete }: Props) {
                 </p>
               </div>
               <button onClick={() => { onComplete(); window.location.reload(); }}
-                className="w-full rounded-lg bg-accent text-cream-50 px-4 py-2.5 text-[13px] font-medium hover:bg-accent/90 transition-all">
+                className="w-full rounded-lg btn-solid px-4 py-2.5 text-[13px] font-medium transition-all">
                 Continue →
               </button>
             </div>

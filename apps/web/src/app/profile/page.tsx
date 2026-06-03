@@ -246,7 +246,7 @@ export default function ProfilePage() {
             <div className="space-y-2">
               <p className="text-[12.5px] text-ink-mute">You have not joined any institution yet.</p>
               <Link href="/admin"
-                className="inline-block rounded-xl bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all">
+                className="inline-block rounded-xl btn-solid px-4 py-2 text-[12.5px] font-medium transition-all">
                 Complete onboarding →
               </Link>
             </div>

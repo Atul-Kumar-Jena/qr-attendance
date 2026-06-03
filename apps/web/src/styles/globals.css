@@ -1026,6 +1026,37 @@ html.dark {
 /* Images never overflow their box and inherit smooth rounding. */
 img { max-width: 100%; height: auto; }
 
+/* ── Auto-inverting buttons ──────────────────────────────────────────────────
+   The recurring "invisible button" bug came from `bg-accent text-cream-50`,
+   which is black-on-cream in light mode but WHITE-on-cream (invisible) in dark
+   (accent → white in dark). These token-based classes always contrast because
+   text uses --bg, which is the exact inverse of --ink/--accent. */
+.btn-solid {
+  background: var(--ink);
+  color: var(--bg);
+  transition: opacity .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+.btn-solid:hover { opacity: .9; }
+.btn-solid:active { transform: scale(.97); }
+.btn-outline-soft {
+  border: 1px solid rgba(var(--ink-rgb) / 0.18);
+  color: var(--ink);
+  background: transparent;
+  transition: background .2s ease, border-color .2s ease, transform .2s ease;
+}
+.btn-outline-soft:hover { background: rgba(var(--ink-rgb) / 0.06); border-color: rgba(var(--ink-rgb) / 0.32); }
+.btn-outline-soft:active { transform: scale(.97); }
+
+/* For surfaces that are ALWAYS dark regardless of site theme (e.g. the live-QR
+   screen). Stays light-on-dark in both themes so it's never invisible. */
+.btn-on-dark {
+  background: #F4F2EE;
+  color: #0A0A0B;
+  transition: opacity .2s ease, transform .2s ease;
+}
+.btn-on-dark:hover { opacity: .9; }
+.btn-on-dark:active { transform: scale(.97); }
+
 /* Robust gradient text — solid-white fallback so it is NEVER invisible if
    background-clip:text is unsupported or a CSS-var gradient fails to resolve. */
 .text-gradient-silver { color: #ffffff; }

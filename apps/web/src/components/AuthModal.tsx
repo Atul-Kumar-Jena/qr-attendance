@@ -121,7 +121,7 @@ export function AuthModal({ trigger }: AuthModalProps) {
               <button
                 onClick={handleSignIn}
                 disabled={busy || !isConfigured}
-                className="w-full flex items-center justify-center gap-3 rounded-xl bg-accent text-cream-50 py-3 text-[14px] font-medium hover:bg-accent/90 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-3 rounded-xl btn-solid py-3 text-[14px] font-medium transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <GoogleIcon />
                 {busy ? 'Signing in…' : 'Continue with Google'}

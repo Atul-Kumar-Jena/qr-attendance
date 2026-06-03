@@ -145,14 +145,26 @@ export function Nav() {
   }, [menuOpen]);
 
   useEffect(() => {
-    if (!menuRef.current) return;
+    const panel = menuRef.current;
+    if (!panel) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const items = panel.querySelectorAll('.menu-item');
     if (menuOpen) {
-      gsap.fromTo(menuRef.current,
-        { opacity: 0, y: -12, pointerEvents: 'none' },
-        { opacity: 1, y: 0, duration: 0.3, ease: 'power3.out', pointerEvents: 'auto' },
+      if (reduce) {
+        gsap.set(panel, { opacity: 1, y: 0, scale: 1, pointerEvents: 'auto' });
+        gsap.set(items, { opacity: 1, y: 0 });
+        return;
+      }
+      gsap.fromTo(panel,
+        { opacity: 0, y: -12, scale: 0.985, pointerEvents: 'none' },
+        { opacity: 1, y: 0, scale: 1, duration: 0.32, ease: 'power3.out', pointerEvents: 'auto' },
+      );
+      gsap.fromTo(items,
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out', stagger: 0.05, delay: 0.06 },
       );
     } else {
-      gsap.to(menuRef.current, { opacity: 0, y: -8, duration: 0.2, ease: 'power2.in', pointerEvents: 'none' });
+      gsap.to(panel, { opacity: 0, y: -8, scale: 0.99, duration: 0.2, ease: 'power2.in', pointerEvents: 'none' });
     }
   }, [menuOpen]);
 
@@ -227,7 +239,7 @@ export function Nav() {
               <Link
                 href="/admin"
                 className={cn(
-                  'hidden md:inline-flex items-center gap-1.5 rounded-xl bg-accent text-cream-50 font-medium tracking-wide hover:bg-accent/90 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] whitespace-nowrap',
+                  'hidden md:inline-flex items-center gap-1.5 rounded-xl btn-solid font-medium tracking-wide transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] whitespace-nowrap',
                   scrolled ? 'px-3 py-1.5 text-[12px]' : 'px-4 py-2 text-[12.5px]',
                 )}
               >
@@ -240,7 +252,7 @@ export function Nav() {
               <Link
                 href="/admin"
                 className={cn(
-                  'hidden md:inline-flex items-center gap-1.5 rounded-xl bg-accent text-cream-50 font-medium tracking-wide hover:bg-accent/90 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] whitespace-nowrap',
+                  'hidden md:inline-flex items-center gap-1.5 rounded-xl btn-solid font-medium tracking-wide transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] whitespace-nowrap',
                   scrolled ? 'px-3 py-1.5 text-[12px]' : 'px-4 py-2 text-[12.5px]',
                 )}
               >
@@ -291,34 +303,34 @@ export function Nav() {
       {/* Mobile backdrop */}
       {menuOpen && <div className="fixed inset-0 z-30 md:hidden" onClick={() => setMenuOpen(false)} />}
 
-      {/* Mobile menu */}
+      {/* Mobile menu — elevated surface (not near-black) so every control has
+          real contrast in both themes; auto-inverting buttons; staggered items. */}
       <div
         ref={menuRef}
         className={cn(
-          'fixed inset-x-4 z-40 rounded-2xl border border-ink/8 dark:border-white/8 bg-cream-50/95 dark:bg-[#0D0F14]/97 backdrop-blur-xl shadow-lg md:hidden opacity-0 pointer-events-none overflow-y-auto',
+          'fixed inset-x-4 z-40 rounded-2xl border border-ink/10 dark:border-white/12 bg-cream-50 dark:bg-[#15171d] backdrop-blur-xl shadow-2xl shadow-ink/15 dark:shadow-black/60 md:hidden opacity-0 pointer-events-none overflow-y-auto',
           scrolled ? 'top-[72px]' : 'top-[80px]',
-          'max-h-[80vh]',
+          'max-h-[82vh]',
         )}
       >
         <div className="p-5 flex flex-col gap-4">
           {/* Signed-in user header */}
           <MobileUserHeader />
 
-          {/* Dashboard CTA — every signed-in user gets a dashboard
-              (students get their own "My Dashboard" view) */}
+          {/* Dashboard CTA — every signed-in user gets a dashboard */}
           {user && (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="menu-item grid grid-cols-2 gap-2">
               <Link
                 href="/admin"
                 onClick={() => setMenuOpen(false)}
-                className="block text-center rounded-xl bg-accent text-cream-50 py-2.5 text-[13px] font-medium hover:bg-accent/90 transition-all"
+                className="btn-solid block text-center rounded-xl py-3 text-[13px] font-semibold"
               >
                 {canAccessAdmin ? 'Dashboard' : 'My Dashboard'}
               </Link>
               <Link
                 href="/profile"
                 onClick={() => setMenuOpen(false)}
-                className="block text-center rounded-xl border border-ink/10 dark:border-white/10 text-ink-mute dark:text-white/60 py-2.5 text-[13px] font-medium hover:text-ink dark:hover:text-white transition-all"
+                className="btn-outline-soft block text-center rounded-xl py-3 text-[13px] font-medium"
               >
                 Profile
               </Link>
@@ -332,25 +344,29 @@ export function Nav() {
                 key={l.href}
                 href={l.href}
                 onClick={() => setMenuOpen(false)}
-                className="text-[15px] text-ink-mute dark:text-white/60 hover:text-ink dark:hover:text-white transition-colors border-b border-ink/6 dark:border-white/6 py-3.5 last:border-0"
+                className="menu-item group flex items-center justify-between text-[15px] font-medium text-ink dark:text-white/90 hover:text-ink dark:hover:text-white transition-colors border-b border-ink/8 dark:border-white/10 py-3.5 last:border-0"
               >
                 {l.label}
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-ink-mute opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" aria-hidden>
+                  <path d="M9 6l6 6-6 6" />
+                </svg>
               </Link>
             ))}
           </nav>
 
           {/* Sign in (if not signed in) */}
           {!user && (
-            <div className="space-y-2 pt-1">
+            <div className="menu-item space-y-2 pt-1">
               <AuthModal trigger={
-                <button className="w-full rounded-xl bg-ink dark:bg-white/10 text-cream-50 dark:text-white py-2.5 text-[13px] font-medium hover:bg-ink-soft dark:hover:bg-white/15 transition-all">
+                <button className="btn-solid w-full rounded-xl py-3 text-[13px] font-semibold inline-flex items-center justify-center gap-2">
+                  <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden><path fill="currentColor" d="M21.35 11.1H12v3.2h5.35c-.25 1.5-1.8 4.4-5.35 4.4-3.2 0-5.8-2.65-5.8-5.9s2.6-5.9 5.8-5.9c1.8 0 3 .77 3.7 1.43l2.5-2.42C16.6 3.9 14.5 3 12 3 6.9 3 2.8 7.1 2.8 12.2S6.9 21.4 12 21.4c5.9 0 8.2-4.15 8.2-6.3 0-.42-.05-.74-.1-1z"/></svg>
                   Sign in with Google
                 </button>
               } />
               <Link
                 href="#pricing"
                 onClick={() => setMenuOpen(false)}
-                className="block w-full text-center rounded-xl border border-ink/10 dark:border-white/10 text-ink-mute dark:text-white/60 py-2.5 text-[13px] hover:text-ink dark:hover:text-white hover:border-ink/20 transition-all"
+                className="btn-outline-soft block w-full text-center rounded-xl py-3 text-[13px] font-medium"
               >
                 Request demo
               </Link>
@@ -359,11 +375,11 @@ export function Nav() {
 
           {/* Sign out (if signed in) */}
           {user && (
-            <MobileSignOutButton onClose={() => setMenuOpen(false)} />
+            <div className="menu-item"><MobileSignOutButton onClose={() => setMenuOpen(false)} /></div>
           )}
 
           {/* Theme toggle row */}
-          <div className="pt-1">
+          <div className="menu-item pt-1">
             <div className="text-[11px] text-ink-mute mb-2 uppercase tracking-widest">Appearance</div>
             <ThemeToggle compact />
           </div>
