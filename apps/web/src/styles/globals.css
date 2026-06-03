@@ -139,7 +139,9 @@ h1, h2, h3 {
 .qr-cell {
   background: var(--ink);
   border-radius: 2px;
-  will-change: transform, opacity;
+  /* No persistent will-change here — there are 441 of these; promoting every
+     one to its own GPU layer wrecks memory. They composite fine during the
+     brief flip transition without it. */
 }
 
 /* ─── Glass card ─────────────────────────────────────────────────────────── */
@@ -940,8 +942,9 @@ html.dark body::after {
 }
 
 /* ── Smooth entrance reveals (GSAP sets the from-state; these are the
-      no-JS / reduced-motion safety states so content never sticks hidden) ─ */
-[data-reveal] { will-change: transform, opacity; }
+      no-JS / reduced-motion safety states so content never sticks hidden) ─
+   NB: no persistent will-change — these are one-shot reveals and there are
+   many of them; permanent layer promotion would bloat GPU memory. */
 
 /* ── 3D tilt card ───────────────────────────────────────────────────────── */
 .tilt-card { transform-style: preserve-3d; will-change: transform; }

@@ -605,6 +605,18 @@ export function Features() {
     const cur = () => window.scrollY || window.pageYOffset || 0;
     let phase = 0, lastScroll = cur(), idle = 0, active = false, lastT = -1, lastFocus = -1;
 
+    // Cache viewport dims — recompute on resize only, never per frame.
+    let vw = window.innerWidth, vh = window.innerHeight;
+    const onResize = () => { vw = window.innerWidth; vh = window.innerHeight; };
+    window.addEventListener('resize', onResize, { passive: true });
+
+    // Per-card last-written state → only touch the DOM when a value actually
+    // changes (especially the costly filter:blur, zIndex and pointerEvents).
+    const cards = cardRefs.current;
+    const lastBlur = new Float32Array(N_FEATS).fill(-1);
+    const lastZ = new Int32Array(N_FEATS).fill(-99999);
+    const lastPE = new Int8Array(N_FEATS).fill(-1);
+
     // Non-scrubbed pin: just holds the stage in view; flow is time + scroll driven
     // (so there is no stuck-scroll failure mode).
     const st = ScrollTrigger.create({
@@ -628,25 +640,31 @@ export function Features() {
       const step = clampN(drift + d * SCROLL_GAIN, -MAX_STEP, MAX_STEP);     // scroll up → reverse
       phase = wrap01(phase + step);
 
-      const SX = 0.44 * window.innerWidth;
-      const SY = 0.44 * window.innerHeight;
+      const SX = 0.44 * vw;
+      const SY = 0.44 * vh;
 
       let front = -1, frontDist = 2;
       for (let i = 0; i < N_FEATS; i++) {
-        const card = cardRefs.current[i];
+        const card = cards[i];
         if (!card) continue;
+        const s = card.style;
         const u = wrap01(i / N_FEATS + phase);
         const p = samplePath(u);
         const rotX = p.rx + Math.sin(time * 0.5 + CARD_PHASE[i]) * 4;        // idle tumble
         const rotY = p.ry + Math.sin(time * 0.4 + CARD_PHASE[i] * 1.3) * 5;
-        card.style.transform =
+        // transform + opacity change every frame (smooth) → always written.
+        s.transform =
           `translate(-50%,-50%) translate3d(${(p.nx * SX).toFixed(1)}px, ${(p.ny * SY).toFixed(1)}px, ${p.z.toFixed(1)}px) ` +
           `rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(${p.rz.toFixed(2)}deg)`;
-        card.style.opacity = fadeFromU(u).toFixed(3);
-        const blur = clampN((-p.z) / 2400 * 6, 0, 6);
-        card.style.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : 'none';
-        card.style.zIndex = String(Math.round(1000 + p.z));
-        card.style.pointerEvents = (u > 0.30 && u < 0.55) ? 'auto' : 'none'; // only the front card
+        s.opacity = fadeFromU(u).toFixed(3);
+        // Blur is the expensive one — quantise to 0.5px steps and only write
+        // when it changes, so the card isn't re-rasterised every single frame.
+        const bq = Math.round(clampN((-p.z) / 2400 * 6, 0, 6) * 2) / 2;
+        if (bq !== lastBlur[i]) { s.filter = bq > 0 ? `blur(${bq}px)` : 'none'; lastBlur[i] = bq; }
+        const z = (1000 + p.z) | 0;
+        if (z !== lastZ[i]) { s.zIndex = String(z); lastZ[i] = z; }
+        const pe = (u > 0.30 && u < 0.55) ? 1 : 0;
+        if (pe !== lastPE[i]) { s.pointerEvents = pe ? 'auto' : 'none'; lastPE[i] = pe; }
         const dd = Math.abs(u - U_FRONT);
         if (dd < frontDist) { frontDist = dd; front = i; }
       }
@@ -663,7 +681,12 @@ export function Features() {
 
     gsap.ticker.add(update);
     ScrollTrigger.refresh();
-    return () => { gsap.ticker.remove(update); st.kill(); section.classList.remove('sp-active'); };
+    return () => {
+      gsap.ticker.remove(update);
+      window.removeEventListener('resize', onResize);
+      st.kill();
+      section.classList.remove('sp-active');
+    };
   }, []);
 
   return (

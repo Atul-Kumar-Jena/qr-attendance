@@ -11,17 +11,19 @@ const SEEN_KEY = 'attendly-loaded';
  */
 export function Loader() {
   const ref = useRef<HTMLDivElement>(null);
-  const [gone, setGone] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      if (sessionStorage.getItem(SEEN_KEY)) return true;
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true;
-    } catch {}
-    return false;
-  });
+  // IMPORTANT: start `false` on BOTH server and first client render so hydration
+  // always matches (deciding from sessionStorage in the initializer caused a
+  // hydration mismatch on repeat visits). On repeat visits the boot script has
+  // already added `html.loaded`, whose CSS hides `.preloader` instantly — so
+  // there's no flash before this effect unmounts it.
+  const [gone, setGone] = useState(false);
 
   useEffect(() => {
-    if (gone) return;
+    let seen = false, reduced = false;
+    try { seen = !!sessionStorage.getItem(SEEN_KEY); } catch {}
+    try { reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch {}
+    if (seen || reduced) { setGone(true); return; }
+
     try { sessionStorage.setItem(SEEN_KEY, '1'); } catch {}
     document.documentElement.classList.add('loaded');
 
@@ -36,7 +38,7 @@ export function Loader() {
     }, 700);
 
     return () => clearTimeout(lift);
-  }, [gone]);
+  }, []);
 
   if (gone) return null;
 

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import gsap from 'gsap';
+import { initGSAP } from '@/lib/gsap-init';
 
 /**
  * Performance-tuned custom cursor.
@@ -50,7 +52,6 @@ export function Cursor() {
     let rx = -200, ry = -200;
     let scale = 1, targetScale = 1;
     let visible = false;
-    let raf = 0;
     let tipTimer: ReturnType<typeof setTimeout> | null = null;
     let tipShown = false;
 
@@ -75,15 +76,17 @@ export function Cursor() {
     const onLeave = () => setVisible(false);
     const onEnterWin = () => setVisible(true);
 
+    // Run the ring lerp on GSAP's single shared ticker instead of a separate
+    // rAF — one animation loop for the whole site, batched into one frame.
+    initGSAP();
     const loop = () => {
       rx += (cx - rx) * RING_LERP;
       ry += (cy - ry) * RING_LERP;
       scale += (targetScale - scale) * 0.18;
       ring.style.transform =
         `translate3d(${rx - 16}px, ${ry - 16}px, 0) scale(${scale})`;
-      raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
+    gsap.ticker.add(loop);
 
     const onDown = () => {
       dot.style.transform = `translate3d(${cx - 4}px, ${cy - 4}px, 0) scale(0.65)`;
@@ -152,7 +155,7 @@ export function Cursor() {
 
     return () => {
       document.documentElement.classList.remove('cursor-ready');
-      cancelAnimationFrame(raf);
+      gsap.ticker.remove(loop);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mousedown', onDown);
       window.removeEventListener('mouseup', onUp);

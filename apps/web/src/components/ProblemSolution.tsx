@@ -41,92 +41,48 @@ export function ProblemSolution() {
     let ctx: ReturnType<typeof gsap.context> | undefined;
     try {
       ctx = gsap.context(() => {
-        // Cards stagger in — immediateRender:false so missed ScrollTriggers
-        // don't strand the cards at opacity:0
-        gsap.utils.toArray<HTMLElement>('.ps-item').forEach((el, i) => {
-          gsap.fromTo(el,
-            { opacity: 0, y: 32, rotateX: -6 },
-            {
-              opacity: 1, y: 0, rotateX: 0,
-              transformOrigin: 'center top',
-              duration: 0.9, ease: 'power3.out',
-              immediateRender: false,
-              scrollTrigger: { trigger: el, start: 'top 92%' },
-              delay: i * 0.05,
-            },
-          );
-        });
-
-        // Headline reveal — start visible, animate up from below on trigger
+        // Headline reveal (1 trigger).
         gsap.fromTo('.ps-head .reveal-line',
           { yPercent: 110, rotateZ: 1.5 },
           {
             yPercent: 0, rotateZ: 0, duration: 1.1, ease: 'expo.out', stagger: 0.09,
             immediateRender: false,
-            scrollTrigger: { trigger: '.ps-head', start: 'top 95%' },
+            scrollTrigger: { trigger: '.ps-head', start: 'top 90%' },
           },
         );
 
-        // Strike-through draw
-        gsap.utils.toArray<HTMLElement>('.strike-line').forEach((s) => {
-          gsap.fromTo(s,
-            { scaleX: 0 },
-            { scaleX: 1, transformOrigin: 'left center', duration: 0.65, ease: 'power3.inOut',
-              immediateRender: false,
-              scrollTrigger: { trigger: s, start: 'top 92%' } },
-          );
-        });
-
-        // Stat counters
-        gsap.utils.toArray<HTMLElement>('.ps-num').forEach((el) => {
-          const target = Number(el.dataset.value);
-          if (!Number.isFinite(target)) return;
-          const obj = { v: 0 };
-          ScrollTrigger.create({
-            trigger: el, start: 'top 95%',
-            onEnter: () => {
+        // Stat strip: reveal blocks + run all 4 counters on ONE trigger.
+        // (from-state is applied inside onEnter, so if it never fires the
+        // markup's real numbers simply stay visible — never stranded.)
+        ScrollTrigger.create({
+          trigger: '.ps-stats', start: 'top 85%', once: true,
+          onEnter: () => {
+            gsap.fromTo('.ps-stat-block', { opacity: 0, y: 24 },
+              { opacity: 1, y: 0, duration: 0.75, ease: 'power3.out', stagger: 0.08 });
+            gsap.utils.toArray<HTMLElement>('.ps-num').forEach((el) => {
+              const target = Number(el.dataset.value);
+              if (!Number.isFinite(target)) return;
+              const obj = { v: 0 };
               gsap.to(obj, {
                 v: target, duration: 1.8, ease: 'expo.out',
                 onUpdate: () => (el.textContent = String(Math.floor(obj.v))),
               });
-            },
-          });
-        });
-
-        // Stat block entrance
-        gsap.utils.toArray<HTMLElement>('.ps-stat-block').forEach((el, i) => {
-          gsap.fromTo(el,
-            { opacity: 0, y: 24 },
-            { opacity: 1, y: 0, duration: 0.75, ease: 'power3.out',
-              immediateRender: false,
-              scrollTrigger: { trigger: el, start: 'top 92%' },
-              delay: i * 0.07 },
-          );
-        });
-
-        // NEW — solution-icon spin-in on each fix card
-        gsap.utils.toArray<HTMLElement>('.sol-icon').forEach((el, i) => {
-          gsap.fromTo(el,
-            { rotate: -90, scale: 0, opacity: 0 },
-            {
-              rotate: 0, scale: 1, opacity: 1,
-              duration: 0.8, ease: 'back.out(2)',
-              immediateRender: false,
-              scrollTrigger: { trigger: el, start: 'top 95%' },
-              delay: i * 0.08,
-            },
-          );
-        });
-
-        // NEW — gradient sweep on the "We close every gap." line
-        gsap.fromTo('.ps-head .text-accent',
-          { backgroundPosition: '200% 0' },
-          {
-            backgroundPosition: '0% 0', duration: 1.5, ease: 'power2.out',
-            immediateRender: false,
-            scrollTrigger: { trigger: '.ps-head', start: 'top 75%' },
+            });
           },
-        );
+        });
+
+        // Problem/fix grid: items + strike-throughs + fix-icons on ONE trigger.
+        ScrollTrigger.create({
+          trigger: '.ps-grid', start: 'top 82%', once: true,
+          onEnter: () => {
+            gsap.fromTo('.ps-item', { opacity: 0, y: 32, rotateX: -6 },
+              { opacity: 1, y: 0, rotateX: 0, transformOrigin: 'center top', duration: 0.9, ease: 'power3.out', stagger: 0.05 });
+            gsap.fromTo('.strike-line', { scaleX: 0 },
+              { scaleX: 1, transformOrigin: 'left center', duration: 0.65, ease: 'power3.inOut', stagger: 0.05, delay: 0.2 });
+            gsap.fromTo('.sol-icon', { rotate: -90, scale: 0, opacity: 0 },
+              { rotate: 0, scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(2)', stagger: 0.08, delay: 0.15 });
+          },
+        });
       }, root);
     } catch { /* GSAP failure must not crash the page */ }
     return () => { try { ctx?.revert(); } catch {} };
@@ -146,7 +102,7 @@ export function ProblemSolution() {
         </div>
 
         {/* Stat strip */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-ink/6 my-20 rounded-2xl overflow-hidden">
+        <div className="ps-stats grid grid-cols-2 md:grid-cols-4 gap-px bg-ink/6 my-20 rounded-2xl overflow-hidden">
           {STATS.map((s, i) => (
             <div key={i} className="ps-stat-block bg-cream-50 p-7 hover:bg-cream-100 transition-colors">
               <div className="counter-num font-display text-[3.2rem] leading-none text-ink flex items-baseline gap-1.5">
@@ -159,7 +115,7 @@ export function ProblemSolution() {
         </div>
 
         {/* Problem / Fix grid */}
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-20">
+        <div className="ps-grid grid lg:grid-cols-2 gap-10 lg:gap-20">
           {/* Problems */}
           <div>
             <div className="text-[11px] tracking-[0.3em] text-ink-mute uppercase mb-7">The problem</div>

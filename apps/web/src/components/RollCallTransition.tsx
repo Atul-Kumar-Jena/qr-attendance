@@ -75,7 +75,12 @@ export function RollCallTransition() {
         const tl = gsap.timeline({
           repeat: isMobile ? 0 : -1,
           repeatDelay: 1.4,
-          scrollTrigger: { trigger: root.current, start: 'top 68%' },
+          // Pause the looping demo whenever it scrolls off-screen so it never
+          // burns the main thread in the background.
+          scrollTrigger: {
+            trigger: root.current, start: 'top 75%', end: 'bottom top',
+            toggleActions: 'play pause resume pause',
+          },
         });
 
         // ── Reset to the manual starting point ──────────────────────────────

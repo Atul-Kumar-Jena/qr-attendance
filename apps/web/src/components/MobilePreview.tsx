@@ -15,29 +15,36 @@ export function MobilePreview() {
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const desktop = window.matchMedia('(min-width: 768px)').matches;
     const ctx = gsap.context(() => {
-      // Phones parallax at different speeds
-      gsap.to('.phone-a', {
-        y: -80, ease: 'none',
-        scrollTrigger: { trigger: root.current, start: 'top bottom', end: 'bottom top', scrub: 1 },
-      });
-      gsap.to('.phone-b', {
-        y: 40, ease: 'none',
-        scrollTrigger: { trigger: root.current, start: 'top bottom', end: 'bottom top', scrub: 1 },
-      });
-
-      // Scanner sweep
-      gsap.fromTo('.scan-line',
-        { top: '0%' },
-        {
-          top: '100%', repeat: -1, duration: 2, ease: 'sine.inOut', yoyo: true,
+      // Phones parallax — desktop only (scrub on touch scroll janks low-end).
+      if (desktop) {
+        gsap.to('.phone-a', {
+          y: -70, ease: 'none',
+          scrollTrigger: { trigger: root.current, start: 'top bottom', end: 'bottom top', scrub: 1 },
         });
+        gsap.to('.phone-b', {
+          y: 40, ease: 'none',
+          scrollTrigger: { trigger: root.current, start: 'top bottom', end: 'bottom top', scrub: 1 },
+        });
+      }
 
-      // Card-stack reveal (history items slide up + stagger)
+      // Scanner sweep — pauses when the section is off-screen (no wasted frames).
+      const beam = gsap.fromTo('.scan-line',
+        { top: '0%' },
+        { top: '100%', repeat: -1, duration: 2, ease: 'sine.inOut', yoyo: true, paused: true });
+      ScrollTrigger.create({
+        trigger: root.current, start: 'top bottom', end: 'bottom top',
+        onToggle: (self) => (self.isActive ? beam.play() : beam.pause()),
+      });
+
+      // History rows reveal — one-shot (immediateRender:false = never stranded).
       gsap.from('.hist-row', {
         y: 30, opacity: 0,
         stagger: 0.08, ease: 'power3.out', duration: 0.9,
+        immediateRender: false,
         scrollTrigger: { trigger: '.phone-b', start: 'top 92%' },
       });
     }, root);

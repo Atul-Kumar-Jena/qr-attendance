@@ -77,16 +77,19 @@ export function Hero() {
           ease: 'sine.inOut', yoyo: true, repeat: -1,
         });
 
+        // Parallax orb follows the pointer. quickTo reuses ONE tween instead of
+        // spawning a new gsap.to() on every pointermove (no tween churn), and
+        // viewport dims are cached (no per-event layout reads).
+        let vw = window.innerWidth, vh = window.innerHeight;
+        const onResize = () => { vw = window.innerWidth; vh = window.innerHeight; };
+        const xTo = gsap.quickTo(orb.current, 'x', { duration: 1.1, ease: 'power3.out' });
+        const yTo = gsap.quickTo(orb.current, 'y', { duration: 1.1, ease: 'power3.out' });
         const onMove = (e: PointerEvent) => {
-          if (!orb.current) return;
-          const { innerWidth: w, innerHeight: h } = window;
-          gsap.to(orb.current, {
-            x: (e.clientX - w / 2) * 0.05,
-            y: (e.clientY - h / 2) * 0.05,
-            duration: 1.1, ease: 'power3.out',
-          });
+          xTo((e.clientX - vw / 2) * 0.05);
+          yTo((e.clientY - vh / 2) * 0.05);
         };
-        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointermove', onMove, { passive: true });
+        window.addEventListener('resize', onResize, { passive: true });
 
         ScrollTrigger.create({
           trigger: root.current,
@@ -106,7 +109,10 @@ export function Hero() {
           { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out', stagger: 0.08, delay: 0.85 },
         );
 
-        return () => window.removeEventListener('pointermove', onMove);
+        return () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('resize', onResize);
+        };
       }, root);
     } catch { /* never crash the hero */ }
     return () => { try { ctx?.revert(); } catch {} };
@@ -264,9 +270,13 @@ function QrMosaic() {
   const [prevCells, setPrevCells] = useState<typeof cells>([]);
   const [flipping, setFlipping]   = useState(false);
   const flipRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
+  // The mosaic re-renders 441 cells every second — only do that while it's
+  // actually on screen and the tab is visible (saves work during page scroll).
   useEffect(() => {
-    const id = setInterval(() => {
+    let id: ReturnType<typeof setInterval> | null = null;
+    const advance = () => {
       setTick((t) => {
         const next = t + 1;
         setCells((prev) => { setPrevCells(prev); return buildCells(next); });
@@ -275,12 +285,21 @@ function QrMosaic() {
         flipRef.current = setTimeout(() => setFlipping(false), 350);
         return next;
       });
-    }, 1000);
-    return () => { clearInterval(id); if (flipRef.current) clearTimeout(flipRef.current); };
+    };
+    const start = () => { if (!id && !document.hidden) id = setInterval(advance, 1000); };
+    const stop = () => { if (id) { clearInterval(id); id = null; } };
+    const el = rootRef.current;
+    const io = typeof IntersectionObserver !== 'undefined' && el
+      ? new IntersectionObserver(([e]) => (e.isIntersecting ? start() : stop()), { threshold: 0 })
+      : null;
+    if (io && el) io.observe(el); else start();
+    const onVis = () => (document.hidden ? stop() : (el ? undefined : start()));
+    document.addEventListener('visibilitychange', onVis);
+    return () => { stop(); io?.disconnect(); document.removeEventListener('visibilitychange', onVis); if (flipRef.current) clearTimeout(flipRef.current); };
   }, []);
 
   return (
-    <div className="relative h-full w-full">
+    <div ref={rootRef} className="relative h-full w-full">
       <div className="absolute inset-0 rounded-[28px] glass shadow-[0_40px_100px_-20px_rgba(11,18,32,0.2)]" />
       <svg className="absolute inset-0 pointer-events-none z-10 w-full h-full" viewBox="0 0 100 100" aria-hidden>
         <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(244,242,238,0.06)" strokeDasharray="2 5" />

@@ -32,41 +32,29 @@ export function SecurityLayers() {
     // Reduced motion: everything is visible by default in the markup, so we
     // simply don't run the hide-then-reveal choreography.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // The connector SVG (rings/path/radial lines) is `hidden lg:block` — only
+    // wire its scrubbed draws on desktop, and as ONE scrubbed timeline instead
+    // of 8+ separate ScrollTriggers.
+    const desktop = window.matchMedia('(min-width: 1024px)').matches;
     let ctx: ReturnType<typeof gsap.context> | undefined;
     try {
       ctx = gsap.context(() => {
-        // Draw the central connector path
-        const p = path.current;
-        if (p && rings.current) {
+        if (desktop && path.current && rings.current) {
+          const p = path.current;
           const len = p.getTotalLength();
           gsap.set(p, { strokeDasharray: len, strokeDashoffset: len });
-          gsap.to(p, {
-            strokeDashoffset: 0,
-            ease: 'none',
-            scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'bottom 30%', scrub: 1 },
-          });
-        }
 
-        // Eight radial connector lines — each draws as you scroll past its layer
-        const lines = gsap.utils.toArray<SVGLineElement>('.sec-radial');
-        lines.forEach((line, i) => {
-          const totalLen = 200;
-          gsap.set(line, { strokeDasharray: totalLen, strokeDashoffset: totalLen });
-          gsap.to(line, {
-            strokeDashoffset: 0,
-            ease: 'none',
-            scrollTrigger: {
-              trigger: '.sec-list',
-              start: `top+=${i * 80} 80%`,
-              end: `top+=${i * 80 + 200} 60%`,
-              scrub: 1,
-            },
-          });
-        });
+          const lines = gsap.utils.toArray<SVGLineElement>('.sec-radial');
+          gsap.set(lines, { strokeDasharray: 200, strokeDashoffset: 200 });
 
-        // Stagger expand rings (immediateRender:false so a missed trigger never
-        // strands the rings invisible)
-        if (rings.current) {
+          // Single scrubbed timeline draws the path + all radial lines (staggered).
+          const tl = gsap.timeline({
+            scrollTrigger: { trigger: root.current, start: 'top 72%', end: 'bottom 38%', scrub: 1 },
+          });
+          tl.to(p, { strokeDashoffset: 0, ease: 'none' }, 0)
+            .to(lines, { strokeDashoffset: 0, ease: 'none', stagger: { each: 0.5, ease: 'none' } }, 0);
+
+          // Rings expand once (cheap one-shot; immediateRender:false = never stranded).
           gsap.from(rings.current.querySelectorAll('circle'), {
             scale: 0, opacity: 0,
             transformOrigin: '50% 50%',
@@ -76,7 +64,7 @@ export function SecurityLayers() {
           });
         }
 
-        // Layer cards stagger reveal
+        // Layer cards reveal — one-shot, all breakpoints.
         gsap.from('.sec-row', {
           opacity: 0, y: 30,
           duration: 0.7, ease: 'power3.out', stagger: 0.06,
