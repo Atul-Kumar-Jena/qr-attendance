@@ -62,7 +62,7 @@ function applyTheme(theme: Theme, mode: Mode) {
   root.classList.toggle('dark', theme === 'dark');
   root.dataset.theme = theme;
   root.dataset.mode = mode;
-  window.setTimeout(() => root.classList.remove('theme-transitioning'), 400);
+  window.setTimeout(() => root.classList.remove('theme-transitioning'), 520);
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

@@ -665,8 +665,26 @@ html.dark select option { background-color: var(--bg-2); color: var(--ink); }
 html.theme-transitioning *,
 html.theme-transitioning *::before,
 html.theme-transitioning *::after {
-  transition: background-color 0.3s ease, color 0.2s ease, border-color 0.25s ease !important;
+  transition:
+    background-color 0.45s cubic-bezier(.4, 0, .2, 1),
+    color           0.38s cubic-bezier(.4, 0, .2, 1),
+    border-color    0.42s cubic-bezier(.4, 0, .2, 1),
+    fill            0.42s cubic-bezier(.4, 0, .2, 1),
+    box-shadow      0.42s cubic-bezier(.4, 0, .2, 1) !important;
   transition-delay: 0s !important;
+}
+/* Never animate transform/filter during the theme morph — keeps GSAP scroll
+   animations perfectly in sync (no lurch) while colours interpolate. */
+html.theme-transitioning .sp-card,
+html.theme-transitioning [data-magnetic],
+html.theme-transitioning .atd-cursor-ring,
+html.theme-transitioning .atd-cursor-dot {
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transitioning *,
+  html.theme-transitioning *::before,
+  html.theme-transitioning *::after { transition: none !important; }
 }
 
 /* ─── Mobile layout & performance ───────────────────────────────────────── */
