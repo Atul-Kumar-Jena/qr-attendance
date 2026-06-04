@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initGSAP } from '@/lib/gsap-init';
+import { SplitText } from './SplitText';
 
 if (typeof window !== 'undefined') initGSAP();
 
@@ -26,9 +27,11 @@ export function Faq() {
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const ctx = gsap.context(() => {
       gsap.from('.faq-row', {
         opacity: 0, y: 30, stagger: 0.06, ease: 'power3.out', duration: 0.8,
+        immediateRender: false,
         scrollTrigger: { trigger: root.current, start: 'top 92%' },
       });
     }, root);
@@ -40,9 +43,9 @@ export function Faq() {
       <div className="container grid lg:grid-cols-[1fr_2fr] gap-12">
         <div>
           <span className="text-[11px] tracking-[0.3em] text-ink-mute uppercase">[ 07 — faq ]</span>
-          <h2 className="mt-4 font-display text-[2.5rem] lg:text-[3.4rem] leading-[1.02] tracking-tightish">
+          <SplitText as="h2" className="mt-4 font-display text-[2.5rem] lg:text-[3.4rem] leading-[1.02] tracking-tightish block">
             Asked often.
-          </h2>
+          </SplitText>
         </div>
         <ul className="divide-y divide-ink/10">
           {Q.map((row, i) => (

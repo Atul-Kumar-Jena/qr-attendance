@@ -31,9 +31,11 @@ export function Hero() {
     let ctx: ReturnType<typeof gsap.context> | undefined;
     try {
       ctx = gsap.context(() => {
-        gsap.fromTo('.hero-line .reveal-line',
-          { yPercent: 110, rotateZ: 2, filter: 'blur(10px)' },
-          { yPercent: 0, rotateZ: 0, filter: 'blur(0px)', duration: 1.25, ease: 'expo.out', stagger: 0.12, delay: 0.25 },
+        // SplitText-style per-character reveal (manual split — no paid plugin).
+        // Transform/opacity only (no per-char blur) so 20+ glyphs stay cheap.
+        gsap.fromTo('.hero-line .reveal-char',
+          { yPercent: 115, opacity: 0, rotateZ: 3 },
+          { yPercent: 0, opacity: 1, rotateZ: 0, duration: 0.9, ease: 'expo.out', stagger: 0.03, delay: 0.28 },
         );
         gsap.fromTo('.hero-badge',
           { y: 20, opacity: 0 },
@@ -138,12 +140,17 @@ export function Hero() {
 
             <h1 className="hero-headline font-display text-[2.8rem] sm:text-[5rem] lg:text-[6rem] leading-[0.95] tracking-tightish text-ink">
               {HEADLINE.map((line, i) => (
-                <span key={i} className="hero-line block reveal-mask">
-                  <span className="reveal-line">
-                    {i === 1
-                      ? <em className="not-italic text-white font-extrabold" style={{ textShadow: '0 0 40px rgba(255,255,255,0.6), 0 0 80px rgba(255,255,255,0.2)' }}>{line}</em>
-                      : line}
-                  </span>
+                <span
+                  key={i}
+                  className={`hero-line block ${i === 1 ? 'text-white font-extrabold' : ''}`}
+                  aria-label={line}
+                  style={i === 1 ? { textShadow: '0 0 40px rgba(255,255,255,0.6), 0 0 80px rgba(255,255,255,0.2)' } : undefined}
+                >
+                  {Array.from(line).map((ch, j) => (
+                    <span key={j} aria-hidden className="reveal-char inline-block whitespace-pre">
+                      {ch === ' ' ? ' ' : ch}
+                    </span>
+                  ))}
                 </span>
               ))}
             </h1>
