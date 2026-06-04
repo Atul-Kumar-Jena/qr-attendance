@@ -1,6 +1,8 @@
 'use client';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { SplitText } from 'gsap/SplitText';
+import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
 
 let initialized = false;
 
@@ -8,7 +10,9 @@ export function initGSAP() {
   if (typeof window === 'undefined' || initialized) return;
   initialized = true;
 
-  gsap.registerPlugin(ScrollTrigger);
+  // GSAP 3.13+ made the whole toolset free — register the bonus plugins so the
+  // site can be genuinely GSAP-first (real SplitText + DrawSVG, not hacks).
+  gsap.registerPlugin(ScrollTrigger, SplitText, DrawSVGPlugin);
 
   // Fewer console warnings + force GSAP to use the single rAF we drive.
   gsap.config({ nullTargetWarn: false, force3D: true });

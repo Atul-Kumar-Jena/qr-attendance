@@ -7,10 +7,10 @@ import { InteractiveSpotlight } from '@/components/ui/interactive-spotlight';
 import { Aurora } from '@/components/Aurora';
 
 const CHIPS = [
-  { icon: ScanFace,   label: 'Identity verified' },
-  { icon: MapPin,     label: 'Inside geofence' },
-  { icon: Cpu,        label: 'Device attested' },
-  { icon: ShieldCheck,label: 'Signed in 184ms' },
+  { icon: ScanFace,   label: 'It’s really them' },
+  { icon: MapPin,     label: 'In the room' },
+  { icon: Cpu,        label: 'Their own phone' },
+  { icon: ShieldCheck,label: 'Done in a blink' },
 ];
 
 export function Interactive3D() {
@@ -35,9 +35,9 @@ export function Interactive3D() {
               </span>
             </h2>
             <p data-reveal className="mt-6 max-w-[440px] text-[14px] leading-[1.75] text-white/55">
-              While you teach, Attendly watches every scan — checking device, location and
-              identity in milliseconds, then writing an immutable record. No roll call.
-              No proxies. No busywork.
+              While you teach, Attendly checks every scan — quietly confirming it’s really
+              them, on their own phone, actually in the room — then locks it in. No roll
+              call. No proxies. No busywork.
             </p>
 
             <div data-reveal className="mt-8 flex flex-wrap gap-2.5">

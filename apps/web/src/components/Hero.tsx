@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { SplitText as GSAPSplitText } from 'gsap/SplitText';
 import { Magnetic } from './Magnetic';
 import { initGSAP } from '@/lib/gsap-init';
 import { DemoModal } from './DemoModal';
@@ -15,7 +16,7 @@ if (typeof window !== 'undefined') {
 
 const HEADLINE = ['Attendance,', 'unforgeable.'];
 const SUB =
-  'Dynamic signed QR · device binding · geofence · app attestation. The proxy-attendance problem, solved at the protocol layer.';
+  'A code that can’t be shared, screenshotted, or scanned from outside the room. The end of proxy attendance — and the ten-minute roll call.';
 
 export function Hero() {
   const root = useRef<HTMLDivElement>(null);
@@ -29,13 +30,14 @@ export function Hero() {
     // simply skip the entrance choreography entirely.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let ctx: ReturnType<typeof gsap.context> | undefined;
+    let heroSplit: GSAPSplitText | undefined;
     try {
       ctx = gsap.context(() => {
-        // Modern "decrypt / focus-in" headline: each glyph resolves from
-        // large + blurred into sharp focus, in RANDOM order — on-theme with the
-        // security/decode subtext. One-time, above the fold, so the brief blur
-        // is perf-safe (transform/filter only, no layout).
-        gsap.fromTo('.hero-line .reveal-char',
+        // Modern "decrypt / focus-in" headline: real GSAP SplitText splits the
+        // lines into glyphs, each resolving from large + blurred into sharp
+        // focus in RANDOM order — on-theme with the security/decode subtext.
+        heroSplit = new GSAPSplitText('.hero-line', { type: 'chars', aria: 'none' });
+        gsap.fromTo(heroSplit.chars,
           { opacity: 0, scale: 1.7, filter: 'blur(16px)', yPercent: 8 },
           {
             opacity: 1, scale: 1, filter: 'blur(0px)', yPercent: 0,
@@ -123,7 +125,7 @@ export function Hero() {
         };
       }, root);
     } catch { /* never crash the hero */ }
-    return () => { try { ctx?.revert(); } catch {} };
+    return () => { try { heroSplit?.revert(); } catch {} try { ctx?.revert(); } catch {} };
   }, []);
 
   return (
@@ -149,14 +151,9 @@ export function Hero() {
                 <span
                   key={i}
                   className={`hero-line block ${i === 1 ? 'text-white font-extrabold' : ''}`}
-                  aria-label={line}
                   style={i === 1 ? { textShadow: '0 0 40px rgba(255,255,255,0.6), 0 0 80px rgba(255,255,255,0.2)' } : undefined}
                 >
-                  {Array.from(line).map((ch, j) => (
-                    <span key={j} aria-hidden className="reveal-char inline-block whitespace-pre">
-                      {ch === ' ' ? ' ' : ch}
-                    </span>
-                  ))}
+                  {line}
                 </span>
               ))}
             </h1>

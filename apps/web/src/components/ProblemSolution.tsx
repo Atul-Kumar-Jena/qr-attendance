@@ -13,21 +13,21 @@ const PROBLEMS = [
   { n: '01', t: 'Proxy attendance', d: 'A roommate marks them present.' },
   { n: '02', t: 'Forwarded QR', d: 'A screenshot in the class group does the rest.' },
   { n: '03', t: 'Paper registers', d: 'Hours of data entry, signatures faked.' },
-  { n: '04', t: 'Fake GPS', d: 'One mock-location app and "I was there."' },
+  { n: '04', t: 'Fake GPS', d: 'One fake-GPS app and "I was there."' },
 ];
 
 const SOLUTIONS = [
-  { n: '01', t: 'Dynamic signed QR', d: 'Rotated every 7 seconds, single-use, signed server-side.' },
+  { n: '01', t: 'Dynamic signed QR', d: 'It changes every few seconds and only ever works once.' },
   { n: '02', t: 'Device binding', d: 'One student, one device — only admins can reset.' },
-  { n: '03', t: 'Geofence + accuracy', d: 'Haversine on the server; mock-location instantly flagged.' },
-  { n: '04', t: 'Play Integrity / App Attest', d: 'Requests outside the genuine app don\'t validate.' },
+  { n: '03', t: 'Must be in the room', d: 'We check they’re genuinely in the room — fake GPS is caught.' },
+  { n: '04', t: 'Only the real app', d: 'Only the genuine app on a real phone can mark attendance.' },
 ];
 
 const STATS = [
   { v: 38, s: '%', l: 'Of attendance is faked on average (paper)' },
-  { v: 7,  s: 's', l: 'QR token lifetime' },
-  { v: 0,  s: '',  l: 'Tenants ever cross-leaked (multi-tenant by design)' },
-  { v: 99, s: '.97%', l: 'Scan validation accuracy' },
+  { v: 7,  s: 's', l: 'How long a code stays valid' },
+  { v: 0,  s: '',  l: 'Times your data reached another school' },
+  { v: 99, s: '.97%', l: 'Scans we get right' },
 ];
 
 export function ProblemSolution() {

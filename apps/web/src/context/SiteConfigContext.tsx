@@ -59,7 +59,7 @@ export const DEFAULT_CONFIG: SiteConfig = {
   mockLocationDetection: true,
   qrRotationEnabled: true,
   maintenanceMode: false,
-  defaultQrRotationSec: 7,
+  defaultQrRotationSec: 2,
   loginRateLimitMax: 5,
   scanRateLimitMax: 10,
 };

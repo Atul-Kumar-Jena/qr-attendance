@@ -8,14 +8,14 @@ import { initGSAP } from '@/lib/gsap-init';
 if (typeof window !== 'undefined') initGSAP();
 
 const LAYERS = [
-  { k: 'Signature', d: 'HMAC-SHA256 over header.payload.' },
-  { k: 'Expiry', d: 'Server time. ≤10s window, no exceptions.' },
-  { k: 'Nonce', d: 'Single-use, atomically consumed in Redis.' },
-  { k: 'Session', d: 'Must be OPEN; status checked on every scan.' },
-  { k: 'Device', d: 'Fingerprint + generation match the bound device.' },
-  { k: 'Attestation', d: 'Play Integrity / App Attest verified upstream.' },
-  { k: 'Geofence', d: 'Haversine ≤ radius; mock-location flag = reject.' },
-  { k: 'Duplicate', d: 'DB-level (sessionId, studentId) uniqueness.' },
+  { k: 'Genuine code', d: 'The code is real and hasn’t been tampered with.' },
+  { k: 'Still fresh', d: 'It’s only seconds old — expired codes are turned away.' },
+  { k: 'Used once', d: 'Each code works a single time, then it’s spent.' },
+  { k: 'Class is live', d: 'The session is actually open at this moment.' },
+  { k: 'Their own phone', d: 'The scan comes from the student’s registered phone.' },
+  { k: 'Real app', d: 'It’s the genuine app on a genuine device.' },
+  { k: 'In the room', d: 'They’re physically inside the classroom.' },
+  { k: 'No repeats', d: 'They haven’t already been marked for this class.' },
 ];
 
 /**

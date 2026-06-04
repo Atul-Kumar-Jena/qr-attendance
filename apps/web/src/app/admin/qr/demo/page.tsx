@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import gsap from 'gsap';
 import { useAuth, roleAtLeast } from '@/context/AuthContext';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 import { auth } from '@/lib/firebase';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -19,7 +20,7 @@ const FUNCTIONS_BASE =
   'https://us-central1-attendly-the-solution.cloudfunctions.net/attendlyApi';
 
 // Default refresh cadence in seconds (must match server qrTtlSeconds).
-const QR_TTL_SECONDS_DEFAULT = 15;
+const QR_TTL_SECONDS_DEFAULT = 2;
 
 async function getIdToken(): Promise<string> {
   if (!auth?.currentUser) throw new Error('Not signed in');
@@ -101,6 +102,10 @@ function useQrDemoTour() {
 
 export default function QrDisplay() {
   const { user, role, institutionId, loading } = useAuth();
+  const { config } = useSiteConfig();
+  // Modular cadence — a developer sets "Default QR rotation (sec)" in God Mode
+  // (Site config). Falls back to the built-in default. Clamped to a sane floor.
+  const rotationSec = Math.max(1, config.defaultQrRotationSec || QR_TTL_SECONDS_DEFAULT);
   const router = useRouter();
   // Only teachers and above may run an attendance session. Students scan QRs —
   // they never generate them — so they're redirected away from this screen.
@@ -172,7 +177,9 @@ export default function QrDisplay() {
   const [qrTokenStr, setQrTokenStr] = useState<string>('');
   const [qrError, setQrError] = useState<string>('');
   const [qrExp, setQrExp] = useState<number>(0); // epoch seconds
-  const ttlSecRef = useRef<number>(QR_TTL_SECONDS_DEFAULT);
+  const ttlSecRef = useRef<number>(rotationSec);
+  // Keep the live cadence in sync with the developer-set config.
+  useEffect(() => { ttlSecRef.current = rotationSec; }, [rotationSec]);
   const sessionStartRef = useRef<number>(Date.now());
 
   // QR rotation — always renders. Tries the server (signed) token when a real
@@ -209,8 +216,8 @@ export default function QrDisplay() {
       setTick((t) => t + 1);
       gsap.fromTo(
         qrRef.current,
-        { rotateY: 90, opacity: 0 },
-        { rotateY: 0, opacity: 1, duration: 0.35, ease: 'expo.out' },
+        { rotateY: 65, opacity: 0, scale: 0.94 },
+        { rotateY: 0, opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(1.5)' },
       );
     };
 
@@ -259,7 +266,7 @@ export default function QrDisplay() {
             body: JSON.stringify({
               institutionId, classId: className.trim(), subjectId: subjectName.trim(),
               teacherId: user.uid, centerLat: 0, centerLng: 0, radiusMeters: 100,
-              qrTtlSeconds: QR_TTL_SECONDS_DEFAULT, startsAt: nowMs, expiresAt: nowMs + 4 * 60 * 60 * 1000,
+              qrTtlSeconds: rotationSec, startsAt: nowMs, expiresAt: nowMs + 4 * 60 * 60 * 1000,
             }),
           });
           if (res.ok) { const data: { sessionId: string } = await res.json(); setSessionId(data.sessionId); }

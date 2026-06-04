@@ -96,7 +96,7 @@ function IlluDynamicQR() {
       </g>
       <text x="140" y="166" textAnchor="middle" fill="var(--accent)" fillOpacity="0.6" fontSize="8" fontFamily="ui-monospace,monospace"
         style={{ animation: 'ft-qr-pulse 3s ease-in-out infinite' }}>
-        HMAC·SHA256 · 7s TTL · single-use
+        new code every few seconds
       </text>
     </svg>
   );
@@ -132,7 +132,7 @@ function IlluGeofence() {
         <path d="M204 48 l8 8 M212 48 l-8 8" stroke="rgba(239,68,68,0.95)" strokeWidth="1.6" strokeLinecap="round"/>
       </g>
       <text x="140" y="166" textAnchor="middle" fill="var(--accent)" fillOpacity="0.55" fontSize="8" fontFamily="ui-monospace,monospace">
-        Server-side Haversine · accuracy gated
+        only counts inside the room
       </text>
     </svg>
   );
@@ -176,7 +176,7 @@ function IlluDeviceBinding() {
         </g>
       </g>
       <text x="140" y="166" textAnchor="middle" fill="var(--accent)" fillOpacity="0.55" fontSize="8" fontFamily="ui-monospace,monospace">
-        1 student · 1 device · admin-only reset
+        one student · one phone
       </text>
     </svg>
   );
@@ -203,17 +203,17 @@ function IlluAppAttestation() {
       <g transform="translate(56, 144)" style={{ animation: 'ft-att-tag-1 3s ease-in-out infinite' }}>
         <rect width="56" height="14" rx="3.5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.4" strokeWidth="0.8"/>
         <circle cx="8" cy="7" r="2.5" fill="var(--accent)"/>
-        <text x="33" y="10" textAnchor="middle" fontSize="6.5" fill="var(--accent)" fontFamily="ui-monospace,monospace">Play Integrity</text>
+        <text x="33" y="10" textAnchor="middle" fontSize="6.5" fill="var(--accent)" fontFamily="ui-monospace,monospace">Verified</text>
       </g>
       <g transform="translate(118, 144)" style={{ animation: 'ft-att-tag-2 3s ease-in-out infinite' }}>
         <rect width="44" height="14" rx="3.5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.4" strokeWidth="0.8"/>
         <circle cx="8" cy="7" r="2.5" fill="var(--accent)"/>
-        <text x="27" y="10" textAnchor="middle" fontSize="6.5" fill="var(--accent)" fontFamily="ui-monospace,monospace">App Attest</text>
+        <text x="27" y="10" textAnchor="middle" fontSize="6.5" fill="var(--accent)" fontFamily="ui-monospace,monospace">Genuine app</text>
       </g>
       <g transform="translate(168, 144)" style={{ animation: 'ft-att-tag-3 3s ease-in-out infinite' }}>
         <rect width="56" height="14" rx="3.5" fill="var(--accent)" fillOpacity="0.10" stroke="var(--accent)" strokeOpacity="0.4" strokeWidth="0.8"/>
         <circle cx="8" cy="7" r="2.5" fill="var(--accent)"/>
-        <text x="33" y="10" textAnchor="middle" fontSize="6.5" fill="var(--accent)" fontFamily="ui-monospace,monospace">DeviceCheck</text>
+        <text x="33" y="10" textAnchor="middle" fontSize="6.5" fill="var(--accent)" fontFamily="ui-monospace,monospace">Real phone</text>
       </g>
     </svg>
   );
@@ -251,10 +251,10 @@ function IlluFraudDetection() {
       <g transform="translate(176, 32)">
         <text x="0" y="0" fontSize="7" fill="var(--accent)" fillOpacity="0.6" fontFamily="ui-monospace,monospace">REVIEW QUEUE</text>
         {[
-          { y: 12, label: 'spoofed GPS',      bad: true  },
-          { y: 32, label: 'duplicate scan',   bad: true  },
-          { y: 52, label: 'velocity > 90mph', bad: true  },
-          { y: 72, label: 'cleared (manual)', bad: false },
+          { y: 12, label: 'fake location',      bad: true  },
+          { y: 32, label: 'scanned twice',   bad: true  },
+          { y: 52, label: 'impossible jump', bad: true  },
+          { y: 72, label: 'cleared', bad: false },
         ].map((r, i) => (
           <g key={i} style={{ animation: `ft-fr-alert 2.4s ease-in-out infinite ${i * 0.3}s` }}>
             <rect x="0" y={r.y} width="92" height="14" rx="3"
@@ -353,7 +353,7 @@ function IlluAuditTrail() {
       <rect x="64" y="138" width="152" height="22" rx="5" fill="rgba(124,150,122,0.10)" stroke="rgba(124,150,122,0.5)" strokeWidth="1"/>
       <circle cx="80" cy="149" r="3.5" fill="#7C967A"/>
       <text x="140" y="153" textAnchor="middle" fontSize="9" fill="rgba(124,150,122,0.95)" fontFamily="ui-monospace,monospace">
-        append-only · tamper-evident
+        permanent · can.t be edited
       </text>
     </svg>
   );
@@ -365,60 +365,60 @@ const FEATS: Array<{
   tags: string[]; bullets: string[];
 }> = [
   {
-    t: 'Multi-tenant SaaS',
-    d: 'Fully isolated workspaces per institution. No data bleeds between tenants — ever.',
+    t: 'Every campus, kept apart',
+    d: 'Each institution gets its own private, secure space. Your data is yours alone — it never mixes with anyone else’s.',
     Illu: IlluMultiTenant,
-    tags: ['Firestore rules', 'Per-tenant index', 'No data leak'],
-    bullets: ['Row-level security via Firestore', 'Separate audit + reports per inst', 'Owner-scoped role hierarchy'],
+    tags: ['Private space', 'Yours alone'],
+    bullets: ['A completely separate space for your institution', 'Your own reports, records and staff roles', 'No one outside can ever see your data'],
   },
   {
-    t: 'Dynamic signed QR',
-    d: 'HMAC-signed tokens rotate every 7 s with a single-use nonce. Screenshots are useless.',
+    t: 'A code that can’t be copied',
+    d: 'The code on screen changes every few seconds, so a screenshot shared in the group chat is worthless moments later.',
     Illu: IlluDynamicQR,
-    tags: ['HMAC-SHA256', '7s TTL', 'single-use'],
-    bullets: ['Tokens carry sid, nonce, exp, prev-hash', 'Rolling hash chain (tamper-evident)', 'Server-held signing key'],
+    tags: ['Refreshes live', 'Screenshot-proof'],
+    bullets: ['A brand-new code every few seconds', 'A photo of it stops working almost instantly', 'Works once, for one student, then it’s gone'],
   },
   {
-    t: 'Geofencing',
-    d: 'Server-side Haversine with accuracy thresholds blocks anyone outside the classroom.',
+    t: 'Only counts in the room',
+    d: 'Attendance only registers when a student is genuinely inside the classroom — not the canteen, the library, or their hostel.',
     Illu: IlluGeofence,
-    tags: ['Haversine', '±50m radius', 'GPS-accuracy gated'],
-    bullets: ['Per-class lat/lon + radius', 'Reject low-accuracy fixes (>50m)', 'Mock-location detection'],
+    tags: ['In-room only', 'Fake-GPS proof'],
+    bullets: ['You set the boundary for each class', 'Scans from outside the room are turned away', 'Fake-location apps are spotted and blocked'],
   },
   {
-    t: 'Device binding',
-    d: 'Lock each student to their registered device. Only admins can rebind.',
+    t: 'One student, one phone',
+    d: 'Each student is tied to their own phone, so no one can quietly mark an absent friend present.',
     Illu: IlluDeviceBinding,
-    tags: ['1:1 binding', 'Admin reset', 'Hardware ID'],
-    bullets: ['One student ↔ one device fingerprint', 'Audit trail on every rebind', 'Stops scanning for absent friends'],
+    tags: ['1 person · 1 phone', 'No proxies'],
+    bullets: ['A student can only mark themselves present', 'Marking a friend present simply doesn’t work', 'Changed phones? An admin resets it in a tap'],
   },
   {
-    t: 'App attestation',
-    d: 'Play Integrity, DeviceCheck and App Attest verify the app is genuine and unmodified.',
+    t: 'Real app, real student',
+    d: 'Every scan has to come from the genuine app on a genuine phone — clever workarounds simply don’t go through.',
     Illu: IlluAppAttestation,
-    tags: ['Play Integrity', 'App Attest', 'DeviceCheck'],
-    bullets: ['Verify build hasn\'t been tampered with', 'Reject rooted / jailbroken devices', 'Cryptographic device evidence'],
+    tags: ['Genuine app', 'No fakes'],
+    bullets: ['Only the real Attendly app can mark attendance', 'Tampered or hacked phones are turned away', 'Works the same on Android and iPhone'],
   },
   {
-    t: 'Fraud detection',
-    d: 'Weighted signals feed a suspicious-scan queue for human review.',
+    t: 'Catches the clever ones',
+    d: 'Anything that looks off is flagged automatically for a quick human review — so the few who try are caught.',
     Illu: IlluFraudDetection,
-    tags: ['Heuristics', 'Review queue', 'Auto-flag'],
-    bullets: ['Velocity > 90mph between scans', 'Duplicate scans on same nonce', 'Spoofed GPS signal patterns'],
+    tags: ['Auto-flagged', 'Human review'],
+    bullets: ['Suspicious scans are flagged on their own', 'Your team gets a tidy review list', 'Approve or reject with one tap'],
   },
   {
-    t: 'PDF / Excel reports',
-    d: 'Branded async exports with signed download URLs. Ready in seconds.',
+    t: 'Reports in one click',
+    d: 'Clean, branded attendance reports — by class, month, or student — ready to download or share in seconds.',
     Illu: IlluReports,
-    tags: ['PDF', 'XLSX', 'CSV'],
-    bullets: ['Per-class, per-month, per-student', 'Signed time-limited download URLs', 'Background queue, no UI blocking'],
+    tags: ['One click', 'Share-ready'],
+    bullets: ['By class, by month, or by student', 'Download as PDF, Excel or CSV', 'Carries your institution’s branding'],
   },
   {
-    t: 'Audit trail',
-    d: 'Append-only, hash-chained log. Any tampering breaks every subsequent record.',
+    t: 'Records you can trust',
+    d: 'Every mark is saved permanently and can never be quietly edited — so your records always hold up.',
     Illu: IlluAuditTrail,
-    tags: ['Append-only', 'SHA-256', 'Tamper-evident'],
-    bullets: ['Every action: who, what, when, hash', 'Hash-chain like a mini-blockchain', 'TTL-configurable retention'],
+    tags: ['Permanent', 'Always accurate'],
+    bullets: ['Every mark is saved the moment it happens', 'Nothing can be changed behind the scenes', 'A clear history of who did what, and when'],
   },
 ];
 

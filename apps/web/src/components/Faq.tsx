@@ -9,18 +9,18 @@ import { SplitText } from './SplitText';
 if (typeof window !== 'undefined') initGSAP();
 
 const Q = [
-  { q: 'Can a student forward the QR to a friend?',
-    a: 'The token expires in seconds and the nonce is single-use. Even if forwarded, the friend\'s device fingerprint will not match the bound student\'s, and the request will fail.' },
+  { q: 'Can a student forward the code to a friend?',
+    a: 'The code expires in seconds and only works once. Even if a friend gets it, it won’t work on their phone — so forwarding it is pointless.' },
   { q: 'What about a fake-GPS app?',
-    a: 'Each scan carries a mock-location flag and accuracy reading. Mock = instant reject + suspicious log. Geofence is checked server-side via Haversine.' },
+    a: 'We can tell when a location is being faked, and we check the student is genuinely inside the classroom. Fake-GPS attempts are turned away and flagged for review.' },
   { q: 'What if a student gets a new phone?',
-    a: 'They request a device reset from inside the app. An admin approves it, which bumps the binding generation and invalidates the old refresh tokens.' },
+    a: 'They ask for a device reset right inside the app. An admin approves it in a tap, and the old phone immediately stops working.' },
   { q: 'Will it work offline?',
-    a: 'The scan is online by design — that\'s how we verify session state. The app caches the student\'s own attendance history offline.' },
-  { q: 'Does the QR contain personal data?',
-    a: 'No. The QR is a short-lived signed token: institution id, class id, session id, issued-at, expiry, nonce, signature. Nothing about the student is in it.' },
-  { q: 'How are tenants isolated?',
-    a: 'Every tenant-scoped query is forced through a Prisma extension that injects the institutionId filter. Cross-tenant reads are physically impossible at the data-access layer.' },
+    a: 'Scanning needs a connection so we can verify everything as it happens. A student’s own attendance history stays available offline.' },
+  { q: 'Does the code contain personal data?',
+    a: 'No. The code holds nothing about the student — only enough to identify the class and session — and it expires within seconds.' },
+  { q: 'Can one institution see another’s data?',
+    a: 'Never. Each institution’s data lives in its own completely separate space. It’s simply not possible for one school to see another’s.' },
 ];
 
 export function Faq() {

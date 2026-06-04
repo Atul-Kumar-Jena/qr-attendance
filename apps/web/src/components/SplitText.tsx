@@ -2,33 +2,32 @@
 
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
+import { SplitText as GSAPSplitText } from 'gsap/SplitText';
 import { initGSAP } from '@/lib/gsap-init';
 
 interface SplitTextProps {
   children: string;
-  as?: 'h2' | 'h3' | 'span' | 'p' | 'div';
+  as?: 'h1' | 'h2' | 'h3' | 'span' | 'p' | 'div';
   className?: string;
-  by?: 'words' | 'chars';
+  type?: 'words' | 'chars';
   stagger?: number;
-  /** px rise distance for each unit */
-  y?: number;
+  duration?: number;
   start?: string;
 }
 
 /**
- * Lightweight SplitText-style reveal (no paid GSAP plugin). Splits a plain
- * string into words (or chars), each in an inline-block span, and staggers a
- * rise + fade as it scrolls in. SEO-safe (real text in the DOM + aria-label),
- * reduced-motion-safe (skips entirely), and transform/opacity-only so it never
- * triggers layout/paint thrash.
+ * Real GSAP SplitText (free since 3.13) with line-masking. Splits a plain
+ * string into words/chars and wipes them up from behind a per-line mask as it
+ * scrolls in. SSR-safe (plain text in the markup → SEO), reduced-motion-safe
+ * (skips), accessible (SplitText keeps an aria-label), and reverts cleanly.
  */
 export function SplitText({
   children,
   as: Tag = 'span',
   className = '',
-  by = 'words',
-  stagger = 0.055,
-  y = 26,
+  type = 'words',
+  stagger = 0.06,
+  duration = 0.9,
   start = 'top 85%',
 }: SplitTextProps) {
   const ref = useRef<HTMLElement>(null);
@@ -38,30 +37,27 @@ export function SplitText({
     if (!el || typeof window === 'undefined') return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     initGSAP();
-    const parts = el.querySelectorAll<HTMLElement>('[data-rv]');
-    if (!parts.length) return;
+
+    let split: GSAPSplitText | undefined;
     const ctx = gsap.context(() => {
-      gsap.from(parts, {
-        y, opacity: 0, duration: 0.85, ease: 'expo.out', stagger,
-        immediateRender: false, // never strands the text hidden
+      split = new GSAPSplitText(el, { type: `${type},lines`, mask: 'lines', linesClass: 'split-line' });
+      const targets = (type === 'chars' ? split.chars : split.words) ?? [];
+      gsap.from(targets, {
+        yPercent: 115,
+        opacity: 0,
+        duration,
+        ease: 'expo.out',
+        stagger,
         scrollTrigger: { trigger: el, start, once: true },
       });
     }, el);
-    return () => ctx.revert();
+
+    return () => {
+      try { split?.revert(); } catch {}
+      ctx.revert();
+    };
   }, []);
 
-  const units = by === 'chars' ? Array.from(children) : children.split(/(\s+)/);
-
-  return (
-    // @ts-expect-error polymorphic tag
-    <Tag ref={ref} className={className} aria-label={children}>
-      {units.map((u, i) =>
-        /^\s+$/.test(u) ? (
-          <span key={i} aria-hidden>{u}</span>
-        ) : (
-          <span key={i} data-rv aria-hidden className="inline-block">{u}</span>
-        ),
-      )}
-    </Tag>
-  );
+  // @ts-expect-error polymorphic tag
+  return <Tag ref={ref} className={className}>{children}</Tag>;
 }
