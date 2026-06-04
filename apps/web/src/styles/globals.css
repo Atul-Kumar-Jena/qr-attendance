@@ -1284,3 +1284,94 @@ html.loaded .preloader { display: none !important; }
   font: 600 12px/1 var(--font-sans); letter-spacing: 0.18em; text-transform: lowercase;
   color: var(--ink-mute); pointer-events: none; white-space: nowrap;
 }
+
+/* ═══ Features — horizontal-scroll gallery (replaces the 3D spiral) ══════════ */
+.feat-h-pin {
+  display: none;
+  min-height: 100vh;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2rem;
+  overflow: hidden;
+  --fg: max(1.5rem, calc((100vw - 1280px) / 2 + 1.5rem));
+}
+@media (min-width: 768px) {
+  .feat-h-pin { display: flex; }
+  .feat-h-mobile { display: none !important; }
+}
+
+.feat-h-head { padding-inline: var(--fg); }
+.feat-h-track {
+  display: flex;
+  gap: 1.5rem;
+  padding-inline: var(--fg);
+  width: max-content;
+  will-change: transform;
+}
+
+.feat-h-card {
+  flex: 0 0 auto;
+  width: clamp(320px, 33vw, 440px);
+  height: clamp(430px, 58vh, 560px);
+  text-align: left;
+  border-radius: 24px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  background: #0b0c10;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 30px 80px -34px rgba(0, 0, 0, 0.85);
+  transition: transform .45s cubic-bezier(.2, .8, .2, 1), border-color .3s ease, box-shadow .3s ease;
+  cursor: pointer;
+  position: relative;
+}
+.feat-h-card:hover { transform: translateY(-8px); border-color: rgba(255, 255, 255, 0.24); box-shadow: 0 44px 100px -34px rgba(0, 0, 0, 0.92); }
+
+/* Light thumbnail panel — dark art on light, exactly how the illustrations were
+   designed, so every line is fully visible (fixes the faint-on-dark problem). */
+.feat-h-thumb {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column; gap: .5rem;
+  padding: 1.25rem 1.35rem 0.75rem;
+  background: linear-gradient(180deg, #f7f6f0, #eae8de);
+  --accent: #15161b; --accent-2: #303137; --accent-3: #6a6b72;
+  position: relative;
+}
+.feat-h-thumb::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(120% 80% at 50% 28%, transparent 55%, rgba(0, 0, 0, 0.05));
+}
+.feat-h-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; position: relative; z-index: 1; }
+.feat-h-idx { font: 500 10px/1 ui-monospace, SFMono-Regular, monospace; letter-spacing: .16em; color: rgba(20, 21, 26, 0.42); white-space: nowrap; padding-top: 4px; }
+.feat-h-tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.feat-h-tag { font: 600 8.5px/1 ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; color: rgba(20, 21, 26, 0.6); padding: 5px 9px; border: 1px solid rgba(20, 21, 26, 0.16); background: rgba(20, 21, 26, 0.03); border-radius: 999px; white-space: nowrap; }
+.feat-h-illu { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: .75rem 0 1rem; min-height: 0; position: relative; z-index: 1; }
+.feat-h-illu svg { width: 100%; height: 100%; max-height: 215px; }
+
+/* Dark info footer */
+.feat-h-foot {
+  background: linear-gradient(158deg, #181a20, #0b0c10);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.3rem 1.5rem 1.6rem;
+  color: #fff;
+}
+.feat-h-title { font: 700 1.45rem/1.1 var(--font-sans); letter-spacing: -0.01em; color: #fff; }
+.feat-h-desc {
+  margin-top: .5rem; font-size: 12.5px; line-height: 1.5; color: rgba(255, 255, 255, 0.55);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.feat-h-open { margin-top: .9rem; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #fff; opacity: .75; transition: gap .3s ease, opacity .3s ease; }
+.feat-h-card:hover .feat-h-open { gap: 11px; opacity: 1; }
+
+.feat-h-progress { padding-inline: var(--fg); position: relative; }
+.feat-h-progress::before { content: ""; display: block; height: 2px; background: var(--line); border-radius: 2px; }
+.feat-h-progress-bar { position: absolute; left: var(--fg); top: 0; height: 2px; width: calc(100% - 2 * var(--fg)); background: var(--ink); border-radius: 2px; transform-origin: left center; transform: scaleX(0); }
+
+/* Mobile: native horizontal scroll-snap (swipeable) */
+.feat-h-mobile { display: block; padding: 4rem 0 3rem; }
+@media (min-width: 768px) { .feat-h-mobile { display: none; } }
+.feat-h-track-mobile {
+  display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory;
+  padding: 1.5rem 1.25rem 2rem; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.feat-h-track-mobile::-webkit-scrollbar { display: none; }
+.feat-h-track-mobile .feat-h-card { width: 80vw; height: 64vh; scroll-snap-align: center; }

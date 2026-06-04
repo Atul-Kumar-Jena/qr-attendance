@@ -84,7 +84,7 @@ function IlluDynamicQR() {
         {cells.map(({ r, c, on, corner }) =>
           on ? (
             <rect key={`${r}-${c}`} x={c * 9 + 1} y={r * 9 + 1} width="7.4" height="7.4" rx="1.2"
-              fill={corner ? 'var(--accent)' : '#0B1220'}
+              fill={corner ? 'var(--accent)' : 'var(--accent)'}
               opacity={corner ? 0.92 : 0.78}
               style={!corner ? { animation: `ft-qr-cell 3.5s ease-in-out infinite ${(r + c) * 0.04}s` } : undefined}
             />
@@ -482,9 +482,13 @@ function FeatureOverlay({
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
-        <div className="h-[260px] md:h-[320px] flex items-center justify-center px-8 pt-8 pb-4 relative overflow-hidden">
-          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 60%, rgba(180,180,190,0.06) 0%, transparent 70%)' }} />
-          <div className="w-full max-w-[360px]"><feat.Illu /></div>
+        <div className="px-6 pt-6 md:px-8 md:pt-8">
+          <div
+            className="h-[230px] md:h-[300px] flex items-center justify-center rounded-2xl p-6 relative overflow-hidden"
+            style={{ background: 'linear-gradient(180deg, #f7f6f0, #eae8de)', ['--accent' as string]: '#15161b', ['--accent-2' as string]: '#303137', ['--accent-3' as string]: '#6a6b72' }}
+          >
+            <div className="w-full max-w-[360px]"><feat.Illu /></div>
+          </div>
         </div>
         <div className="px-8 md:px-12 pb-12 pt-6 border-t border-white/8">
           <div className="flex items-start justify-between mb-4 gap-4">
@@ -519,174 +523,79 @@ function FeatureOverlay({
 }
 
 
-/* ─── 3D spiral flythrough gallery ───────────────────────────────────────── */
-/*
-  Fixed-viewport 3D spiral (à la editorial showreel sites). The page does NOT
-  scroll past the cards — the section pins and scrolling winds a spiral of
-  warped cards through 3D space: the front card sits large + sharp near centre,
-  the rest wind outward and recede, tilted toward the axis, softly blurred. A
-  floating pill names the front card, a rotating "showreel" badge sits in the
-  corner, a spiral / list toggle switches views, all over a faint grid.
-  Wrap-around keeps the spiral full at both ends. Pinned ScrollTrigger (robust
-  under Lenis) + gsap.ticker rAF; no React DOM churn in the hot path.
-*/
+/* ─── Horizontal-scroll feature gallery ──────────────────────────────────────
+   Robust premium pattern: the section pins and a single scrub tween slides a
+   horizontal track left as you scroll vertically. No per-frame 3D math, so it
+   stays perfectly in sync and never janks. Mobile uses native scroll-snap. */
+
 const N_FEATS = FEATS.length;
 
-const clampN = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
-const wrap01 = (v: number) => { v %= 1; return v < 0 ? v + 1 : v; };
-const smooth = (a: number, b: number, t: number) => a + (b - a) * (t * t * (3 - 2 * t)); // smoothstep lerp
-
-// ── The shared ribbon ───────────────────────────────────────────────────────
-// One 3D path every card rides like a bead on a wire: enter top-right deep-back
-// → swoop to front-centre (huge, sharp) → swing right → exit bottom-left, the
-// card tumbling all the way. nx,ny ∈ [-1,1] (x→right, y→down); z px (+ near, − far).
-const PERSPECTIVE_Z = 1100; // MUST match .sp-scene { perspective } in globals.css
-type WP = { u: number; nx: number; ny: number; z: number; rx: number; ry: number; rz: number };
-const WAYPOINTS: WP[] = [
-  { u: 0.00, nx:  0.78, ny: -0.72, z: -2400, rx: -20, ry:  48, rz:  20 }, // enter top-right, deep back
-  { u: 0.42, nx:  0.00, ny: -0.02, z:   620, rx:   0, ry:   0, rz:   0 }, // FRONT centre — huge, sharp
-  { u: 0.70, nx:  0.64, ny:  0.06, z:  -150, rx:   8, ry: -30, rz: -16 }, // swing right
-  { u: 1.00, nx: -0.74, ny:  0.74, z:   260, rx:  18, ry: -62, rz: -36 }, // exit bottom-left
-];
-
-function samplePath(u: number) {
-  let a = WAYPOINTS[0], b = WAYPOINTS[WAYPOINTS.length - 1];
-  for (let k = 0; k < WAYPOINTS.length - 1; k++) {
-    if (u >= WAYPOINTS[k].u && u <= WAYPOINTS[k + 1].u) { a = WAYPOINTS[k]; b = WAYPOINTS[k + 1]; break; }
-  }
-  const t = clampN((u - a.u) / ((b.u - a.u) || 1), 0, 1);
-  return {
-    nx: smooth(a.nx, b.nx, t), ny: smooth(a.ny, b.ny, t), z: smooth(a.z, b.z, t),
-    rx: smooth(a.rx, b.rx, t), ry: smooth(a.ry, b.ry, t), rz: smooth(a.rz, b.rz, t),
-  };
+function FeatHCard({ feat, index, onOpen }: { feat: typeof FEATS[0]; index: number; onOpen: () => void }) {
+  return (
+    <button type="button" onClick={onOpen} className="feat-h-card group" aria-label={`${feat.t} — open details`}>
+      {/* Light thumbnail panel — the illustrations are dark art designed for a
+          light surface, so this is where they read clearly (fully visible). */}
+      <div className="feat-h-thumb">
+        <div className="feat-h-card-head">
+          <span className="feat-h-idx">{String(index + 1).padStart(2, '0')} / {String(N_FEATS).padStart(2, '0')}</span>
+          <div className="feat-h-tags">
+            {feat.tags.slice(0, 2).map((t) => <span key={t} className="feat-h-tag">{t}</span>)}
+          </div>
+        </div>
+        <div className="feat-h-illu"><feat.Illu /></div>
+      </div>
+      {/* Dark info footer */}
+      <div className="feat-h-foot">
+        <h3 className="feat-h-title">{feat.t}</h3>
+        <p className="feat-h-desc">{feat.d}</p>
+        <span className="feat-h-open">
+          Explore
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </span>
+      </div>
+    </button>
+  );
 }
-
-// Faded at the entry/exit seams so the loop wrap (u: 1→0) is never visible.
-function fadeFromU(u: number) {
-  if (u < 0.04 || u > 0.96) return 0;
-  if (u < 0.16) return (u - 0.04) / 0.12;
-  if (u > 0.84) return (0.96 - u) / 0.12;
-  return 1;
-}
-
-// Flow tuning — all live-editable.
-const AUTO_SPEED  = 0.030;   // ribbon loops ~33s at rest (per second)
-const SCROLL_GAIN = 0.00020; // px scrolled → ribbon advance (signed → reverse-scroll safe)
-const MAX_STEP    = 0.06;    // per-frame clamp (anti-fling / tab-refocus jump)
-const U_FRONT     = 0.42;    // the "hero" parameter (front-centre)
-
-// Mixed thumbnail sizes (mostly landscape, a couple portrait) for variety.
-const CARD_DIMS = FEATS.map((_, i) => (i % 4 === 2 ? { w: 256, h: 332 } : { w: 348, h: 240 }));
-
-// Deterministic idle-tumble phase per card (stable across reloads).
-const seededT = (n: number) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
-const CARD_PHASE = FEATS.map((_, i) => seededT(i * 7 + 3) * Math.PI * 2);
 
 export function Features() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const pinRef      = useRef<HTMLDivElement>(null);
-  const cardRefs    = useRef<Array<HTMLDivElement | null>>([]);
-  const tipNameRef  = useRef<HTMLSpanElement>(null);
-  const tipMiniRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const pinRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const progRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    if (window.matchMedia('(max-width: 900px)').matches) return;
-    if (window.matchMedia('(pointer: coarse)').matches) return;
-
+    if (window.matchMedia('(max-width: 767px)').matches) return; // mobile → native scroll-snap
     initGSAP();
-    const section = sectionRef.current;
-    const pin = pinRef.current;
-    if (!section || !pin) return;
-    section.classList.add('sp-active');
+    const pin = pinRef.current, track = trackRef.current;
+    if (!pin || !track) return;
 
-    const cur = () => window.scrollY || window.pageYOffset || 0;
-    let phase = 0, lastScroll = cur(), idle = 0, active = false, lastT = -1, lastFocus = -1;
-
-    // Cache viewport dims — recompute on resize only, never per frame.
-    let vw = window.innerWidth, vh = window.innerHeight;
-    const onResize = () => { vw = window.innerWidth; vh = window.innerHeight; };
-    window.addEventListener('resize', onResize, { passive: true });
-
-    // Per-card last-written state → only touch the DOM when a value actually
-    // changes (especially the costly filter:blur, zIndex and pointerEvents).
-    const cards = cardRefs.current;
-    const lastBlur = new Float32Array(N_FEATS).fill(-1);
-    const lastZ = new Int32Array(N_FEATS).fill(-99999);
-    const lastPE = new Int8Array(N_FEATS).fill(-1);
-
-    // Non-scrubbed pin: just holds the stage in view; flow is time + scroll driven
-    // (so there is no stuck-scroll failure mode).
-    const st = ScrollTrigger.create({
-      trigger: pin, start: 'top top',
-      end: () => '+=' + Math.round(window.innerHeight * 1.6),
-      pin, pinSpacing: true, invalidateOnRefresh: true,
-      onToggle: (s) => { active = s.isActive; if (s.isActive) { lastScroll = cur(); lastT = -1; } },
-    });
-
-    const update = (time: number) => {
-      if (!active) return;
-      // dt in seconds, clamped so a backgrounded tab / first frame can't fling it
-      let dt = lastT < 0 ? 0.016 : time - lastT;
-      lastT = time;
-      if (dt <= 0 || dt > 0.05) dt = 0.016;
-
-      const sc = cur();
-      const d = sc - lastScroll; lastScroll = sc;
-      idle = Math.abs(d) > 0.5 ? 0 : idle + 1;
-      const drift = idle > 8 ? AUTO_SPEED * dt : 0;                          // drift only at rest
-      const step = clampN(drift + d * SCROLL_GAIN, -MAX_STEP, MAX_STEP);     // scroll up → reverse
-      phase = wrap01(phase + step);
-
-      const SX = 0.44 * vw;
-      const SY = 0.44 * vh;
-
-      let front = -1, frontDist = 2;
-      for (let i = 0; i < N_FEATS; i++) {
-        const card = cards[i];
-        if (!card) continue;
-        const s = card.style;
-        const u = wrap01(i / N_FEATS + phase);
-        const p = samplePath(u);
-        const rotX = p.rx + Math.sin(time * 0.5 + CARD_PHASE[i]) * 4;        // idle tumble
-        const rotY = p.ry + Math.sin(time * 0.4 + CARD_PHASE[i] * 1.3) * 5;
-        // transform + opacity change every frame (smooth) → always written.
-        s.transform =
-          `translate(-50%,-50%) translate3d(${(p.nx * SX).toFixed(1)}px, ${(p.ny * SY).toFixed(1)}px, ${p.z.toFixed(1)}px) ` +
-          `rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(${p.rz.toFixed(2)}deg)`;
-        s.opacity = fadeFromU(u).toFixed(3);
-        // Blur is the expensive one — quantise to 0.5px steps and only write
-        // when it changes, so the card isn't re-rasterised every single frame.
-        const bq = Math.round(clampN((-p.z) / 2400 * 6, 0, 6) * 2) / 2;
-        if (bq !== lastBlur[i]) { s.filter = bq > 0 ? `blur(${bq}px)` : 'none'; lastBlur[i] = bq; }
-        const z = (1000 + p.z) | 0;
-        if (z !== lastZ[i]) { s.zIndex = String(z); lastZ[i] = z; }
-        const pe = (u > 0.30 && u < 0.55) ? 1 : 0;
-        if (pe !== lastPE[i]) { s.pointerEvents = pe ? 'auto' : 'none'; lastPE[i] = pe; }
-        const dd = Math.abs(u - U_FRONT);
-        if (dd < frontDist) { frontDist = dd; front = i; }
-      }
-
-      if (front !== -1 && front !== lastFocus) {
-        lastFocus = front;
-        if (tipNameRef.current) tipNameRef.current.textContent = FEATS[front].t;
-        for (let k = 0; k < tipMiniRefs.current.length; k++) {
-          const m = tipMiniRefs.current[k];
-          if (m) m.style.opacity = k === front ? '1' : '0';
-        }
-      }
-    };
-
-    gsap.ticker.add(update);
-    ScrollTrigger.refresh();
-    return () => {
-      gsap.ticker.remove(update);
-      window.removeEventListener('resize', onResize);
-      st.kill();
-      section.classList.remove('sp-active');
-    };
+    let ctx: ReturnType<typeof gsap.context> | undefined;
+    try {
+      ctx = gsap.context(() => {
+        const amount = () => Math.max(0, track.scrollWidth - window.innerWidth);
+        gsap.to(track, {
+          x: () => -amount(),
+          ease: 'none',
+          scrollTrigger: {
+            trigger: pin,
+            start: 'top top',
+            end: () => '+=' + amount(),
+            scrub: 1,
+            pin: true,
+            pinSpacing: true,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+            onUpdate: (self) => {
+              if (progRef.current) progRef.current.style.transform = `scaleX(${self.progress.toFixed(4)})`;
+            },
+          },
+        });
+      }, sectionRef);
+    } catch { /* never crash the page */ }
+    return () => { try { ctx?.revert(); } catch {} };
   }, []);
 
   return (
@@ -695,84 +604,36 @@ export function Features() {
         <FeatureOverlay feat={FEATS[expanded]} index={expanded} onClose={() => setExpanded(null)} />
       )}
 
-      <section id="features" ref={sectionRef} className="sp-root">
-        <div ref={pinRef} className="sp-pin">
-          <div className="sp-scene">
-            <div className="sp-grid" aria-hidden />
-
-            {/* eyebrow */}
-            <div className="sp-eyebrow">02 · features · scroll to fly</div>
-
-            {/* the ribbon of thumbnail cards */}
-            <div className="sp-world">
-              {FEATS.map((f, i) => (
-                <div
-                  key={f.t}
-                  ref={(el) => { cardRefs.current[i] = el; }}
-                  onClick={() => { window.setTimeout(() => setExpanded(i), 430); }}
-                  className="sp-card"
-                  style={{ width: CARD_DIMS[i].w, height: CARD_DIMS[i].h }}
-                >
-                  <div className="sp-card-thumb"><f.Illu /></div>
-                  <div className="sp-card-foot">
-                    <h3>{f.t}</h3>
-                    <div className="sp-card-meta">
-                      <span className="sp-card-tag">{f.tags[0]}</span>
-                      <span className="sp-card-idx">{String(i + 1).padStart(2, '0')} / {String(N_FEATS).padStart(2, '0')}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* floating name pill — mini thumbnail of the card at the front */}
-            <div className="sp-tip">
-              <div className="sp-tip-thumb">
-                {FEATS.map((f, i) => (
-                  <div
-                    key={f.t}
-                    ref={(el) => { tipMiniRefs.current[i] = el; }}
-                    className="sp-tip-mini"
-                    style={{ opacity: i === 0 ? 1 : 0 }}
-                  >
-                    <f.Illu />
-                  </div>
-                ))}
-              </div>
-              <span ref={tipNameRef} className="sp-tip-name">{FEATS[0].t}</span>
-            </div>
-
-            {/* rotating showreel badge */}
-            <div className="sp-badge" aria-hidden>
-              <svg viewBox="0 0 120 120" className="sp-badge-ring">
-                <defs>
-                  <path id="spBadgePath" d="M60,60 m-44,0 a44,44 0 1,1 88,0 a44,44 0 1,1 -88,0" />
-                </defs>
-                <text className="sp-badge-text">
-                  <textPath href="#spBadgePath" startOffset="0">showreel · attendly · 2026 · showreel · attendly · 2026 · </textPath>
-                </text>
-              </svg>
-              <span className="sp-badge-core" />
-            </div>
-
+      <section id="features" ref={sectionRef} className="relative">
+        {/* Desktop / tablet: pinned horizontal scroll */}
+        <div ref={pinRef} className="feat-h-pin">
+          <div className="feat-h-head">
+            <span className="text-[11px] tracking-[0.28em] text-ink-mute uppercase">02 — features · scroll →</span>
+            <h2 className="font-display text-[2.2rem] lg:text-[3.4rem] leading-[1.04] tracking-tightish mt-3 text-ink">
+              Eight building blocks. <span className="text-ink-mute">One verdict.</span>
+            </h2>
           </div>
+          <div ref={trackRef} className="feat-h-track">
+            {FEATS.map((f, i) => (
+              <FeatHCard key={f.t} feat={f} index={i} onOpen={() => setExpanded(i)} />
+            ))}
+          </div>
+          <div className="feat-h-progress"><div ref={progRef} className="feat-h-progress-bar" /></div>
         </div>
 
-        {/* mobile / reduced-motion fallback */}
-        <div className="sp-fallback container">
-          <div className="sp-fallback-head">
-            <span className="text-[10px] tracking-[0.28em] text-ink-mute uppercase">02 — Features</span>
-            <h2 className="font-display text-[2rem] leading-tight mt-3 text-ink">Eight building blocks. One verdict.</h2>
+        {/* Mobile: native horizontal scroll-snap (swipeable) */}
+        <div className="feat-h-mobile">
+          <div className="feat-h-head container">
+            <span className="text-[11px] tracking-[0.28em] text-ink-mute uppercase">02 — features · swipe →</span>
+            <h2 className="font-display text-[1.9rem] leading-tight tracking-tightish mt-3 text-ink">
+              Eight building blocks.<br /><span className="text-ink-mute">One verdict.</span>
+            </h2>
           </div>
-          {FEATS.map((f, i) => (
-            <div key={f.t} onClick={() => setExpanded(i)} className="sp-fallback-card">
-              <span className="sp-fallback-num">{String(i + 1).padStart(2, '0')}</span>
-              <div className="min-w-0">
-                <h3>{f.t}</h3>
-                <p>{f.d}</p>
-              </div>
-            </div>
-          ))}
+          <div className="feat-h-track-mobile">
+            {FEATS.map((f, i) => (
+              <FeatHCard key={f.t} feat={f} index={i} onOpen={() => setExpanded(i)} />
+            ))}
+          </div>
         </div>
       </section>
     </>

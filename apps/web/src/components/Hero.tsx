@@ -31,11 +31,17 @@ export function Hero() {
     let ctx: ReturnType<typeof gsap.context> | undefined;
     try {
       ctx = gsap.context(() => {
-        // SplitText-style per-character reveal (manual split — no paid plugin).
-        // Transform/opacity only (no per-char blur) so 20+ glyphs stay cheap.
+        // Modern "decrypt / focus-in" headline: each glyph resolves from
+        // large + blurred into sharp focus, in RANDOM order — on-theme with the
+        // security/decode subtext. One-time, above the fold, so the brief blur
+        // is perf-safe (transform/filter only, no layout).
         gsap.fromTo('.hero-line .reveal-char',
-          { yPercent: 115, opacity: 0, rotateZ: 3 },
-          { yPercent: 0, opacity: 1, rotateZ: 0, duration: 0.9, ease: 'expo.out', stagger: 0.03, delay: 0.28 },
+          { opacity: 0, scale: 1.7, filter: 'blur(16px)', yPercent: 8 },
+          {
+            opacity: 1, scale: 1, filter: 'blur(0px)', yPercent: 0,
+            duration: 1.0, ease: 'power3.out',
+            stagger: { each: 0.024, from: 'random' }, delay: 0.3,
+          },
         );
         gsap.fromTo('.hero-badge',
           { y: 20, opacity: 0 },
