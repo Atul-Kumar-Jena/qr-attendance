@@ -22,7 +22,7 @@ export function GridBackground() {
       cx = lerp(cx, mx, 0.09);
       cy = lerp(cy, my, 0.09);
       spot.style.background =
-        `radial-gradient(560px circle at ${cx}px ${cy}px, rgba(46,138,92,0.12) 0%, rgba(234,215,155,0.05) 42%, transparent 70%)`;
+        `radial-gradient(560px circle at ${cx}px ${cy}px, rgb(var(--accent-rgb) / 0.13) 0%, rgb(var(--accent-rgb) / 0.04) 42%, transparent 70%)`;
       raf = requestAnimationFrame(tick);
     };
     window.addEventListener('mousemove', onMove, { passive: true });
@@ -36,31 +36,31 @@ export function GridBackground() {
     <div className="atmos" aria-hidden>
       {/* Base wash */}
       <div className="absolute inset-0" style={{
-        background: 'radial-gradient(120% 90% at 50% -10%, rgba(20,54,38,0.35), transparent 60%)',
+        background: 'radial-gradient(120% 90% at 50% -10%, var(--atmos-wash), transparent 60%)',
       }} />
 
-      {/* Drifting iridescent blobs */}
+      {/* Drifting aurora blobs (colours driven by Palette Studio) */}
       <div className="atmos-blob" style={{
         width: '46vw', height: '46vw', left: '-8vw', top: '-6vw',
-        background: 'radial-gradient(circle, rgba(234,215,155,0.5), transparent 65%)',
+        background: 'radial-gradient(circle, var(--atmos-1), transparent 65%)',
         animation: 'drift1 26s ease-in-out infinite',
       }} />
       <div className="atmos-blob" style={{
         width: '50vw', height: '50vw', right: '-12vw', top: '8vh',
-        background: 'radial-gradient(circle, rgba(46,138,92,0.55), transparent 65%)',
+        background: 'radial-gradient(circle, var(--atmos-2), transparent 65%)',
         animation: 'drift2 32s ease-in-out infinite',
       }} />
       <div className="atmos-blob" style={{
         width: '40vw', height: '40vw', left: '20vw', bottom: '-12vh',
-        background: 'radial-gradient(circle, rgba(215,182,90,0.5), transparent 65%)',
+        background: 'radial-gradient(circle, var(--atmos-3), transparent 65%)',
         animation: 'drift3 38s ease-in-out infinite',
       }} />
 
       {/* Faint grid */}
       <div className="absolute inset-0" style={{
         backgroundImage: [
-          'linear-gradient(rgba(205,212,175,0.045) 1px, transparent 1px)',
-          'linear-gradient(90deg, rgba(205,212,175,0.045) 1px, transparent 1px)',
+          'linear-gradient(var(--atmos-grid) 1px, transparent 1px)',
+          'linear-gradient(90deg, var(--atmos-grid) 1px, transparent 1px)',
         ].join(', '),
         backgroundSize: G,
         maskImage: 'radial-gradient(120% 100% at 50% 0%, black, transparent 80%)',

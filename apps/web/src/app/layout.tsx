@@ -1,21 +1,22 @@
 import type { Metadata } from 'next';
-import { DM_Sans, Cormorant_Garamond } from 'next/font/google';
+import { Inter, Fraunces } from 'next/font/google';
 import '../styles/globals.css';
 import { PageTransition } from '@/components/PageTransition';
 import { Providers } from '@/components/Providers';
 import { DeepLinkRestore } from '@/components/DeepLinkRestore';
 
-const sans = DM_Sans({
+const sans = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
-  weight: ['300', '400', '500', '600'],
+  weight: ['300', '400', '500', '600', '700'],
 });
 
-const display = Cormorant_Garamond({
+// Fraunces — a high-contrast "royal" display serif with real presence.
+const display = Fraunces({
   subsets: ['latin'],
   variable: '--font-display',
-  weight: ['300', '400', '500', '600'],
+  weight: ['400', '500', '600', '700'],
   style: ['normal', 'italic'],
   display: 'swap',
 });

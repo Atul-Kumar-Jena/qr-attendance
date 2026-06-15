@@ -17,6 +17,7 @@ import { Cursor } from '@/components/Cursor';
 import { ScrollProgress } from '@/components/ScrollProgress';
 import { SmoothScroll } from '@/components/SmoothScroll';
 import { GridBackground } from '@/components/GridBackground';
+import { PaletteStudio } from '@/components/PaletteStudio';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const Safe = ({ name, children }: { name: string; children: React.ReactNode }) => (
@@ -45,6 +46,7 @@ export default function Page() {
       <Safe name="cta"><CTA /></Safe>
       <Safe name="footer"><Footer /></Safe>
       <Safe name="dock-nav"><DockNav /></Safe>
+      <Safe name="palette-studio"><PaletteStudio /></Safe>
     </main>
   );
 }

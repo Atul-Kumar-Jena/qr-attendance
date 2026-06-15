@@ -14,11 +14,23 @@
   --line: rgba(30, 50, 35, 0.12);
   --sage: #2E8A5C;
   --accent: #2E8A5C;
+  --accent-rgb: 46 138 92;
   --accent-2: #C9A24B;
+  --accent-2-rgb: 201 162 75;
   --accent-3: #B8932E;
   --iri: linear-gradient(110deg, #2E8A5C 0%, #6FBE8E 36%, #C9A24B 70%, #E7D29A 100%);
   --glass-bg: rgba(255, 252, 244, 0.55);
   --glass-brd: rgba(255, 255, 255, 0.6);
+  --aurora-1: rgba(245,236,205,0.55);
+  --aurora-2: rgba(46,150,95,0.88);
+  --aurora-3: rgba(201,162,75,0.66);
+  --aurora-4: rgba(31,110,72,0.45);
+  --aurora-base: #04100A;
+  --atmos-1: rgba(234,215,155,0.50);
+  --atmos-2: rgba(46,138,92,0.55);
+  --atmos-3: rgba(215,182,90,0.50);
+  --atmos-wash: rgba(20,54,38,0.35);
+  --atmos-grid: rgba(205,212,175,0.045);
   --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -215,11 +227,24 @@ html.dark {
   --line: rgba(205, 212, 175, 0.10);
   --sage: #5BD39B;
   --accent: #2E8A5C;
+  --accent-rgb: 46 138 92;
   --accent-2: #D7B65A;
+  --accent-2-rgb: 215 182 90;
   --accent-3: #EAD79B;
   --iri: linear-gradient(110deg, #EAD79B 0%, #58C58C 36%, #D7B65A 70%, #F0E4B0 100%);
   --glass-bg: rgba(255, 255, 255, 0.05);
   --glass-brd: rgba(235, 225, 180, 0.14);
+  /* Aurora + atmospheric field (driven live by Palette Studio) */
+  --aurora-1: rgba(245,236,205,0.55);
+  --aurora-2: rgba(46,150,95,0.88);
+  --aurora-3: rgba(201,162,75,0.66);
+  --aurora-4: rgba(31,110,72,0.45);
+  --aurora-base: #04100A;
+  --atmos-1: rgba(234,215,155,0.50);
+  --atmos-2: rgba(46,138,92,0.55);
+  --atmos-3: rgba(215,182,90,0.50);
+  --atmos-wash: rgba(20,54,38,0.35);
+  --atmos-grid: rgba(205,212,175,0.045);
 }
 
 html.dark body { background: var(--bg); color: var(--ink); }
@@ -639,10 +664,10 @@ html.dark ::-webkit-scrollbar-thumb:hover { background: rgba(205,212,175, 0.3); 
   position: absolute;
   inset: -15%;
   background:
-    radial-gradient(42% 52% at 50% 30%, rgba(245,236,205,0.55), rgba(245,236,205,0) 60%),
-    radial-gradient(72% 70% at 40% 26%, rgba(46,150,95,0.88), rgba(46,150,95,0) 62%),
-    radial-gradient(78% 80% at 66% 52%, rgba(201,162,75,0.66), rgba(201,162,75,0) 64%),
-    radial-gradient(88% 88% at 50% 80%, rgba(31,110,72,0.45), rgba(31,110,72,0) 60%);
+    radial-gradient(42% 52% at 50% 30%, var(--aurora-1), transparent 60%),
+    radial-gradient(72% 70% at 40% 26%, var(--aurora-2), transparent 62%),
+    radial-gradient(78% 80% at 66% 52%, var(--aurora-3), transparent 64%),
+    radial-gradient(88% 88% at 50% 80%, var(--aurora-4), transparent 60%);
   filter: blur(36px) saturate(150%);
   will-change: transform;
   animation: auroraDrift 22s ease-in-out infinite;
@@ -652,7 +677,7 @@ html.dark ::-webkit-scrollbar-thumb:hover { background: rgba(205,212,175, 0.3); 
   33%      { transform: translate3d(-3%, 2%, 0) scale(1.10) rotate(1.5deg); }
   66%      { transform: translate3d(3%, -2%, 0) scale(1.07) rotate(-1.5deg); }
 }
-.aurora-base { position: absolute; inset: 0; background: #04100A; }
+.aurora-base { position: absolute; inset: 0; background: var(--aurora-base); }
 /* Subtle darkening behind the headline so white type always stays legible */
 .aurora-read {
   position: absolute; inset: 0;
@@ -675,3 +700,39 @@ html.dark ::-webkit-scrollbar-thumb:hover { background: rgba(205,212,175, 0.3); 
 @media (prefers-reduced-motion: reduce) {
   .atmos-blob, .iri-text { animation: none !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Live-palette accent utilities — make Tailwind accent classes follow the
+   CSS variables so the Palette Studio can recolour the whole site instantly.
+   ══════════════════════════════════════════════════════════════════════════ */
+.text-accent { color: var(--accent) !important; }
+.bg-accent { background-color: var(--accent) !important; }
+.border-accent { border-color: var(--accent) !important; }
+.fill-accent { fill: var(--accent) !important; }
+.stroke-accent { stroke: var(--accent) !important; }
+.text-accent-warm { color: var(--accent-2) !important; }
+.bg-accent-warm { background-color: var(--accent-2) !important; }
+
+.bg-accent\/6   { background-color: rgb(var(--accent-rgb) / 0.06) !important; }
+.bg-accent\/8   { background-color: rgb(var(--accent-rgb) / 0.08) !important; }
+.bg-accent\/10  { background-color: rgb(var(--accent-rgb) / 0.10) !important; }
+.bg-accent\/12  { background-color: rgb(var(--accent-rgb) / 0.12) !important; }
+.bg-accent\/14  { background-color: rgb(var(--accent-rgb) / 0.14) !important; }
+.bg-accent\/15  { background-color: rgb(var(--accent-rgb) / 0.15) !important; }
+.bg-accent\/20  { background-color: rgb(var(--accent-rgb) / 0.20) !important; }
+.bg-accent\/22  { background-color: rgb(var(--accent-rgb) / 0.22) !important; }
+.bg-accent\/30  { background-color: rgb(var(--accent-rgb) / 0.30) !important; }
+.bg-accent\/80  { background-color: rgb(var(--accent-rgb) / 0.80) !important; }
+.bg-accent\/90  { background-color: rgb(var(--accent-rgb) / 0.90) !important; }
+
+.border-accent\/12 { border-color: rgb(var(--accent-rgb) / 0.12) !important; }
+.border-accent\/15 { border-color: rgb(var(--accent-rgb) / 0.15) !important; }
+.border-accent\/20 { border-color: rgb(var(--accent-rgb) / 0.20) !important; }
+.border-accent\/22 { border-color: rgb(var(--accent-rgb) / 0.22) !important; }
+.border-accent\/25 { border-color: rgb(var(--accent-rgb) / 0.25) !important; }
+.border-accent\/30 { border-color: rgb(var(--accent-rgb) / 0.30) !important; }
+.border-accent\/40 { border-color: rgb(var(--accent-rgb) / 0.40) !important; }
+
+.text-accent\/40 { color: rgb(var(--accent-rgb) / 0.40) !important; }
+.text-accent\/55 { color: rgb(var(--accent-rgb) / 0.55) !important; }
+.text-accent\/60 { color: rgb(var(--accent-rgb) / 0.60) !important; }
