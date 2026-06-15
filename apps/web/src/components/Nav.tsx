@@ -175,7 +175,7 @@ export function Nav() {
             className={cn(
               'absolute inset-0 rounded-2xl transition-opacity duration-500 pointer-events-none',
               scrolled ? 'opacity-100' : 'opacity-0',
-              'bg-cream-50/80 dark:bg-[#0D0F14]/85 backdrop-blur-xl',
+              'bg-cream-50/80 dark:bg-[#07140E]/85 backdrop-blur-xl',
               'border border-ink/8 dark:border-white/10',
               'shadow-[0_4px_32px_-4px_rgba(11,18,32,0.12)] dark:shadow-[0_4px_40px_-4px_rgba(0,0,0,0.6),0_0_0_1px_rgba(240,237,230,0.06)]',
             )}
@@ -220,7 +220,7 @@ export function Nav() {
 
             <Link
               href="#pricing"
-              className="rounded-xl bg-ink dark:bg-[#1A2236] px-4 py-2 text-[12.5px] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:hover:bg-[#222c3e] dark:border dark:border-white/15 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+              className="rounded-xl bg-ink dark:bg-[#13261B] px-4 py-2 text-[12.5px] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:hover:bg-[#1A3324] dark:border dark:border-white/15 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
             >
               Request demo
             </Link>
@@ -245,7 +245,7 @@ export function Nav() {
         ref={menuRef}
         className={cn(
           'fixed inset-x-4 z-40 rounded-2xl border border-ink/8 dark:border-white/10',
-          'bg-cream-50/95 dark:bg-[#0D0F14]/95 backdrop-blur-xl shadow-lg md:hidden opacity-0 pointer-events-none',
+          'bg-cream-50/95 dark:bg-[#07140E]/95 backdrop-blur-xl shadow-lg md:hidden opacity-0 pointer-events-none',
           'max-h-[85vh] overflow-y-auto',
           scrolled ? 'top-[72px]' : 'top-[80px]',
         )}

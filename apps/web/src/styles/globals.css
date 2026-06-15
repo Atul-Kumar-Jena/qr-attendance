@@ -3,16 +3,22 @@
 @tailwind utilities;
 @import 'driver.js/dist/driver.css';
 
-/* ─── Design tokens ──────────────────────────────────────────────────────── */
+/* ─── Design tokens — "Fluid Glass" ──────────────────────────────────────── */
+/* Light is a cool frosted variant; dark (below) is the canonical deep glass. */
 :root {
-  --bg: #FAFAF7;
-  --bg-2: #F4F3EC;
-  --ink: #0B1220;
-  --ink-soft: #1A2236;
-  --ink-mute: #5A6783;
-  --line: rgba(11, 18, 32, 0.07);
-  --sage: #7C967A;
-  --accent: #FF6B3D;
+  --bg: #F3EFE1;
+  --bg-2: #EAE3CE;
+  --ink: #16231A;
+  --ink-soft: #2C3B2E;
+  --ink-mute: #5E6B56;
+  --line: rgba(30, 50, 35, 0.12);
+  --sage: #2E8A5C;
+  --accent: #2E8A5C;
+  --accent-2: #C9A24B;
+  --accent-3: #B8932E;
+  --iri: linear-gradient(110deg, #2E8A5C 0%, #6FBE8E 36%, #C9A24B 70%, #E7D29A 100%);
+  --glass-bg: rgba(255, 252, 244, 0.55);
+  --glass-brd: rgba(255, 255, 255, 0.6);
   --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -115,12 +121,15 @@ h1, h2, h3 {
   will-change: transform, opacity;
 }
 
-/* ─── Glass card ─────────────────────────────────────────────────────────── */
+/* ─── Glass card — fluid glass ───────────────────────────────────────────── */
 .glass {
-  background: rgba(250, 250, 247, 0.6);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid var(--line);
+  background: var(--glass-bg);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid var(--glass-brd);
+  box-shadow:
+    0 10px 34px -16px rgba(20, 30, 66, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 /* ─── Divider ────────────────────────────────────────────────────────────── */
@@ -196,23 +205,31 @@ body {
   transition: opacity 0.1s;
 }
 
-/* ─── Dark mode overrides ────────────────────────────────────────────────── */
+/* ─── Dark mode — canonical "Fluid Glass" deep theme ─────────────────────── */
 html.dark {
-  --bg: #0D0F14;
-  --bg-2: #13161D;
-  --ink: #F0EDE6;
-  --ink-soft: #D4D0C8;
-  --ink-mute: #7A8199;
-  --line: rgba(240, 237, 230, 0.08);
-  --sage: #7C967A;
-  --accent: #FF6B3D;
+  --bg: #07140E;
+  --bg-2: #0C1C14;
+  --ink: #F2ECD9;
+  --ink-soft: #D8D0B6;
+  --ink-mute: #9BA890;
+  --line: rgba(205, 212, 175, 0.10);
+  --sage: #5BD39B;
+  --accent: #2E8A5C;
+  --accent-2: #D7B65A;
+  --accent-3: #EAD79B;
+  --iri: linear-gradient(110deg, #EAD79B 0%, #58C58C 36%, #D7B65A 70%, #F0E4B0 100%);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-brd: rgba(235, 225, 180, 0.14);
 }
 
 html.dark body { background: var(--bg); color: var(--ink); }
 
 html.dark .glass {
-  background: rgba(20, 23, 32, 0.7);
-  border-color: rgba(240, 237, 230, 0.08);
+  background: var(--glass-bg);
+  border-color: var(--glass-brd);
+  box-shadow:
+    0 16px 50px -20px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 /* grain overlay handled below in the fixes section */
@@ -285,14 +302,14 @@ html.dark .pcol-card {
 
 /* ── Dark mode hover & opacity-variant fixes ──────────────────────────────── */
 
-/* Hover text → theme-adaptive (Tailwind hover:text-ink uses hardcoded #0B1220) */
+/* Hover text → theme-adaptive (Tailwind hover:text-ink uses hardcoded #0A1810) */
 html.dark .hover\:text-ink:hover { color: var(--ink) !important; }
 html.dark .hover\:text-ink-soft:hover { color: var(--ink-soft) !important; }
 
 /* Hover backgrounds → theme-adaptive */
 html.dark .hover\:bg-cream-50:hover  { background-color: var(--bg)   !important; }
 html.dark .hover\:bg-cream-100:hover { background-color: var(--bg-2)  !important; }
-html.dark .hover\:bg-ink-soft:hover  { background-color: #222c3e !important; }
+html.dark .hover\:bg-ink-soft:hover  { background-color: #1A3324 !important; }
 
 /* Opacity-variant backgrounds not caught by base `.bg-cream-*` selectors */
 html.dark .bg-cream-100\/60 { background-color: rgba(19, 22, 29, 0.6) !important; }
@@ -394,13 +411,13 @@ html.dark body::before {
 }
 
 .atd-popover .driver-popover-next-btn {
-  background: #FF6B3D !important;
-  color: #FAFAF7 !important;
-  border-color: #FF6B3D !important;
+  background: #2E8A5C !important;
+  color: #F5F8FF !important;
+  border-color: #2E8A5C !important;
 }
 
 .atd-popover .driver-popover-next-btn:hover {
-  background: #e55c30 !important;
+  background: #4759E6 !important;
 }
 
 .atd-popover .driver-popover-prev-btn:hover {
@@ -421,7 +438,7 @@ html.dark body::before {
 .atd-popover .driver-popover-arrow-side-right { border-left-color: var(--bg) !important; }
 
 /* ─── Dark mode comprehensive text-color fixes ──────────────────────────────── */
-/* Root cause: Tailwind compiles text-ink to hardcoded #0B1220 (invisible on dark bg) */
+/* Root cause: Tailwind compiles text-ink to hardcoded #0A1810 (invisible on dark bg) */
 
 /* All hover:text-* states */
 html.dark .hover\:text-ink:hover      { color: var(--ink) !important; }
@@ -443,7 +460,7 @@ html.dark .border-ink\/20 { border-color: rgba(240, 237, 230, 0.20) !important; 
 /* Hover backgrounds for nav + interactive elements */
 html.dark .hover\:bg-cream-50:hover  { background-color: var(--bg)   !important; }
 html.dark .hover\:bg-cream-100:hover { background-color: var(--bg-2)  !important; }
-html.dark .hover\:bg-ink-soft:hover  { background-color: #222c3e !important; }
+html.dark .hover\:bg-ink-soft:hover  { background-color: #1A3324 !important; }
 
 /* select element styling */
 html.dark select { background-color: var(--bg-2) !important; color: var(--ink) !important; border-color: var(--line) !important; }
@@ -456,4 +473,205 @@ html.theme-transitioning *::before,
 html.theme-transitioning *::after {
   transition: background-color 0.3s ease, color 0.2s ease, border-color 0.25s ease !important;
   transition-delay: 0s !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FLUID GLASS — atmospheric backdrop, iridescence, gallery, scroll-zoom,
+   page transition. Added for the redesign.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Iridescent helpers ─────────────────────────────────────────────────── */
+.iri-text {
+  background: var(--iri);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: iriShift 9s ease-in-out infinite;
+}
+@keyframes iriShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* A rounded element with an iridescent gradient border (via mask compositing) */
+.iri-border {
+  position: relative;
+  border: 1px solid transparent;
+}
+.iri-border::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--iri);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Primary CTA — glassy with a moving sheen */
+.btn-glass {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.35) 45%, transparent 70%);
+  transform: translateX(-130%);
+  transition: transform 0.7s cubic-bezier(.4,0,.2,1);
+  z-index: -1;
+}
+.btn-glass:hover::before { transform: translateX(130%); }
+
+/* ─── Deep atmospheric backdrop (drifting aurora field) ───────────────────── */
+.atmos { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.atmos-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  will-change: transform;
+}
+html.dark .atmos-blob { opacity: 0.5; mix-blend-mode: screen; }
+@keyframes drift1 {
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  50%      { transform: translate3d(6vw, 4vh, 0) scale(1.15); }
+}
+@keyframes drift2 {
+  0%, 100% { transform: translate3d(0,0,0) scale(1.1); }
+  50%      { transform: translate3d(-7vw, -5vh, 0) scale(0.92); }
+}
+@keyframes drift3 {
+  0%, 100% { transform: translate3d(0,0,0) scale(0.95); }
+  50%      { transform: translate3d(5vw, -6vh, 0) scale(1.2); }
+}
+
+/* ─── Side-scroll showcase gallery ───────────────────────────────────────── */
+.gallery-panel { will-change: transform, opacity; }
+.gallery-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid var(--glass-brd);
+  box-shadow: 0 30px 80px -30px rgba(0,0,0,0.6);
+}
+.gallery-img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 128%;          /* larger than frame → "window" parallax headroom */
+  height: 128%;
+  object-fit: cover;
+  transform: translate(-50%, -50%);
+  will-change: transform;
+}
+.gallery-edge {        /* subtle inner vignette so panels feel like glass windows */
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -40px 80px -30px rgba(0,0,0,0.55);
+  pointer-events: none;
+}
+
+/* ─── Scroll-zoom fullscreen frame ───────────────────────────────────────── */
+.zoom-media { will-change: transform, border-radius; }
+
+/* ─── Card-stack page transition overlay ─────────────────────────────────── */
+#pt-stack {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  pointer-events: none;
+  display: none;
+}
+#pt-stack.active { display: block; pointer-events: auto; }
+.pt-card {
+  position: absolute;
+  inset: -2px;
+  border-radius: 26px;
+  transform: translateY(110%);
+  will-change: transform;
+  box-shadow: 0 -30px 80px -20px rgba(0,0,0,0.55);
+}
+.pt-card-1 { background: #0A1810; }
+.pt-card-2 { background: #0E2017; }
+.pt-card-3 { background: linear-gradient(160deg, #13261B, #0A1810); }
+.pt-card-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+  font-family: var(--font-display), serif;
+  letter-spacing: -0.02em;
+  opacity: 0;
+}
+
+/* ─── Refined scrollbar ──────────────────────────────────────────────────── */
+html.dark ::-webkit-scrollbar { width: 10px; height: 10px; }
+html.dark ::-webkit-scrollbar-track { background: transparent; }
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(205,212,175, 0.18);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+html.dark ::-webkit-scrollbar-thumb:hover { background: rgba(205,212,175, 0.3); background-clip: padding-box; }
+
+/* Slow spin used by accent rings */
+@keyframes spinSlow { to { transform: rotate(360deg); } }
+
+/* Hero scroll cue */
+@keyframes scrollCue {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(300%); }
+}
+
+/* ─── Matte aurora hero (adsocial-style, fluid-glass palette) ─────────────── */
+.hero-aurora { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.aurora-core {
+  position: absolute;
+  inset: -15%;
+  background:
+    radial-gradient(42% 52% at 50% 30%, rgba(245,236,205,0.55), rgba(245,236,205,0) 60%),
+    radial-gradient(72% 70% at 40% 26%, rgba(46,150,95,0.88), rgba(46,150,95,0) 62%),
+    radial-gradient(78% 80% at 66% 52%, rgba(201,162,75,0.66), rgba(201,162,75,0) 64%),
+    radial-gradient(88% 88% at 50% 80%, rgba(31,110,72,0.45), rgba(31,110,72,0) 60%);
+  filter: blur(36px) saturate(150%);
+  will-change: transform;
+  animation: auroraDrift 22s ease-in-out infinite;
+}
+@keyframes auroraDrift {
+  0%, 100% { transform: translate3d(0,0,0) scale(1.04) rotate(0deg); }
+  33%      { transform: translate3d(-3%, 2%, 0) scale(1.10) rotate(1.5deg); }
+  66%      { transform: translate3d(3%, -2%, 0) scale(1.07) rotate(-1.5deg); }
+}
+.aurora-base { position: absolute; inset: 0; background: #04100A; }
+/* Subtle darkening behind the headline so white type always stays legible */
+.aurora-read {
+  position: absolute; inset: 0;
+  background: radial-gradient(68% 58% at 50% 52%, rgba(3,14,9,0.34), transparent 72%);
+}
+.aurora-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(130% 100% at 50% 34%, transparent 46%, rgba(3,12,8,0.5) 80%, rgba(3,12,8,0.96) 100%);
+}
+
+/* The matte grain that gives the aurora its filmic, non-glossy finish */
+.matte-grain {
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+  background-size: 190px 190px;
+  mix-blend-mode: overlay;
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atmos-blob, .iri-text { animation: none !important; }
 }

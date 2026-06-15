@@ -30,7 +30,7 @@ export function DashboardPreview() {
             trigger: root.current,
             start: 'top 80%',
             end: 'center 55%',
-            scrub: 1,
+            scrub: 0.5,
           },
         },
       );
@@ -144,7 +144,7 @@ export function DashboardPreview() {
                         className="bar rounded-t-sm"
                         style={{
                           height: `${h}%`,
-                          background: i === 12 ? '#FF6B3D' : barBg,
+                          background: i === 12 ? '#2E8A5C' : barBg,
                         }}
                       />
                     ))}

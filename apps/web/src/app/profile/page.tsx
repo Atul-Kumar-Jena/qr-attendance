@@ -25,7 +25,7 @@ export default function ProfilePage() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream-100 dark:bg-[#0D0F14]">
+      <div className="min-h-screen flex items-center justify-center bg-cream-100 dark:bg-[#07140E]">
         <div className="w-8 h-8 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
       </div>
     );
@@ -43,7 +43,7 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-cream-100 dark:bg-[#0D0F14] py-12 px-4">
+    <div className="min-h-screen bg-cream-100 dark:bg-[#07140E] py-12 px-4">
       <div className="max-w-lg mx-auto space-y-6">
         {/* Back button */}
         <Link href="/" className="inline-flex items-center gap-2 text-[13px] text-ink-mute hover:text-ink dark:hover:text-cream-50 transition-colors">
@@ -51,7 +51,7 @@ export default function ProfilePage() {
         </Link>
 
         {/* Avatar + name */}
-        <div className="rounded-2xl bg-cream-50 dark:bg-[#13161D] border border-ink/8 dark:border-white/8 p-6">
+        <div className="rounded-2xl bg-cream-50 dark:bg-[#0C1C14] border border-ink/8 dark:border-white/8 p-6">
           <div className="flex items-center gap-4">
             {user.photoURL ? (
               <img src={user.photoURL} alt="" className="w-16 h-16 rounded-full object-cover" />
@@ -74,7 +74,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Appearance */}
-        <div className="rounded-2xl bg-cream-50 dark:bg-[#13161D] border border-ink/8 dark:border-white/8 p-6">
+        <div className="rounded-2xl bg-cream-50 dark:bg-[#0C1C14] border border-ink/8 dark:border-white/8 p-6">
           <div className="text-[11px] tracking-wide text-ink-mute uppercase mb-4">Appearance</div>
           <div className="flex gap-2">
             {themeModes.map(({ m, label, icon }) => (
@@ -92,7 +92,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Account info */}
-        <div className="rounded-2xl bg-cream-50 dark:bg-[#13161D] border border-ink/8 dark:border-white/8 p-6 space-y-3">
+        <div className="rounded-2xl bg-cream-50 dark:bg-[#0C1C14] border border-ink/8 dark:border-white/8 p-6 space-y-3">
           <div className="text-[11px] tracking-wide text-ink-mute uppercase mb-4">Account</div>
           <div className="flex justify-between text-[13px]">
             <span className="text-ink-mute">UID</span>

@@ -378,7 +378,7 @@ export default function QrDisplay() {
               value={qrPayload}
               size={320}
               bgColor="#FAFAF7"
-              fgColor="#0B1220"
+              fgColor="#0A1810"
               level="M"
             />
           ) : (

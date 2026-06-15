@@ -57,7 +57,7 @@ export function UserMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#13161D] shadow-2xl overflow-hidden z-[99990] animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#0C1C14] shadow-2xl overflow-hidden z-[99990] animate-in fade-in slide-in-from-top-2 duration-150">
           {/* User info */}
           <div className="px-4 py-3 border-b border-ink/8 dark:border-white/8">
             <div className="flex items-center gap-3">

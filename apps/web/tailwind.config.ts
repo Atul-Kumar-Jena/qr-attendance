@@ -13,23 +13,25 @@ const config: Config = {
       },
       colors: {
         ink: {
-          DEFAULT: '#0B1220',
-          soft: '#1A2236',
-          mute: '#5A6783',
+          DEFAULT: '#13231A',
+          soft: '#23362A',
+          mute: '#5E6B56',
         },
         cream: {
-          50: '#FAFAF7',
-          100: '#F4F3EC',
-          200: '#EAE7DA',
+          50: '#F4EFDF',
+          100: '#EAE3CE',
+          200: '#DCD3B8',
         },
         sage: {
-          400: '#9DB39A',
-          500: '#7C967A',
-          600: '#5F7B5E',
+          400: '#6FD3A0',
+          500: '#2E8A5C',
+          600: '#1F7A52',
         },
         accent: {
-          DEFAULT: '#FF6B3D',
-          warm: '#F2A65A',
+          DEFAULT: '#2E8A5C',
+          warm: '#D7B65A',
+          gold: '#D7B65A',
+          ivory: '#EAD79B',
         },
       },
       letterSpacing: {

@@ -59,7 +59,7 @@ export function CookieConsent() {
           className="fixed bottom-0 left-0 right-0 z-[150]"
         >
           <div className="mx-auto max-w-screen-md px-4 pb-4">
-            <div className="rounded-2xl bg-cream-50/95 dark:bg-[#13161D]/95 backdrop-blur-xl border border-ink/10 dark:border-white/10 shadow-2xl overflow-hidden">
+            <div className="rounded-2xl bg-cream-50/95 dark:bg-[#0C1C14]/95 backdrop-blur-xl border border-ink/10 dark:border-white/10 shadow-2xl overflow-hidden">
               {/* Header */}
               <div className="p-5 flex items-start gap-3">
                 <div className="text-[20px] flex-shrink-0 leading-none mt-0.5" aria-hidden>🍪</div>

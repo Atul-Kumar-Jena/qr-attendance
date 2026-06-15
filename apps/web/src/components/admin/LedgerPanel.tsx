@@ -213,7 +213,7 @@ export function LedgerPanel() {
       )}
 
       {/* Records */}
-      <div data-anim className="rounded-2xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#13161D] overflow-hidden">
+      <div data-anim className="rounded-2xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#0C1C14] overflow-hidden">
         <div className="px-5 py-3.5 border-b border-ink/8 dark:border-white/8 flex items-center justify-between">
           <h3 className="text-[13.5px] font-medium text-ink dark:text-cream-50">Chain ({chain.length})</h3>
           <span className="text-[11px] text-ink-mute font-mono">{stats?.lastHash.slice(0, 18) || '—'}…</span>
@@ -236,7 +236,7 @@ export function LedgerPanel() {
 
 function StatTile({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#13161D] px-4 py-3">
+    <div className="rounded-xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#0C1C14] px-4 py-3">
       <div className="text-[10px] tracking-[0.18em] uppercase text-ink-mute mb-1">{label}</div>
       <div className="text-[20px] font-display text-ink dark:text-cream-50 tabular-nums">{value}</div>
     </div>

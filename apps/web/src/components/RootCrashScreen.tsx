@@ -20,7 +20,7 @@ export function RootCrashScreen({ error }: { error?: Error }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 bg-cream-100 dark:bg-[#0D0F14] relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center px-6 bg-cream-100 dark:bg-[#07140E] relative overflow-hidden">
       <div
         aria-hidden
         className="absolute inset-0 opacity-50"
@@ -37,7 +37,7 @@ export function RootCrashScreen({ error }: { error?: Error }) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 max-w-md w-full rounded-2xl border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#13161D] p-7 shadow-2xl"
+        className="relative z-10 max-w-md w-full rounded-2xl border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#0C1C14] p-7 shadow-2xl"
       >
         <div className="text-[10.5px] tracking-[0.22em] uppercase text-ink-mute mb-3">
           [ unexpected error · recovery ]
@@ -59,7 +59,7 @@ export function RootCrashScreen({ error }: { error?: Error }) {
         <div className="flex flex-col gap-2">
           <button
             onClick={goHome}
-            className="rounded-xl bg-ink dark:bg-[#1A2236] dark:border dark:border-white/15 px-5 py-3 text-[13px] font-medium text-cream-50 hover:bg-ink-soft dark:hover:bg-[#222c3e] transition-colors"
+            className="rounded-xl bg-ink dark:bg-[#13261B] dark:border dark:border-white/15 px-5 py-3 text-[13px] font-medium text-cream-50 hover:bg-ink-soft dark:hover:bg-[#1A3324] transition-colors"
           >
             ← Back to home
           </button>

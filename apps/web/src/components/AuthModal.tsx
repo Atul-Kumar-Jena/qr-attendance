@@ -66,7 +66,7 @@ export function AuthModal({ trigger }: AuthModalProps) {
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[9998] bg-ink/30 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=open]:fade-in" />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 z-[9999] -translate-x-1/2 -translate-y-1/2 w-full max-w-sm rounded-2xl border border-ink/10 bg-cream-50 p-8 shadow-2xl dark:bg-[#13161D] dark:border-white/8 focus:outline-none"
+          className="fixed left-1/2 top-1/2 z-[9999] -translate-x-1/2 -translate-y-1/2 w-full max-w-sm rounded-2xl border border-ink/10 bg-cream-50 p-8 shadow-2xl dark:bg-[#0C1C14] dark:border-white/8 focus:outline-none"
           aria-describedby="auth-modal-desc"
         >
           <Dialog.Title className="font-display text-[1.6rem] leading-tight mb-1">
@@ -81,7 +81,7 @@ export function AuthModal({ trigger }: AuthModalProps) {
           {user ? (
             <div className="space-y-4">
               {/* Avatar + info */}
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-cream-100 dark:bg-[#0D0F14] border border-ink/6">
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-cream-100 dark:bg-[#07140E] border border-ink/6">
                 {user.photoURL ? (
                   <img
                     src={user.photoURL}
