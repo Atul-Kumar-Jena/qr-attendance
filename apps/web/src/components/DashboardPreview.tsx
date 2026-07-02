@@ -137,7 +137,12 @@ export function DashboardPreview() {
                     </div>
                     <span className="text-[11px] text-sage-600">+4.2% wk/wk</span>
                   </div>
-                  <div className="h-40 grid grid-cols-14 items-end gap-1.5">
+                  {/* grid-cols-14 doesn't exist in Tailwind's default scale — declare the
+                      14 columns explicitly or the "bars" collapse into stacked stripes */}
+                  <div
+                    className="h-40 grid items-end gap-1.5"
+                    style={{ gridTemplateColumns: 'repeat(14, minmax(0, 1fr))' }}
+                  >
                     {[68, 74, 82, 60, 88, 90, 72, 86, 94, 80, 91, 85, 96, 92].map((h, i) => (
                       <div
                         key={i}

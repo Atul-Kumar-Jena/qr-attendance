@@ -42,11 +42,17 @@ export function Pricing() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.from('.tier', {
-        opacity: 0, y: 50, rotateX: -8,
-        stagger: 0.12, duration: 1, ease: 'power3.out',
-        scrollTrigger: { trigger: root.current, start: 'top 75%' },
-      });
+      // fromTo + immediateRender:false + once — cards stay visible by default and
+      // only animate when the trigger actually fires. The previous gsap.from()
+      // pattern could leave all three tiers stuck at opacity 0 (invisible pricing).
+      gsap.fromTo('.tier',
+        { opacity: 0, y: 50, rotateX: -8 },
+        {
+          opacity: 1, y: 0, rotateX: 0,
+          stagger: 0.12, duration: 1, ease: 'power3.out',
+          immediateRender: false,
+          scrollTrigger: { trigger: root.current, start: 'top 85%', once: true },
+        });
       gsap.utils.toArray<HTMLElement>('.price-counter').forEach((el) => {
         const v = Number(el.dataset.v);
         if (!Number.isFinite(v)) return;
