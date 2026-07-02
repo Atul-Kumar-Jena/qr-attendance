@@ -14,45 +14,30 @@ function stripBase(href: string): string {
   return href;
 }
 
-/**
- * Card-stack page transition. On internal navigation a stack of glass cards
- * slides up to cover the viewport (with the brand mark), the route swaps behind
- * it, then the cards slide away to reveal the new page. Deliberately slow and
- * evident. Falls back to a plain fade for reduced-motion.
- */
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
-  const stack = useRef<HTMLDivElement>(null);
-  const navigating = useRef(false);
   const pathname = usePathname();
   const router = useRouter();
 
-  // Reveal on mount / route change: slide the covering cards away.
+  // Fade IN on mount or route change
   useEffect(() => {
     const el = ref.current;
-    const cards = stack.current?.querySelectorAll<HTMLElement>('.pt-card');
-    const label = stack.current?.querySelector<HTMLElement>('.pt-card-label');
-    if (el) {
-      gsap.fromTo(el, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out', clearProps: 'transform' });
-    }
-    if (cards && cards.length && navigating.current) {
-      const tl = gsap.timeline({
-        onComplete: () => {
-          if (stack.current) stack.current.classList.remove('active');
-          navigating.current = false;
-        },
-      });
-      tl.to(label as Element, { autoAlpha: 0, duration: 0.2 }, 0)
-        .to(cards, { yPercent: -112, duration: 0.62, ease: 'power3.inOut', stagger: 0.08 }, 0.05);
-    }
+    if (!el) return;
+    gsap.fromTo(
+      el,
+      { opacity: 0, y: 12 },
+      { opacity: 1, y: 0, duration: 0.55, ease: 'power3.out', clearProps: 'transform' },
+    );
   }, [pathname]);
 
-  // Intercept internal link clicks → play cover, push route, then reveal.
+  // Intercept link clicks — fade OUT then use Next.js router (no full reload)
+  // IMPORTANT: Strip basePath from href before router.push — Next.js adds it automatically.
+  // Without this, every click double-applies the basePath → 404.
   useEffect(() => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const el = ref.current;
+    if (!el) return;
 
     const onClick = (e: MouseEvent) => {
-      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
       const anchor = (e.target as Element).closest('a');
       if (!anchor) return;
       const rawHref = anchor.getAttribute('href');
@@ -66,21 +51,13 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
 
       e.preventDefault();
       const route = stripBase(rawHref);
-
-      if (reduce) { router.push(route); return; }
-
-      const cards = stack.current?.querySelectorAll<HTMLElement>('.pt-card');
-      const label = stack.current?.querySelector<HTMLElement>('.pt-card-label');
-      if (!cards || !cards.length) { router.push(route); return; }
-
-      navigating.current = true;
-      stack.current!.classList.add('active');
-      gsap.set(cards, { yPercent: 112 });
-      gsap.set(label as Element, { autoAlpha: 0, y: 20 });
-
-      const tl = gsap.timeline({ onComplete: () => router.push(route) });
-      tl.to(cards, { yPercent: 0, duration: 0.6, ease: 'power3.inOut', stagger: 0.07 }, 0)
-        .to(label as Element, { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power2.out' }, 0.28);
+      gsap.to(el, {
+        opacity: 0,
+        y: -8,
+        duration: 0.28,
+        ease: 'power2.in',
+        onComplete: () => router.push(route),
+      });
     };
 
     document.addEventListener('click', onClick, true);
@@ -88,21 +65,8 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   return (
-    <>
-      <div ref={ref} style={{ opacity: 1 }}>
-        {children}
-      </div>
-
-      {/* Covering card stack */}
-      <div id="pt-stack" ref={stack} aria-hidden>
-        <div className="pt-card pt-card-3" />
-        <div className="pt-card pt-card-2" />
-        <div className="pt-card pt-card-1">
-          <div className="pt-card-label">
-            <span className="iri-text text-[14vw] md:text-[7vw] font-display">Attendly</span>
-          </div>
-        </div>
-      </div>
-    </>
+    <div ref={ref} style={{ opacity: 1 }}>
+      {children}
+    </div>
   );
 }

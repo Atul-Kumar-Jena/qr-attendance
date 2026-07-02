@@ -153,7 +153,7 @@ export function LiveQrShowcase({
       <div style={{ perspective: '1400px' }}>
         <div
           ref={wrapRef}
-          className={`relative bg-[#0A1810] ${rounded ? 'rounded-[20px]' : ''} shadow-[0_12px_60px_-10px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.07)]`}
+          className={`relative bg-[#0B1220] ${rounded ? 'rounded-[20px]' : ''} shadow-[0_12px_60px_-10px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.07)]`}
           style={{ padding: 18, display: 'inline-block' }}
         >
           {/* Orbital SVG — sits over the whole card */}
@@ -170,7 +170,7 @@ export function LiveQrShowcase({
               cy={totalSize / 2}
               r={(size / 2) + 18}
               fill="none"
-              stroke="rgba(46,138,92,0.12)"
+              stroke="rgba(255,107,61,0.12)"
               strokeWidth="1"
             />
             {/* Bright arc 1 — rotating */}
@@ -180,7 +180,7 @@ export function LiveQrShowcase({
               cy={totalSize / 2}
               r={(size / 2) + 18}
               fill="none"
-              stroke="rgba(46,138,92,0.85)"
+              stroke="rgba(255,107,61,0.85)"
               strokeWidth="1.5"
               strokeLinecap="round"
             />
@@ -191,7 +191,7 @@ export function LiveQrShowcase({
               cy={totalSize / 2}
               r={(size / 2) + 24}
               fill="none"
-              stroke="rgba(215,182,90,0.4)"
+              stroke="rgba(255,140,90,0.4)"
               strokeWidth="1"
               strokeLinecap="round"
             />
@@ -207,7 +207,7 @@ export function LiveQrShowcase({
                 height={8}
                 rx={1.5}
                 fill="none"
-                stroke="rgba(46,138,92,0.7)"
+                stroke="rgba(255,107,61,0.7)"
                 strokeWidth="1.5"
               />
             ))}
@@ -246,8 +246,8 @@ export function LiveQrShowcase({
               style={{
                 top: 0,
                 height: 3,
-                background: 'linear-gradient(90deg, transparent 0%, rgba(46,138,92,0.9) 30%, rgba(234,215,155,1) 50%, rgba(46,138,92,0.9) 70%, transparent 100%)',
-                boxShadow: '0 0 12px rgba(46,138,92,0.8)',
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255,107,61,0.9) 30%, rgba(255,160,90,1) 50%, rgba(255,107,61,0.9) 70%, transparent 100%)',
+                boxShadow: '0 0 12px rgba(255,107,61,0.8)',
               }}
             />
           </div>

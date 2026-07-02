@@ -62,7 +62,7 @@ const SECTIONS: Section[] = [
 
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-cream-100 dark:bg-[#07140E] px-6 py-16 relative overflow-hidden">
+    <main className="min-h-screen bg-cream-100 dark:bg-[#0D0F14] px-6 py-16 relative overflow-hidden">
       <div
         aria-hidden
         className="absolute inset-0 opacity-40"
@@ -111,7 +111,7 @@ export default function TermsPage() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.03 * i }}
-                className="rounded-2xl border border-ink/8 dark:border-white/8 bg-cream-50 dark:bg-[#0C1C14] p-5"
+                className="rounded-2xl border border-ink/8 dark:border-white/8 bg-cream-50 dark:bg-[#13161D] p-5"
               >
                 <div className="flex items-baseline gap-3 mb-1.5">
                   <span className="text-[11px] font-mono text-accent flex-shrink-0">{String(i + 1).padStart(2, '0')}</span>
@@ -135,7 +135,7 @@ export default function TermsPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
               href="/"
-              className="flex-1 rounded-xl bg-ink dark:bg-[#13261B] dark:border dark:border-white/15 px-5 py-3.5 text-[13.5px] font-medium tracking-wide text-cream-50 text-center hover:bg-ink-soft dark:hover:bg-[#1A3324] transition-colors"
+              className="flex-1 rounded-xl bg-ink dark:bg-[#1A2236] dark:border dark:border-white/15 px-5 py-3.5 text-[13.5px] font-medium tracking-wide text-cream-50 text-center hover:bg-ink-soft dark:hover:bg-[#222c3e] transition-colors"
             >
               ← Continue to site
             </Link>

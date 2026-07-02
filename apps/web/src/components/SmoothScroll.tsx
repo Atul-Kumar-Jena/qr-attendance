@@ -5,39 +5,33 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 /**
- * Lenis smooth scroll, registered as a GSAP ScrollTrigger proxy so pinned /
- * scrubbed sections stay in sync.
- *
- * Anti-hang notes:
- *  - Desktop uses a short `lerp` (not a long `duration`) so the view tracks the
- *    wheel tightly and never feels like it "hangs" behind a fast flick.
- *  - Touch is left on native momentum (`syncTouch: false`) — smoothing touch is
- *    the usual cause of janky/stuck mobile scrolling.
- *  - `prefers-reduced-motion` disables Lenis entirely.
+ * Lenis smooth scroll, registered as GSAP ScrollTrigger proxy for compatibility
+ * with all pinned/scrubbed sections. Respects prefers-reduced-motion.
  */
 export function SmoothScroll() {
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     let lenis: import('lenis').default | null = null;
-    let ticker: ((t: number) => void) | null = null;
 
     import('lenis').then(({ default: Lenis }) => {
       lenis = new Lenis({
-        lerp: 0.1,
-        wheelMultiplier: 1,
-        smoothWheel: true,
-        syncTouch: false,       // native momentum on touch → no mobile hang
-        touchMultiplier: 1.5,
+        duration: 1.15,
+        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        touchMultiplier: 2,
       });
 
+      // Ensure page always starts at the very top
       window.scrollTo(0, 0);
+
       lenis.on('scroll', ScrollTrigger.update);
 
-      ticker = (time: number) => { lenis?.raf(time * 1000); };
-      gsap.ticker.add(ticker);
+      const ticker = gsap.ticker.add((time: number) => {
+        lenis?.raf(time * 1000);
+      });
       gsap.ticker.lagSmoothing(0);
 
+      // Expose to GSAP ScrollTrigger as the scroll proxy
       ScrollTrigger.scrollerProxy(document.documentElement, {
         scrollTop(value?: number) {
           if (arguments.length && value != null) {
@@ -50,19 +44,21 @@ export function SmoothScroll() {
         },
       });
 
-      // Expose velocity to CSS so velocity-reactive bits (marquee etc.) can read it.
+      // Propagate velocity to CSS var so Marquee skew still works
       lenis.on('scroll', ({ velocity }: { velocity: number }) => {
         document.documentElement.style.setProperty('--scroll-velocity', String(velocity * 0.04));
       });
 
-      ScrollTrigger.refresh();
+      return () => {
+        gsap.ticker.remove(ticker);
+        ScrollTrigger.scrollerProxy(document.documentElement, {} as any);
+        lenis?.destroy();
+      };
     }).catch(() => {
-      // Lenis unavailable — native scroll still works; ScrollTrigger is fine.
+      // Lenis unavailable — fall back to native scroll, keep ScrollTrigger working
     });
 
     return () => {
-      if (ticker) gsap.ticker.remove(ticker);
-      try { ScrollTrigger.scrollerProxy(document.documentElement, {} as never); } catch {}
       lenis?.destroy();
     };
   }, []);

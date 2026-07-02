@@ -4,9 +4,9 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 type Mode = 'light' | 'dark' | 'auto';
 type Theme = 'light' | 'dark';
 
-// Fluid-glass deep theme is the signature look — "auto" resolves to dark.
 function getAutoTheme(): Theme {
-  return 'dark';
+  const h = new Date().getHours();
+  return h >= 7 && h < 19 ? 'light' : 'dark';
 }
 
 function resolveTheme(mode: Mode): Theme {

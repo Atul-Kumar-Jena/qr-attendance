@@ -139,9 +139,9 @@ export function Cursor() {
         className="pointer-events-none fixed left-0 top-0 z-[99998] w-9 h-9 rounded-full hidden md:block"
         style={{
           willChange: 'transform',
-          border: '1.5px solid rgba(46,138,92,0.65)',
+          border: '1.5px solid rgba(255,107,61,0.65)',
           transition: 'width 0.3s, height 0.3s',
-          boxShadow: '0 0 8px rgba(46,138,92,0.2)',
+          boxShadow: '0 0 8px rgba(255,107,61,0.2)',
         }}
       />
       {/* Dot — mix-blend-mode: difference → always contrasts with background */}

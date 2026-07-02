@@ -131,7 +131,7 @@ export function OnboardingFlow({ user, onComplete }: Props) {
 
   return (
     <div className="fixed inset-0 z-[99990] flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-md bg-cream-50 dark:bg-[#0C1C14] rounded-2xl border border-ink/10 dark:border-white/10 shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-md bg-cream-50 dark:bg-[#13161D] rounded-2xl border border-ink/10 dark:border-white/10 shadow-2xl overflow-hidden">
         {/* Progress bar */}
         {meta && (
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-ink/6 dark:bg-white/8">
@@ -272,7 +272,7 @@ export function OnboardingFlow({ user, onComplete }: Props) {
                     <p className="text-[12px] text-green-700 dark:text-green-400">Share this code with your students and teachers:</p>
                     <div className="flex gap-4 items-center">
                       <div className="bg-white p-2 rounded-xl flex-shrink-0">
-                        <QRCodeSVG value={`attendly://join?code=${createdCode}`} size={72} bgColor="#ffffff" fgColor="#0A1810" level="M" />
+                        <QRCodeSVG value={`attendly://join?code=${createdCode}`} size={72} bgColor="#ffffff" fgColor="#0B1220" level="M" />
                       </div>
                       <div>
                         <div className="font-mono text-[2rem] font-bold tracking-[0.3em] text-ink dark:text-cream-50 leading-none">{createdCode}</div>

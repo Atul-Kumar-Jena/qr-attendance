@@ -24,7 +24,7 @@ export function CTA() {
         {
           scale: 1, yPercent: 0, opacity: 1, letterSpacing: '-0.04em',
           ease: 'expo.out',
-          scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'center center', scrub: 0.5 },
+          scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'center center', scrub: 1 },
         });
 
       const p = path.current!;
@@ -32,7 +32,7 @@ export function CTA() {
       gsap.set(p, { strokeDasharray: len, strokeDashoffset: len });
       gsap.to(p, {
         strokeDashoffset: 0, ease: 'none',
-        scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'bottom 60%', scrub: 0.5 },
+        scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'bottom 60%', scrub: 1 },
       });
     }, root);
     return () => ctx.revert();
@@ -58,7 +58,7 @@ export function CTA() {
         <div className="mt-8 flex items-center justify-center gap-4">
           <Magnetic strength={0.25}>
             <a href="mailto:hello@attendly.app"
-               className="rounded-full bg-ink dark:bg-[#13261B] dark:border dark:border-white/10 text-cream-50 px-7 py-3.5 text-[13.5px] font-medium">
+               className="rounded-full bg-ink dark:bg-[#1A2236] dark:border dark:border-white/10 text-cream-50 px-7 py-3.5 text-[13.5px] font-medium">
               Request demo
             </a>
           </Magnetic>

@@ -17,7 +17,7 @@ function ToastEntry({ item, onDismiss }: { item: ToastItem; onDismiss: () => voi
   const bgMap = {
     success: 'bg-[#1a2e1a] border-[#2d5c2d] text-[#7ecf7e]',
     error:   'bg-[#2e1a1a] border-[#5c2d2d] text-[#cf7e7e]',
-    info:    'bg-cream-50 dark:bg-[#0C1C14] border-ink/10 text-ink-mute',
+    info:    'bg-cream-50 dark:bg-[#13161D] border-ink/10 text-ink-mute',
   };
 
   const iconMap = {

@@ -23,11 +23,11 @@ export function MobilePreview() {
       // Phones parallax at different speeds
       gsap.to('.phone-a', {
         y: -80, ease: 'none',
-        scrollTrigger: { trigger: root.current, start: 'top bottom', end: 'bottom top', scrub: 0.5 },
+        scrollTrigger: { trigger: root.current, start: 'top bottom', end: 'bottom top', scrub: 1 },
       });
       gsap.to('.phone-b', {
         y: 40, ease: 'none',
-        scrollTrigger: { trigger: root.current, start: 'top bottom', end: 'bottom top', scrub: 0.5 },
+        scrollTrigger: { trigger: root.current, start: 'top bottom', end: 'bottom top', scrub: 1 },
       });
 
       // Scanner sweep
@@ -66,12 +66,12 @@ export function MobilePreview() {
           <div className="flex justify-center md:justify-end">
             <div className="phone-a relative">
               <PhoneShell>
-                <div className="relative h-full w-full bg-gradient-to-b from-[#0C2016] to-[#0A1810] text-cream-50 p-5 flex flex-col">
+                <div className="relative h-full w-full bg-gradient-to-b from-[#0F1A2D] to-[#0B1220] text-cream-50 p-5 flex flex-col">
                   <div className="text-[10px] text-cream-50/50 tracking-wider">CS-301 · Operating Systems</div>
                   <div className="font-display text-[1.4rem] mt-1">Live signed QR</div>
                   <div className="mt-3 relative aspect-square rounded-2xl border border-cream-50/15 overflow-hidden flex items-center justify-center bg-black/20">
                     <LiveQrShowcase size={200} rounded showMeta={false} />
-                    <div className="scan-line absolute left-0 right-0 h-[2px] bg-accent shadow-[0_0_18px_2px_rgba(46,138,92,0.7)] pointer-events-none" />
+                    <div className="scan-line absolute left-0 right-0 h-[2px] bg-accent shadow-[0_0_18px_2px_rgba(255,107,61,0.7)] pointer-events-none" />
                   </div>
                   <div className="mt-3 text-[11.5px] text-cream-50/60 leading-snug">
                     ECDSA-P256 signed · rotates every {ttlSec}s. Demo only — not scannable.
@@ -110,7 +110,7 @@ export function MobilePreview() {
                         <div className="mt-1 h-1 rounded-full bg-ink/8 overflow-hidden">
                           <div
                             className="h-full rounded-full"
-                            style={{ width: `${row.p}%`, background: row.c === 'accent' ? '#2E8A5C' : '#7C967A' }}
+                            style={{ width: `${row.p}%`, background: row.c === 'accent' ? '#FF6B3D' : '#7C967A' }}
                           />
                         </div>
                       </div>

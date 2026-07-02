@@ -18,7 +18,7 @@ export function SkeletonRow({ cols = 4 }: { cols?: number }) {
 
 export function SkeletonCard({ lines = 3 }: { lines?: number }) {
   return (
-    <div className="rounded-xl border border-ink/8 bg-cream-50 dark:bg-[#0C1C14] p-5 space-y-3 animate-pulse">
+    <div className="rounded-xl border border-ink/8 bg-cream-50 dark:bg-[#13161D] p-5 space-y-3 animate-pulse">
       <div className="h-2.5 bg-ink/10 dark:bg-white/10 rounded-full w-24" />
       <div className="h-8 bg-ink/10 dark:bg-white/10 rounded-lg w-16" />
       {lines > 2 && <div className="h-2 bg-ink/6 dark:bg-white/6 rounded-full w-32" />}

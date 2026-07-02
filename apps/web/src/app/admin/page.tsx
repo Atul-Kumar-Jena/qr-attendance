@@ -1825,7 +1825,7 @@ function GodModePanel() {
       {/* PAID pricing dialog */}
       {pricingDialog === 'paid' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 dark:bg-black/60 backdrop-blur-sm">
-          <div className="bg-cream-50 dark:bg-[#0C1C14] rounded-2xl border border-ink/10 dark:border-white/10 p-8 max-w-md w-full mx-4 shadow-2xl">
+          <div className="bg-cream-50 dark:bg-[#13161D] rounded-2xl border border-ink/10 dark:border-white/10 p-8 max-w-md w-full mx-4 shadow-2xl">
             <h2 className="font-display text-[1.6rem] mb-1 dark:text-cream-50">Set custom pricing</h2>
             <p className="text-[13px] text-ink-mute dark:text-white/50 mb-5">
               Visitors will see this price on the Pro plan. Leave the payment URL blank if you haven&apos;t set up payments yet.
@@ -1837,7 +1837,7 @@ function GodModePanel() {
                   type="number" min="0" value={draftPrice}
                   onChange={(e) => setDraftPrice(e.target.value)}
                   placeholder="e.g. 49"
-                  className="w-full rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#13261B] px-3 py-2 text-[13px] dark:text-cream-50 focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="w-full rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-2 text-[13px] dark:text-cream-50 focus:outline-none focus:ring-2 focus:ring-accent/40"
                 />
               </div>
               <div>
@@ -1846,7 +1846,7 @@ function GodModePanel() {
                   type="text" value={draftPriceLabel}
                   onChange={(e) => setDraftPriceLabel(e.target.value)}
                   placeholder="per month"
-                  className="w-full rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#13261B] px-3 py-2 text-[13px] dark:text-cream-50 focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="w-full rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-2 text-[13px] dark:text-cream-50 focus:outline-none focus:ring-2 focus:ring-accent/40"
                 />
               </div>
               <div>
@@ -1855,7 +1855,7 @@ function GodModePanel() {
                   type="url" value={draftPaymentUrl}
                   onChange={(e) => setDraftPaymentUrl(e.target.value)}
                   placeholder="https://buy.stripe.com/…"
-                  className="w-full rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#13261B] px-3 py-2 text-[13px] dark:text-cream-50 focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="w-full rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-2 text-[13px] dark:text-cream-50 focus:outline-none focus:ring-2 focus:ring-accent/40"
                 />
                 {!draftPaymentUrl && (
                   <p className="mt-1 text-[11px] text-ink/40 dark:text-white/30">CTAs will show &quot;coming soon&quot; until you add a payment link.</p>
@@ -1879,7 +1879,7 @@ function GodModePanel() {
       {/* FREE pricing confirmation dialog */}
       {pricingDialog === 'free' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 dark:bg-black/60 backdrop-blur-sm">
-          <div className="bg-cream-50 dark:bg-[#0C1C14] rounded-2xl border border-ink/10 dark:border-white/10 p-8 max-w-md w-full mx-4 shadow-2xl">
+          <div className="bg-cream-50 dark:bg-[#13161D] rounded-2xl border border-ink/10 dark:border-white/10 p-8 max-w-md w-full mx-4 shadow-2xl">
             <h2 className="font-display text-[1.6rem] mb-1 dark:text-cream-50">Make everything free?</h2>
             <p className="text-[13px] text-ink-mute dark:text-white/50 mb-4">
               All pricing plans will display as <strong className="text-green-600 dark:text-green-400">Free</strong> across the entire site. No payment required from visitors.
@@ -1958,11 +1958,11 @@ function GodModePanel() {
               <div key={i} className="grid grid-cols-3 gap-2 items-center">
                 {i === 0 && <><div className="text-[10px] text-ink-mute">Label</div><div className="text-[10px] text-ink-mute">Value</div><div className="text-[10px] text-ink-mute">Subtitle</div></>}
                 <input value={stat.tag} onChange={e => update('tag', e.target.value)} placeholder={`Label ${i + 1}`}
-                  className="rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#13261B] px-3 py-1.5 text-[12px] dark:text-cream-50 focus:outline-none focus:ring-1 focus:ring-accent/40" />
+                  className="rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-1.5 text-[12px] dark:text-cream-50 focus:outline-none focus:ring-1 focus:ring-accent/40" />
                 <input value={stat.value} onChange={e => update('value', e.target.value)} placeholder="e.g. 99.7%"
-                  className="rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#13261B] px-3 py-1.5 text-[12px] dark:text-cream-50 focus:outline-none focus:ring-1 focus:ring-accent/40" />
+                  className="rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-1.5 text-[12px] dark:text-cream-50 focus:outline-none focus:ring-1 focus:ring-accent/40" />
                 <input value={stat.sub} onChange={e => update('sub', e.target.value)} placeholder={`Subtitle ${i + 1}`}
-                  className="rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#13261B] px-3 py-1.5 text-[12px] dark:text-cream-50 focus:outline-none focus:ring-1 focus:ring-accent/40" />
+                  className="rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-1.5 text-[12px] dark:text-cream-50 focus:outline-none focus:ring-1 focus:ring-accent/40" />
               </div>
             );
           })}

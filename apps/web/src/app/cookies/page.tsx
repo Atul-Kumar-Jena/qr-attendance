@@ -49,7 +49,7 @@ const NEVER = [
 
 export default function CookiesPage() {
   return (
-    <main className="min-h-screen bg-cream-100 dark:bg-[#07140E] px-6 py-16 relative overflow-hidden">
+    <main className="min-h-screen bg-cream-100 dark:bg-[#0D0F14] px-6 py-16 relative overflow-hidden">
       {/* Subtle backdrop with a different hue so users see this is a different doc from /terms */}
       <div
         aria-hidden
@@ -125,7 +125,7 @@ export default function CookiesPage() {
           </div>
 
           {/* Manage */}
-          <div className="rounded-2xl border border-ink/8 dark:border-white/8 bg-cream-50 dark:bg-[#0C1C14] p-5 mb-10">
+          <div className="rounded-2xl border border-ink/8 dark:border-white/8 bg-cream-50 dark:bg-[#13161D] p-5 mb-10">
             <h2 className="text-[14px] font-medium text-ink dark:text-cream-50 mb-1.5">In your control</h2>
             <p className="text-[12.5px] text-ink-mute leading-relaxed mb-3">
               You can clear everything we&apos;ve saved on your device in one click. Your sign-in, theme, tour state and device fingerprint will reset.
@@ -142,7 +142,7 @@ export default function CookiesPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
               href="/"
-              className="flex-1 rounded-xl bg-ink dark:bg-[#13261B] dark:border dark:border-white/15 px-5 py-3.5 text-[13.5px] font-medium tracking-wide text-cream-50 text-center hover:bg-ink-soft dark:hover:bg-[#1A3324] transition-colors"
+              className="flex-1 rounded-xl bg-ink dark:bg-[#1A2236] dark:border dark:border-white/15 px-5 py-3.5 text-[13.5px] font-medium tracking-wide text-cream-50 text-center hover:bg-ink-soft dark:hover:bg-[#222c3e] transition-colors"
             >
               ← Continue to site
             </Link>
@@ -192,7 +192,7 @@ function CookieCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.06 * i }}
-      className={`rounded-2xl border bg-cream-50 dark:bg-[#0C1C14] p-5 ${ring}`}
+      className={`rounded-2xl border bg-cream-50 dark:bg-[#13161D] p-5 ${ring}`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="text-[24px] leading-none">{card.icon}</div>

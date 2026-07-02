@@ -190,7 +190,7 @@ export function CryptoPanel() {
       />
 
       {/* Device & geo card */}
-      <div data-anim className="rounded-2xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#0C1C14] p-5">
+      <div data-anim className="rounded-2xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#13161D] p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-[14px] font-medium text-ink dark:text-cream-50">Device binding</h3>
           <button
@@ -212,7 +212,7 @@ export function CryptoPanel() {
       </div>
 
       {/* Verify simulator */}
-      <div data-anim className="rounded-2xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#0C1C14] p-5">
+      <div data-anim className="rounded-2xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#13161D] p-5">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="text-[14px] font-medium text-ink dark:text-cream-50">Sign → verify simulator</h3>
@@ -249,7 +249,7 @@ export function CryptoPanel() {
       <PasteVerifier instPub={instKey?.publicKey} />
 
       {/* All keys */}
-      <div data-anim className="rounded-2xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#0C1C14] p-5">
+      <div data-anim className="rounded-2xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#13161D] p-5">
         <h3 className="text-[14px] font-medium text-ink dark:text-cream-50 mb-3">All keys in this browser ({allKeys.length})</h3>
         {allKeys.length === 0 ? (
           <p className="text-[12px] text-ink-mute">No keys yet.</p>
@@ -282,7 +282,7 @@ function KeyCard({
   onAction?: () => void;
 }) {
   return (
-    <div data-anim className="rounded-2xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#0C1C14] p-5">
+    <div data-anim className="rounded-2xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#13161D] p-5">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <h3 className="text-[14px] font-medium text-ink dark:text-cream-50">{title}</h3>
@@ -345,7 +345,7 @@ function PasteVerifier({ instPub }: { instPub?: string }) {
   };
 
   return (
-    <div data-anim className="rounded-2xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#0C1C14] p-5">
+    <div data-anim className="rounded-2xl border border-ink/8 dark:border-white/10 bg-cream-50 dark:bg-[#13161D] p-5">
       <h3 className="text-[14px] font-medium text-ink dark:text-cream-50 mb-1">Paste & verify a token</h3>
       <p className="text-[11.5px] text-ink-mute mb-3">
         Drop in either the raw <span className="font-mono">payload.sig</span> string or a full <span className="font-mono">attendly://scan?…</span> URL.

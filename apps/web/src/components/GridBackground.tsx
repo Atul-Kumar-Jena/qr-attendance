@@ -1,78 +1,106 @@
 'use client';
 import { useEffect, useRef } from 'react';
 
-/**
- * Deep atmospheric backdrop — a dark, softly-drifting iridescent gradient field
- * with a faint grid and (on desktop) a cursor-revealed glow. GPU-composited
- * transforms only, so it stays cheap during fast scroll.
- */
 export function GridBackground() {
+  const revealRef = useRef<HTMLDivElement>(null);
   const spotRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (window.matchMedia('(pointer: coarse)').matches) return;
 
+    const reveal = revealRef.current!;
     const spot = spotRef.current!;
-    let mx = -9999, my = -9999, cx = mx, cy = my, raf = 0;
+
+    let mx = -9999, my = -9999;
+    let cx = mx, cy = my;
+    let raf = 0;
+
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
     const onMove = (e: MouseEvent) => { mx = e.clientX; my = e.clientY; };
 
     const tick = () => {
       cx = lerp(cx, mx, 0.09);
       cy = lerp(cy, my, 0.09);
-      spot.style.background =
-        `radial-gradient(560px circle at ${cx}px ${cy}px, rgb(var(--accent-rgb) / 0.13) 0%, rgb(var(--accent-rgb) / 0.04) 42%, transparent 70%)`;
+
+      const mask = `radial-gradient(380px circle at ${cx}px ${cy}px, black 0%, black 25%, transparent 68%)`;
+      reveal.style.webkitMaskImage = mask;
+      reveal.style.maskImage = mask;
+
+      const isDark = document.documentElement.classList.contains('dark');
+      spot.style.background = isDark
+        ? `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(255,107,61,0.14) 0%, rgba(255,107,61,0.04) 45%, transparent 70%)`
+        : `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(255,107,61,0.10) 0%, rgba(255,107,61,0.03) 45%, transparent 70%)`;
+
       raf = requestAnimationFrame(tick);
     };
+
     window.addEventListener('mousemove', onMove, { passive: true });
     raf = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('mousemove', onMove); };
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('mousemove', onMove);
+    };
   }, []);
 
-  const G = '54px 54px';
+  const G = '48px 48px';
 
   return (
-    <div className="atmos" aria-hidden>
-      {/* Base wash */}
-      <div className="absolute inset-0" style={{
-        background: 'radial-gradient(120% 90% at 50% -10%, var(--atmos-wash), transparent 60%)',
-      }} />
-
-      {/* Drifting aurora blobs (colours driven by Palette Studio) */}
-      <div className="atmos-blob" style={{
-        width: '46vw', height: '46vw', left: '-8vw', top: '-6vw',
-        background: 'radial-gradient(circle, var(--atmos-1), transparent 65%)',
-        animation: 'drift1 26s ease-in-out infinite',
-      }} />
-      <div className="atmos-blob" style={{
-        width: '50vw', height: '50vw', right: '-12vw', top: '8vh',
-        background: 'radial-gradient(circle, var(--atmos-2), transparent 65%)',
-        animation: 'drift2 32s ease-in-out infinite',
-      }} />
-      <div className="atmos-blob" style={{
-        width: '40vw', height: '40vw', left: '20vw', bottom: '-12vh',
-        background: 'radial-gradient(circle, var(--atmos-3), transparent 65%)',
-        animation: 'drift3 38s ease-in-out infinite',
-      }} />
-
-      {/* Faint grid */}
+    <div className="fixed inset-0 pointer-events-none z-0" aria-hidden>
+      {/* Dim base grid — accent orange tint */}
       <div className="absolute inset-0" style={{
         backgroundImage: [
-          'linear-gradient(var(--atmos-grid) 1px, transparent 1px)',
-          'linear-gradient(90deg, var(--atmos-grid) 1px, transparent 1px)',
+          'linear-gradient(rgba(255,107,61,0.05) 1px, transparent 1px)',
+          'linear-gradient(90deg, rgba(255,107,61,0.05) 1px, transparent 1px)',
         ].join(', '),
         backgroundSize: G,
-        maskImage: 'radial-gradient(120% 100% at 50% 0%, black, transparent 80%)',
-        WebkitMaskImage: 'radial-gradient(120% 100% at 50% 0%, black, transparent 80%)',
       }} />
 
-      {/* Cursor glow (desktop) */}
+      {/* Dim intersection dots */}
+      <div className="absolute inset-0" style={{
+        backgroundImage: 'radial-gradient(circle, rgba(255,107,61,0.14) 0.9px, transparent 0.9px)',
+        backgroundSize: G,
+      }} />
+
+      {/* Cursor-revealed bright layer */}
+      <div
+        ref={revealRef}
+        className="absolute inset-0"
+        style={{
+          WebkitMaskImage: 'radial-gradient(380px circle at -9999px -9999px, black 0%, transparent 68%)',
+          maskImage: 'radial-gradient(380px circle at -9999px -9999px, black 0%, transparent 68%)',
+        }}
+      >
+        {/* Vivid lines */}
+        <div className="absolute inset-0" style={{
+          backgroundImage: [
+            'linear-gradient(rgba(255,107,61,0.65) 1px, transparent 1px)',
+            'linear-gradient(90deg, rgba(255,107,61,0.65) 1px, transparent 1px)',
+          ].join(', '),
+          backgroundSize: G,
+        }} />
+        {/* Vivid dots */}
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'radial-gradient(circle, rgba(255,140,90,0.95) 1.1px, transparent 1.1px)',
+          backgroundSize: G,
+        }} />
+        {/* Soft bloom */}
+        <div className="absolute inset-0" style={{
+          backgroundImage: [
+            'linear-gradient(rgba(255,107,61,0.18) 3px, transparent 3px)',
+            'linear-gradient(90deg, rgba(255,107,61,0.18) 3px, transparent 3px)',
+          ].join(', '),
+          backgroundSize: G,
+          filter: 'blur(2.5px)',
+        }} />
+      </div>
+
+      {/* Ambient halo */}
       <div ref={spotRef} className="absolute inset-0" />
 
-      {/* Edge vignette toward the page bg */}
+      {/* Edge vignette */}
       <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse 100% 60% at 50% 0%, transparent 45%, var(--bg) 100%)',
+        background: 'radial-gradient(ellipse 100% 55% at 50% 0%, transparent 40%, var(--bg, #FAFAF7) 100%)',
       }} />
     </div>
   );

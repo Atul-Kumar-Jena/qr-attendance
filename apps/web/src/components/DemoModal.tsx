@@ -17,7 +17,7 @@ const SCENES = [
     title: 'QR rotates every 1.5 s',
     sub: 'ECDSA-P256 signed — impossible to screenshot-spoof',
     dur: 4500,
-    color: '#2E8A5C',
+    color: '#FF6B3D',
   },
   {
     id: 'scan',
@@ -75,7 +75,7 @@ function SceneQR({ tick }: { tick: number }) {
   return (
     <div className="flex flex-col items-center gap-4">
       <div
-        className="relative w-32 h-32 rounded-2xl bg-white flex items-center justify-center shadow-[0_0_40px_rgba(46,138,92,0.4)]"
+        className="relative w-32 h-32 rounded-2xl bg-white flex items-center justify-center shadow-[0_0_40px_rgba(255,107,61,0.4)]"
         style={{ animation: tick % 2 === 0 ? 'qrFlip 0.45s ease-out' : 'none' }}
       >
         {/* Mini QR-like grid */}
@@ -85,20 +85,20 @@ function SceneQR({ tick }: { tick: number }) {
             const y = Math.floor(i / 8) * 10;
             const dark = ((i * 7 + tick * 13) % 3) !== 0;
             return dark ? (
-              <rect key={i} x={x + 1} y={y + 1} width={8} height={8} rx={1.5} fill="#0A1810" />
+              <rect key={i} x={x + 1} y={y + 1} width={8} height={8} rx={1.5} fill="#0B1220" />
             ) : null;
           })}
           {/* Corner finders */}
           {[[1,1],[57,1],[1,57]].map(([cx,cy],i) => (
             <g key={i}>
-              <rect x={cx} y={cy} width={21} height={21} rx={2} fill="#0A1810" />
+              <rect x={cx} y={cy} width={21} height={21} rx={2} fill="#0B1220" />
               <rect x={cx+3} y={cy+3} width={15} height={15} rx={1.5} fill="white" />
-              <rect x={cx+6} y={cy+6} width={9} height={9} rx={1} fill="#0A1810" />
+              <rect x={cx+6} y={cy+6} width={9} height={9} rx={1} fill="#0B1220" />
             </g>
           ))}
         </svg>
         {/* Scan beam */}
-        <div className="absolute left-2 right-2 h-0.5 bg-[#2E8A5C] shadow-[0_0_8px_rgba(46,138,92,0.9)]"
+        <div className="absolute left-2 right-2 h-0.5 bg-[#FF6B3D] shadow-[0_0_8px_rgba(255,107,61,0.9)]"
           style={{ animation: 'scanBeam 1.5s linear infinite', top: 0 }} />
       </div>
       <div className="text-[11px] font-mono text-white/50">
@@ -113,14 +113,14 @@ function SceneScan() {
     <div className="relative flex items-center justify-center gap-8">
       {/* Phone */}
       <div className="relative flex flex-col items-center" style={{ animation: 'phoneSlide 1.2s ease-out both' }}>
-        <div className="w-14 h-24 rounded-xl bg-[#13261B] border border-white/15 flex items-center justify-center shadow-xl">
+        <div className="w-14 h-24 rounded-xl bg-[#1A2236] border border-white/15 flex items-center justify-center shadow-xl">
           <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(46,138,92,0.9)" strokeWidth="2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,107,61,0.9)" strokeWidth="2">
               <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3z"/>
-              <rect x="14" y="14" width="3" height="3" fill="rgba(46,138,92,0.9)"/>
-              <rect x="18" y="14" width="3" height="3" fill="rgba(46,138,92,0.9)"/>
-              <rect x="14" y="18" width="3" height="3" fill="rgba(46,138,92,0.9)"/>
-              <rect x="18" y="18" width="3" height="3" fill="rgba(46,138,92,0.9)"/>
+              <rect x="14" y="14" width="3" height="3" fill="rgba(255,107,61,0.9)"/>
+              <rect x="18" y="14" width="3" height="3" fill="rgba(255,107,61,0.9)"/>
+              <rect x="14" y="18" width="3" height="3" fill="rgba(255,107,61,0.9)"/>
+              <rect x="18" y="18" width="3" height="3" fill="rgba(255,107,61,0.9)"/>
             </svg>
           </div>
         </div>
@@ -140,7 +140,7 @@ function SceneScan() {
       </div>
       {/* Server */}
       <div className="flex flex-col items-center" style={{ animation: 'fadeIn 0.6s 0.3s ease both' }}>
-        <div className="w-14 h-20 rounded-xl bg-[#13261B] border border-[#22C55E]/40 flex flex-col items-center justify-center gap-2 shadow-xl">
+        <div className="w-14 h-20 rounded-xl bg-[#1A2236] border border-[#22C55E]/40 flex flex-col items-center justify-center gap-2 shadow-xl">
           {[0,1,2].map(i => (
             <div key={i} className="w-8 h-1.5 rounded bg-[#22C55E]/40" />
           ))}
@@ -270,7 +270,7 @@ export function DemoModal({ open, onClose }: { open: boolean; onClose: () => voi
     >
       <div
         ref={cardRef}
-        className="relative w-full max-w-lg rounded-3xl bg-[#07140E] border border-white/10 shadow-2xl overflow-hidden"
+        className="relative w-full max-w-lg rounded-3xl bg-[#0D0F14] border border-white/10 shadow-2xl overflow-hidden"
         style={{ maxHeight: '90vh' }}
       >
         {/* Scene progress bar */}

@@ -36,7 +36,7 @@ export function SecurityLayers() {
       gsap.to(p, {
         strokeDashoffset: 0,
         ease: 'none',
-        scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'bottom 30%', scrub: 0.5 },
+        scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'bottom 30%', scrub: 1 },
       });
 
       // Stagger expand rings
@@ -91,10 +91,10 @@ export function SecurityLayers() {
               <path
                 ref={path}
                 d="M 20 380 Q 100 250, 200 240 T 380 60"
-                stroke="#2E8A5C" strokeWidth="1.5" fill="none" strokeLinecap="round"
+                stroke="#FF6B3D" strokeWidth="1.5" fill="none" strokeLinecap="round"
               />
-              <circle cx="200" cy="200" r="14" fill="#2E8A5C" />
-              <circle cx="200" cy="200" r="14" fill="none" stroke="#2E8A5C"
+              <circle cx="200" cy="200" r="14" fill="#FF6B3D" />
+              <circle cx="200" cy="200" r="14" fill="none" stroke="#FF6B3D"
                       className="animate-[pulseRing_2s_ease-out_infinite]" />
             </svg>
           </div>

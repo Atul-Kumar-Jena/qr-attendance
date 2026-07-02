@@ -9,7 +9,7 @@ export default function NotFound() {
   useEffect(() => { setMounted(true); }, []);
 
   return (
-    <main className="min-h-screen relative flex items-center justify-center px-6 bg-cream-100 dark:bg-[#07140E] overflow-hidden">
+    <main className="min-h-screen relative flex items-center justify-center px-6 bg-cream-100 dark:bg-[#0D0F14] overflow-hidden">
       {/* Animated grid backdrop */}
       <div
         aria-hidden
@@ -65,7 +65,7 @@ export default function NotFound() {
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 rounded-xl bg-ink dark:bg-[#13261B] dark:border dark:border-white/15 px-5 py-3 text-[13px] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:hover:bg-[#1A3324] transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-ink dark:bg-[#1A2236] dark:border dark:border-white/15 px-5 py-3 text-[13px] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:hover:bg-[#222c3e] transition-colors"
               >
                 <span aria-hidden>←</span> Back to site
               </Link>
