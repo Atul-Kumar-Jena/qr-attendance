@@ -15,14 +15,11 @@ export function GridBackground() {
     let mx = -9999, my = -9999;
     let cx = mx, cy = my;
     let raf = 0;
+    let running = false;
 
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-    const onMove = (e: MouseEvent) => { mx = e.clientX; my = e.clientY; };
 
-    const tick = () => {
-      cx = lerp(cx, mx, 0.09);
-      cy = lerp(cy, my, 0.09);
-
+    const paint = () => {
       const mask = `radial-gradient(380px circle at ${cx}px ${cy}px, black 0%, black 25%, transparent 68%)`;
       reveal.style.webkitMaskImage = mask;
       reveal.style.maskImage = mask;
@@ -31,12 +28,32 @@ export function GridBackground() {
       spot.style.background = isDark
         ? `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(255,107,61,0.14) 0%, rgba(255,107,61,0.04) 45%, transparent 70%)`
         : `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(255,107,61,0.10) 0%, rgba(255,107,61,0.03) 45%, transparent 70%)`;
+    };
 
+    const tick = () => {
+      cx = lerp(cx, mx, 0.09);
+      cy = lerp(cy, my, 0.09);
+      paint();
+      // Repainting two full-viewport gradients every frame is the single
+      // biggest jank source on this page. Stop once the spotlight catches the
+      // cursor and restart on the next move — no idle repaints.
+      if (Math.abs(cx - mx) < 0.5 && Math.abs(cy - my) < 0.5) {
+        running = false;
+        return;
+      }
       raf = requestAnimationFrame(tick);
     };
 
+    const onMove = (e: MouseEvent) => {
+      mx = e.clientX;
+      my = e.clientY;
+      if (!running) {
+        running = true;
+        raf = requestAnimationFrame(tick);
+      }
+    };
+
     window.addEventListener('mousemove', onMove, { passive: true });
-    raf = requestAnimationFrame(tick);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('mousemove', onMove);

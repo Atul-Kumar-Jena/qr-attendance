@@ -25,17 +25,11 @@ export function Cursor() {
     let rx = -200, ry = -200;
     let scale = 1;
     let targetScale = 1;
-    let raf: number;
+    let raf = 0;
+    let running = false;
 
     _ring.style.transform = 'translate(-200px,-200px) scale(1)';
     _dot.style.transform  = 'translate(-200px,-200px)';
-
-    const onMove = (e: MouseEvent) => {
-      cx = e.clientX;
-      cy = e.clientY;
-      _dot.style.transform = `translate(calc(${cx}px - 50%), calc(${cy}px - 50%))`;
-      setTipPos({ x: cx + 16, y: cy + 8 });
-    };
 
     const loop = () => {
       rx += (cx - rx) * RING_LERP;
@@ -43,9 +37,30 @@ export function Cursor() {
       scale += (targetScale - scale) * 0.12;
       _ring.style.transform =
         `translate(calc(${rx}px - 50%), calc(${ry}px - 50%)) scale(${scale})`;
+      // Idle-pause: stop once the ring has caught the cursor and the scale has
+      // settled, restart on the next move/hover. A permanent RAF here stutters
+      // under load and burns frames while the mouse is still.
+      if (Math.abs(rx - cx) < 0.1 && Math.abs(ry - cy) < 0.1 && Math.abs(scale - targetScale) < 0.01) {
+        running = false;
+        return;
+      }
       raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
+    const startLoop = () => {
+      if (running) return;
+      running = true;
+      raf = requestAnimationFrame(loop);
+    };
+
+    const onMove = (e: MouseEvent) => {
+      cx = e.clientX;
+      cy = e.clientY;
+      _dot.style.transform = `translate(calc(${cx}px - 50%), calc(${cy}px - 50%))`;
+      // NOTE: no setState here — updating tooltip position on every move
+      // re-rendered the whole component each frame. The tooltip is positioned
+      // once, when it actually becomes visible (see setupTooltip).
+      startLoop();
+    };
 
     const onDown = () => {
       _dot.style.transform = `translate(calc(${cx}px - 50%), calc(${cy}px - 50%)) scale(0.7)`;
@@ -56,8 +71,8 @@ export function Cursor() {
 
     const setupElement = (el: HTMLElement) => {
       const isMag = el.hasAttribute('data-magnetic');
-      const onEnter = () => { targetScale = isMag ? SCALE_MAG : 1.6; };
-      const onLeave = () => { targetScale = 1; };
+      const onEnter = () => { targetScale = isMag ? SCALE_MAG : 1.6; startLoop(); };
+      const onLeave = () => { targetScale = 1; startLoop(); };
       el.addEventListener('pointerenter', onEnter);
       el.addEventListener('pointerleave', onLeave);
       return () => {

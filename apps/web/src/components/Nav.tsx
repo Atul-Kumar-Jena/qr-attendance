@@ -204,7 +204,9 @@ export function Nav() {
           </nav>
 
           <div className="relative z-10 flex items-center gap-3 flex-shrink-0">
-            <ThemeToggle />
+            <div className="hidden sm:flex">
+              <ThemeToggle />
+            </div>
 
             {user ? (
               <div className="hidden sm:flex">
@@ -220,7 +222,7 @@ export function Nav() {
 
             <Link
               href="#pricing"
-              className="rounded-xl bg-ink dark:bg-[#1A2236] px-4 py-2 text-[12.5px] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:hover:bg-[#222c3e] dark:border dark:border-white/15 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+              className="hidden sm:inline-block rounded-xl bg-ink dark:bg-[#1A2236] px-4 py-2 text-[12.5px] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:hover:bg-[#222c3e] dark:border dark:border-white/15 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
             >
               Request demo
             </Link>
@@ -316,6 +318,15 @@ function MobileMenuContents({ onClose }: { onClose: () => void }) {
           </Link>
         ))}
       </nav>
+
+      {/* Primary CTA — moved here from the header on small screens */}
+      <Link
+        href="#pricing"
+        onClick={onClose}
+        className="block text-center rounded-xl bg-ink dark:bg-[#1A2236] dark:border dark:border-white/15 text-cream-50 px-4 py-3 text-[13px] font-medium hover:bg-ink-soft dark:hover:bg-[#222c3e] transition-colors"
+      >
+        Request demo
+      </Link>
 
       {/* Sign in / Profile / Sign out actions */}
       {user ? (

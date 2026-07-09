@@ -44,16 +44,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     applyTheme(resolved);
   }, []);
 
-  // Auto mode: recalculate every minute
+  // Auto mode: recalculate every minute.
+  // No eager tick() here: on first mount `mode` is still its initial 'auto'
+  // value (the localStorage read above hasn't re-rendered yet), so calling it
+  // eagerly would run even for stored light/dark users and clobber the theme
+  // the mount effect just applied — e.g. a dark-mode user flipped to light
+  // during daytime. The mount effect already applies the correct initial
+  // theme; this interval only handles the day↔night rollover while open.
   useEffect(() => {
     if (mode !== 'auto') return;
-    const tick = () => {
+    const id = setInterval(() => {
       const resolved = getAutoTheme();
       setTheme(resolved);
       applyTheme(resolved);
-    };
-    tick();
-    const id = setInterval(tick, 60_000);
+    }, 60_000);
     return () => clearInterval(id);
   }, [mode]);
 

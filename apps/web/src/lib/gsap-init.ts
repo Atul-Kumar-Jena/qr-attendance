@@ -10,6 +10,20 @@ export function initGSAP() {
 
   gsap.registerPlugin(ScrollTrigger);
 
+  // Web fonts (Cormorant Garamond / DM Sans) load asynchronously and change
+  // element heights once they swap in — especially the large display text.
+  // ScrollTrigger computes every start/end at first paint, so without a
+  // recompute those positions go stale and triggers far down the page (e.g. the
+  // CTA scrub reveal) can get stuck. Refresh across several points — refresh()
+  // is idempotent, and the last one lands after the layout stops moving.
+  const refresh = () => ScrollTrigger.refresh();
+  if (typeof document !== 'undefined' && document.fonts?.ready) {
+    document.fonts.ready.then(refresh);
+  }
+  window.addEventListener('load', refresh);
+  requestAnimationFrame(() => requestAnimationFrame(refresh));
+  setTimeout(refresh, 1200);
+
   // Prevent GSAP from trying to compensate for time skipped while tab was hidden.
   // Without this, a page opened in a background tab plays all animations instantly
   // when the user finally focuses it.

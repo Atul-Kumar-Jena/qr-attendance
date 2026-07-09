@@ -27,13 +27,16 @@ export function Marquee() {
   const track = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const trackEl = track.current;
+    if (!trackEl) return;
+
     const ctx = gsap.context(() => {
-      const skewSetter = gsap.quickSetter(track.current!, 'skewX', 'deg');
-      const speedSetter = gsap.quickSetter(track.current!, 'x', 'px');
+      const skewSetter = gsap.quickSetter(trackEl, 'skewX', 'deg');
+      const speedSetter = gsap.quickSetter(trackEl, 'x', 'px');
       let baseX = 0;
       const baseTween = gsap.to({}, {
         duration: 40, repeat: -1, ease: 'none',
-        onUpdate() { baseX -= (track.current!.offsetWidth / 2) / (40 * 60); },
+        onUpdate() { baseX -= (trackEl.offsetWidth / 2) / (40 * 60); },
       });
 
       ScrollTrigger.create({
@@ -43,7 +46,7 @@ export function Marquee() {
         onUpdate: (self) => {
           const v = self.getVelocity() / 400;
           skewSetter(gsap.utils.clamp(-12, 12, v));
-          gsap.to(track.current, {
+          gsap.to(trackEl, {
             skewX: 0,
             duration: 0.8,
             ease: 'power3.out',
@@ -52,9 +55,15 @@ export function Marquee() {
         },
       });
 
-      // RAF loop for steady horizontal motion
-      gsap.ticker.add(() => speedSetter(baseX % (track.current!.offsetWidth / 2)));
-      return () => baseTween.kill();
+      // RAF loop for steady horizontal motion. gsap.ticker callbacks are global
+      // and not tracked by gsap.context, so remove it on cleanup — otherwise it
+      // leaks and dereferences a detached node (null offsetWidth crash).
+      const tick = () => speedSetter(baseX % (trackEl.offsetWidth / 2));
+      gsap.ticker.add(tick);
+      return () => {
+        baseTween.kill();
+        gsap.ticker.remove(tick);
+      };
     }, root);
     return () => ctx.revert();
   }, []);

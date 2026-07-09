@@ -457,3 +457,20 @@ html.theme-transitioning *::after {
   transition: background-color 0.3s ease, color 0.2s ease, border-color 0.25s ease !important;
   transition-delay: 0s !important;
 }
+
+/* ─── Mobile performance overrides ───────────────────────────────────────── */
+/* backdrop-filter blur, blend-mode overlays and will-change are the heaviest
+   compositor costs on phones. GridBackground + Cursor already bail out on
+   coarse pointers; this covers the CSS-driven effects that don't. */
+@media (max-width: 767px) {
+  .glass,
+  [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: var(--bg-2) !important;
+  }
+  /* Film grain re-composites the whole viewport on every scroll frame. */
+  body::before { display: none !important; }
+  /* Releasing will-change frees GPU memory the phone needs for scrolling. */
+  [class*="will-change"] { will-change: auto !important; }
+}

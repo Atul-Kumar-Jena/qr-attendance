@@ -36,6 +36,12 @@ const config: Config = {
         tightest: '-0.04em',
         tightish: '-0.02em',
       },
+      gridTemplateColumns: {
+        // Dashboard "Attendance pulse" chart renders 14 session bars.
+        // Tailwind's built-in grid-cols-* stops at 12, so define 14 here —
+        // otherwise the grid collapses to one column and the bars stack.
+        14: 'repeat(14, minmax(0, 1fr))',
+      },
       animation: {
         'shimmer': 'shimmer 2.5s linear infinite',
         'float': 'float 6s ease-in-out infinite',
