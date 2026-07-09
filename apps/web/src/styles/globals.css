@@ -40,7 +40,10 @@ body::before {
   pointer-events: none;
   background-image: var(--grain);
   opacity: 0.4;
-  mix-blend-mode: multiply;
+  /* Plain overlay instead of mix-blend-mode: multiply. A fixed blended layer
+     forces the browser to re-composite the whole viewport on every scroll
+     frame; the grain is faint dark specks, so a normal overlay looks the same
+     but costs nothing per frame. */
   z-index: 1;
 }
 

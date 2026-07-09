@@ -31,8 +31,11 @@ export function Marquee() {
     if (!trackEl) return;
 
     const ctx = gsap.context(() => {
-      const skewSetter = gsap.quickSetter(trackEl, 'skewX', 'deg');
       const speedSetter = gsap.quickSetter(trackEl, 'x', 'px');
+      // One reusable tween instead of allocating a fresh gsap.to() on every
+      // scroll frame. quickTo eases skewX toward the current scroll velocity and
+      // relaxes back to 0 as the scroll settles — same effect, no per-frame GC.
+      const skewTo = gsap.quickTo(trackEl, 'skewX', { duration: 0.5, ease: 'power3.out' });
       let baseX = 0;
       const baseTween = gsap.to({}, {
         duration: 40, repeat: -1, ease: 'none',
@@ -44,14 +47,7 @@ export function Marquee() {
         start: 'top bottom',
         end: 'bottom top',
         onUpdate: (self) => {
-          const v = self.getVelocity() / 400;
-          skewSetter(gsap.utils.clamp(-12, 12, v));
-          gsap.to(trackEl, {
-            skewX: 0,
-            duration: 0.8,
-            ease: 'power3.out',
-            overwrite: true,
-          });
+          skewTo(gsap.utils.clamp(-12, 12, self.getVelocity() / 400));
         },
       });
 

@@ -133,8 +133,25 @@ export function LiveQrShowcase({
 
   useEffect(() => {
     if (!ready) return;
-    startOrbital();
-    return () => cancelAnimationFrame(orbitalRaf.current);
+    const el = wrapRef.current;
+    startOrbital(); // run by default (safe if IntersectionObserver never fires)
+
+    // Pause the orbital-arc RAF while the QR is scrolled out of view — no point
+    // spinning two SVG arcs 60×/s off-screen.
+    let io: IntersectionObserver | null = null;
+    if (el && typeof IntersectionObserver !== 'undefined') {
+      io = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) {
+          if (!orbitalRaf.current) startOrbital();
+        } else {
+          cancelAnimationFrame(orbitalRaf.current);
+          orbitalRaf.current = 0;
+        }
+      }, { threshold: 0 });
+      io.observe(el);
+    }
+
+    return () => { cancelAnimationFrame(orbitalRaf.current); io?.disconnect(); };
   }, [ready, startOrbital]);
 
   // Scan beam sweep
