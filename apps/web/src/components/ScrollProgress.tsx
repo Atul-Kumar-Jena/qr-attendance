@@ -2,18 +2,28 @@
 
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { initGSAP } from '@/lib/gsap-init';
 
+/**
+ * Top scroll-progress bar. Driven by a single ScrollTrigger (no extra scroll
+ * listener, no scrollHeight reflow, no per-event tween) writing a GPU-only
+ * scaleX via quickSetter — stays perfectly in sync at any scroll speed.
+ */
 export function ScrollProgress() {
   const bar = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const onScroll = () => {
-      const h = document.documentElement.scrollHeight - window.innerHeight;
-      const p = window.scrollY / h;
-      gsap.to(bar.current!, { scaleX: p, duration: 0.2, ease: 'power2.out', overwrite: true });
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    if (typeof window === 'undefined' || !bar.current) return;
+    initGSAP();
+    const el = bar.current;
+    gsap.set(el, { scaleX: 0, transformOrigin: 'left center' });
+    const setX = gsap.quickSetter(el, 'scaleX');
+    const st = ScrollTrigger.create({
+      start: 0,
+      end: 'max',
+      onUpdate: (self) => setX(self.progress),
+    });
+    return () => st.kill();
   }, []);
   return (
     <div className="fixed top-0 left-0 right-0 z-[60] h-px bg-transparent pointer-events-none">

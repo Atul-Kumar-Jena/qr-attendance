@@ -1,106 +1,135 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import gsap from 'gsap';
+import { initGSAP } from '@/lib/gsap-init';
+
+/**
+ * Natural light-spread background.
+ *  - A faint, theme-aware hairline grid + intersection dots (static, cheap).
+ *  - Two large, slowly drifting ambient glows (CSS transform → compositor).
+ *  - A cursor halo + grid-reveal that follow the pointer using ONLY GPU
+ *    transforms (no per-frame mask/background-gradient recompute), driven by
+ *    GSAP's single ticker and short-circuited when the pointer is idle.
+ * All colours come from CSS tokens so it adapts to light / dark automatically.
+ */
+const TILE = 560;          // size of the moving reveal/halo tiles
+const HALF = TILE / 2;
 
 export function GridBackground() {
   const revealRef = useRef<HTMLDivElement>(null);
-  const spotRef = useRef<HTMLDivElement>(null);
+  const haloRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (window.matchMedia('(pointer: coarse)').matches) return;
+    if (window.matchMedia('(pointer: coarse)').matches) return; // no tracking on touch
+    initGSAP();
 
-    const reveal = revealRef.current!;
-    const spot = spotRef.current!;
+    const reveal = revealRef.current;
+    const halo = haloRef.current;
+    const grid = revealRef.current?.firstElementChild as HTMLElement | null;
+    if (!reveal || !halo) return;
 
-    let mx = -9999, my = -9999;
-    let cx = mx, cy = my;
-    let raf = 0;
+    let mx = -9999, my = -9999, cx = mx, cy = my;
+    let active = false;        // only does work while settling toward the cursor
 
-    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-    const onMove = (e: MouseEvent) => { mx = e.clientX; my = e.clientY; };
-
-    const tick = () => {
-      cx = lerp(cx, mx, 0.09);
-      cy = lerp(cy, my, 0.09);
-
-      const mask = `radial-gradient(380px circle at ${cx}px ${cy}px, black 0%, black 25%, transparent 68%)`;
-      reveal.style.webkitMaskImage = mask;
-      reveal.style.maskImage = mask;
-
-      const isDark = document.documentElement.classList.contains('dark');
-      spot.style.background = isDark
-        ? `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(255,107,61,0.14) 0%, rgba(255,107,61,0.04) 45%, transparent 70%)`
-        : `radial-gradient(600px circle at ${cx}px ${cy}px, rgba(255,107,61,0.10) 0%, rgba(255,107,61,0.03) 45%, transparent 70%)`;
-
-      raf = requestAnimationFrame(tick);
+    const onMove = (e: MouseEvent) => {
+      mx = e.clientX; my = e.clientY;
+      if (cx < -9000) { cx = mx; cy = my; } // first move: snap (no fly-in)
+      active = true;
     };
 
+    const tick = () => {
+      if (!active) return;
+      cx += (mx - cx) * 0.16;
+      cy += (my - cy) * 0.16;
+      const x = cx - HALF, y = cy - HALF;
+      const t = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+      halo.style.transform = t;
+      reveal.style.transform = t;
+      // keep the revealed grid pattern aligned to the viewport (not the tile)
+      if (grid) grid.style.backgroundPosition = `${(-x).toFixed(1)}px ${(-y).toFixed(1)}px`;
+      // settle → stop doing per-frame work until the pointer moves again
+      if (Math.abs(mx - cx) < 0.4 && Math.abs(my - cy) < 0.4) active = false;
+    };
+
+    gsap.ticker.add(tick);
     window.addEventListener('mousemove', onMove, { passive: true });
-    raf = requestAnimationFrame(tick);
     return () => {
-      cancelAnimationFrame(raf);
+      gsap.ticker.remove(tick);
       window.removeEventListener('mousemove', onMove);
     };
   }, []);
 
-  const G = '48px 48px';
+  const G = '64px 64px';
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-0" aria-hidden>
-      {/* Dim base grid — accent orange tint */}
-      <div className="absolute inset-0" style={{
+    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden>
+      {/* Soft drifting ambient glows — the "light spread" (compositor transforms) */}
+      <div className="absolute" style={{
+        width: '70vw', height: '70vw', left: '-15vw', top: '-20vh',
+        background: 'radial-gradient(circle at 50% 50%, var(--glow) 0%, transparent 70%)',
+        animation: 'glowDrift1 26s ease-in-out infinite',
+      }} />
+      <div className="absolute" style={{
+        width: '60vw', height: '60vw', right: '-12vw', bottom: '-18vh',
+        background: 'radial-gradient(circle at 50% 50%, var(--glow-2) 0%, transparent 72%)',
+        animation: 'glowDrift2 32s ease-in-out infinite',
+      }} />
+
+      {/* Faint hairline grid + intersection dots (static) */}
+      <div ref={gridRef} className="absolute inset-0" style={{
         backgroundImage: [
-          'linear-gradient(rgba(255,107,61,0.05) 1px, transparent 1px)',
-          'linear-gradient(90deg, rgba(255,107,61,0.05) 1px, transparent 1px)',
+          'linear-gradient(var(--grid-line) 1px, transparent 1px)',
+          'linear-gradient(90deg, var(--grid-line) 1px, transparent 1px)',
+          'radial-gradient(circle, var(--grid-dot) 1px, transparent 1px)',
         ].join(', '),
-        backgroundSize: G,
+        backgroundSize: `${G}, ${G}, ${G}`,
+        maskImage: 'radial-gradient(ellipse 90% 70% at 50% 35%, black 30%, transparent 92%)',
+        WebkitMaskImage: 'radial-gradient(ellipse 90% 70% at 50% 35%, black 30%, transparent 92%)',
       }} />
 
-      {/* Dim intersection dots */}
-      <div className="absolute inset-0" style={{
-        backgroundImage: 'radial-gradient(circle, rgba(255,107,61,0.14) 0.9px, transparent 0.9px)',
-        backgroundSize: G,
-      }} />
-
-      {/* Cursor-revealed bright layer */}
+      {/* Cursor-revealed accent grid — a fixed-size tile MOVED by transform
+          (no per-frame mask recompute). Grid stays viewport-aligned via
+          background-position; the soft radial mask is baked + static. */}
       <div
         ref={revealRef}
-        className="absolute inset-0"
+        data-grid-reveal
+        className="absolute top-0 left-0"
         style={{
-          WebkitMaskImage: 'radial-gradient(380px circle at -9999px -9999px, black 0%, transparent 68%)',
-          maskImage: 'radial-gradient(380px circle at -9999px -9999px, black 0%, transparent 68%)',
+          width: TILE, height: TILE,
+          transform: 'translate3d(-9999px, -9999px, 0)',
+          willChange: 'transform',
+          WebkitMaskImage: 'radial-gradient(circle at center, #000 0%, #000 16%, transparent 60%)',
+          maskImage: 'radial-gradient(circle at center, #000 0%, #000 16%, transparent 60%)',
         }}
       >
-        {/* Vivid lines */}
         <div className="absolute inset-0" style={{
           backgroundImage: [
-            'linear-gradient(rgba(255,107,61,0.65) 1px, transparent 1px)',
-            'linear-gradient(90deg, rgba(255,107,61,0.65) 1px, transparent 1px)',
+            'linear-gradient(rgba(var(--ink-mute-rgb) / 0.55) 1px, transparent 1px)',
+            'linear-gradient(90deg, rgba(var(--ink-mute-rgb) / 0.55) 1px, transparent 1px)',
+            'radial-gradient(circle, rgba(var(--ink-rgb) / 0.85) 1.1px, transparent 1.1px)',
           ].join(', '),
-          backgroundSize: G,
-        }} />
-        {/* Vivid dots */}
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle, rgba(255,140,90,0.95) 1.1px, transparent 1.1px)',
-          backgroundSize: G,
-        }} />
-        {/* Soft bloom */}
-        <div className="absolute inset-0" style={{
-          backgroundImage: [
-            'linear-gradient(rgba(255,107,61,0.18) 3px, transparent 3px)',
-            'linear-gradient(90deg, rgba(255,107,61,0.18) 3px, transparent 3px)',
-          ].join(', '),
-          backgroundSize: G,
-          filter: 'blur(2.5px)',
+          backgroundSize: `${G}, ${G}, ${G}`,
         }} />
       </div>
 
-      {/* Ambient halo */}
-      <div ref={spotRef} className="absolute inset-0" />
+      {/* Ambient halo following the cursor (single static radial, moved by transform) */}
+      <div
+        ref={haloRef}
+        className="absolute top-0 left-0"
+        style={{
+          width: TILE, height: TILE,
+          transform: 'translate3d(-9999px, -9999px, 0)',
+          willChange: 'transform',
+          background: 'radial-gradient(circle at center, var(--glow) 0%, transparent 68%)',
+        }}
+      />
 
-      {/* Edge vignette */}
-      <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse 100% 55% at 50% 0%, transparent 40%, var(--bg, #FAFAF7) 100%)',
+      {/* Edge vignette → blends into page bg (neutralised in dark mode so the
+          global aurora shows through — see .grid-bg-vignette in globals.css) */}
+      <div className="grid-bg-vignette absolute inset-0" style={{
+        background: 'radial-gradient(ellipse 100% 60% at 50% 0%, transparent 45%, var(--bg) 100%)',
       }} />
     </div>
   );

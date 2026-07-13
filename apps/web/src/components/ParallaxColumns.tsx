@@ -3,153 +3,84 @@ import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initGSAP } from '@/lib/gsap-init';
-import { useSiteConfig } from '@/context/SiteConfigContext';
 
 if (typeof window !== 'undefined') initGSAP();
 
-export interface StatItem {
-  tag: string;
-  value: string;
-  sub: string;
-}
-
-export const DEFAULT_STATS: StatItem[] = [
-  { tag: 'Live scan validation', value: '99.7%', sub: 'scan success rate' },
-  { tag: 'QR token lifetime',    value: '7s',    sub: 'rotated & signed' },
-  { tag: 'Device binding',       value: '1:1',   sub: 'student to device' },
-  { tag: 'Institutions',         value: '40+',   sub: 'in private beta' },
-  { tag: 'Fraud blocked',        value: '132k',  sub: 'spoofed scans stopped' },
-  { tag: 'Cross-tenant leaks',   value: '0',     sub: 'fully isolated' },
-  { tag: 'Geofence radius',      value: '50m',   sub: 'server-side Haversine' },
-  { tag: 'Avg attendance',       value: '88%',   sub: 'vs 62% paper' },
+const STATS = [
+  { value: '99.7%', tag: 'Scan success',     sub: 'live validation' },
+  { value: '132k',  tag: 'Fraud blocked',    sub: 'spoofed scans stopped' },
+  { value: '7s',    tag: 'QR lifetime',      sub: 'rotated & signed' },
+  { value: '1:1',   tag: 'Device binding',   sub: 'student to device' },
+  { value: '0',     tag: 'Tenant leaks',     sub: 'fully isolated' },
+  { value: '50m',   tag: 'Geofence radius',  sub: 'server-side Haversine' },
+  { value: '88%',   tag: 'Avg attendance',   sub: 'vs 62% on paper' },
+  { value: '40+',   tag: 'Institutions',     sub: 'in private beta' },
 ];
-
-function parseValue(val: string): { num: number | null; suffix: string } {
-  if (!val || val.includes(':')) return { num: null, suffix: val };
-  const m = val.match(/^(\d+\.?\d*)(.*)$/);
-  if (!m) return { num: null, suffix: val };
-  return { num: parseFloat(m[1]), suffix: m[2] || '' };
-}
-
-function StatCard({ tag, value, sub, delay }: StatItem & { delay: number }) {
-  const spanRef = useRef<HTMLSpanElement>(null);
-  const { num, suffix } = parseValue(value);
-
-  useEffect(() => {
-    if (num === null || !spanRef.current) return;
-    const span = spanRef.current;
-    const isDecimal = value.includes('.');
-    const obj = { v: 0 };
-    try {
-      ScrollTrigger.create({
-        trigger: span,
-        start: 'top 90%',
-        once: true,
-        onEnter: () => {
-          gsap.to(obj, {
-            v: num,
-            duration: 2,
-            ease: 'power3.out',
-            delay,
-            onUpdate: () => {
-              span.textContent = (isDecimal ? obj.v.toFixed(1) : Math.round(obj.v).toString()) + suffix;
-            },
-            onComplete: () => { span.textContent = value; },
-          });
-        },
-      });
-    } catch { span.textContent = value; }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return (
-    <div className="pcol-item glass rounded-2xl p-5 md:p-6 mb-3 md:mb-4 select-none will-change-transform border border-ink/8 dark:border-white/8">
-      <div className="text-[10px] tracking-[0.2em] uppercase text-ink-mute mb-2 md:mb-3 font-medium leading-tight">{tag}</div>
-      <div className="font-display text-[2.2rem] md:text-[3.2rem] leading-none tracking-tightest text-ink dark:text-[#F0EDE6] mb-1.5 md:mb-2">
-        {num !== null
-          ? <span ref={spanRef}>{value}</span>
-          : <span>{value}</span>
-        }
-      </div>
-      <div className="text-[11px] md:text-[12px] text-ink-mute leading-snug">{sub}</div>
-    </div>
-  );
-}
 
 export function ParallaxColumns() {
   const root = useRef<HTMLDivElement>(null);
-  const { config } = useSiteConfig();
-
-  const raw = config.siteStats;
-  const stats: StatItem[] = (Array.isArray(raw) && raw.length >= 8 && raw.some(s => s.tag || s.value))
-    ? raw
-    : DEFAULT_STATS;
-  const leftItems  = stats.slice(0, 4);
-  const rightItems = stats.slice(4, 8);
 
   useEffect(() => {
-    if (!root.current || typeof window === 'undefined') return;
-    let ctx: ReturnType<typeof gsap.context> | null = null;
-    try {
-      gsap.registerPlugin(ScrollTrigger);
-      ctx = gsap.context(() => {
-        gsap.to('.pcol-left .pcol-item', {
-          yPercent: -20,
-          ease: 'none',
-          scrollTrigger: { trigger: root.current, start: 'top bottom', end: 'bottom top', scrub: 1.2 },
-        });
-        gsap.to('.pcol-right .pcol-item', {
-          yPercent: 20,
-          ease: 'none',
-          scrollTrigger: { trigger: root.current, start: 'top bottom', end: 'bottom top', scrub: 1.2 },
-        });
-        gsap.fromTo('.pcol-left .pcol-item',
-          { opacity: 0, x: -28 },
-          { opacity: 1, x: 0, duration: 0.75, ease: 'power3.out', stagger: 0.09,
-            scrollTrigger: { trigger: root.current, start: 'top 82%' } }
-        );
-        gsap.fromTo('.pcol-right .pcol-item',
-          { opacity: 0, x: 28 },
-          { opacity: 1, x: 0, duration: 0.75, ease: 'power3.out', stagger: 0.09,
-            scrollTrigger: { trigger: root.current, start: 'top 82%' } }
-        );
-      }, root);
-    } catch { /* noop */ }
+    if (typeof window === 'undefined' || !root.current) return;
+    // Cards are visible by default (CSS). GSAP only adds an enter flourish, and
+    // never strands content — immediateRender:false + a reduced-motion guard.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+    let ctx: ReturnType<typeof gsap.context> | undefined;
+    try {
+      ctx = gsap.context(() => {
+        gsap.from('.pcol-item', {
+          y: 28, opacity: 0, filter: 'blur(6px)',
+          stagger: { each: 0.06, grid: 'auto', from: 'start' },
+          ease: 'power3.out', duration: 0.85, immediateRender: false,
+          scrollTrigger: { trigger: root.current, start: 'top 85%' },
+        });
+        // Subtle depth — gentle counter-parallax on the big background numeral.
+        if (!window.matchMedia('(max-width: 900px)').matches) {
+          gsap.to('.pcol-ghost', {
+            yPercent: -14, ease: 'none',
+            scrollTrigger: { trigger: root.current, start: 'top bottom', end: 'bottom top', scrub: 1 },
+          });
+        }
+      }, root);
+    } catch { /* GSAP failure must not crash the page */ }
     return () => { try { ctx?.revert(); } catch {} };
   }, []);
 
   return (
-    <section ref={root} className="relative py-20 md:py-28 overflow-hidden" aria-label="By the numbers">
-      <div className="container mb-10 md:mb-16">
-        <div className="text-[10.5px] tracking-[0.22em] uppercase text-ink-mute mb-4">
-          [ 01.5 — by the numbers ]
-        </div>
-        <h2 className="font-display text-[2.2rem] md:text-[4rem] leading-[1.02] text-ink dark:text-[#F0EDE6] max-w-xl">
-          Numbers that<br />
-          <span className="italic text-accent">speak for</span> themselves.
-        </h2>
-      </div>
-
-      <div className="container">
-        <div className="grid grid-cols-2 gap-3 md:gap-8 max-w-2xl mx-auto">
-          <div className="pcol-left">
-            {leftItems.map((item, i) => (
-              <StatCard key={item.tag || i} {...item} delay={i * 0.08} />
-            ))}
-          </div>
-          <div className="pcol-right pt-8 md:pt-12">
-            {rightItems.map((item, i) => (
-              <StatCard key={item.tag || i} {...item} delay={i * 0.08} />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div
-        className="absolute right-0 top-1/2 -translate-y-1/2 font-display text-[18vw] leading-none text-ink/[0.025] select-none pointer-events-none tabular-nums hidden md:block"
-        aria-hidden
-      >
+    <section ref={root} className="relative py-24 lg:py-32 overflow-hidden" aria-label="By the numbers">
+      {/* Decorative numeral — sits behind, never creates empty space. */}
+      <div className="pcol-ghost absolute -right-4 top-8 font-display text-[16vw] leading-none text-ink/[0.03] dark:text-white/[0.03] select-none pointer-events-none tabular-nums hidden md:block" aria-hidden>
         01.5
+      </div>
+
+      <div className="container relative">
+        <div className="mb-12 max-w-xl">
+          <div className="text-[10.5px] tracking-[0.22em] uppercase text-ink-mute mb-4">
+            [ 01.5 — by the numbers ]
+          </div>
+          <h2 className="font-display text-[2.6rem] md:text-[3.6rem] leading-[1.04] text-ink dark:text-[#F0EDE6]">
+            Numbers that <span className="italic text-accent">speak for</span> themselves.
+          </h2>
+        </div>
+
+        {/* Compact, always-visible 4×2 grid (2 cols on mobile). */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px rounded-[24px] overflow-hidden border border-ink/10 dark:border-white/10 bg-ink/10 dark:bg-white/10">
+          {STATS.map((s) => (
+            <div
+              key={s.tag}
+              className="pcol-item group relative bg-cream-50 dark:bg-[#0A0A0A] p-6 lg:p-7 transition-colors duration-300 hover:bg-cream-100 dark:hover:bg-[#101010]"
+            >
+              <div className="text-[10px] tracking-[0.2em] uppercase text-ink-mute mb-3 font-medium">{s.tag}</div>
+              <div className="font-display text-[2.6rem] lg:text-[3rem] leading-none tracking-tightest text-ink dark:text-[#F0EDE6] counter-num mb-1.5">
+                {s.value}
+              </div>
+              <div className="text-[11.5px] text-ink-mute">{s.sub}</div>
+              {/* hairline accent that grows on hover */}
+              <span className="absolute left-0 bottom-0 h-px w-0 bg-accent transition-all duration-500 group-hover:w-full" />
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

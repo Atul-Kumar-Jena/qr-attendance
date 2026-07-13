@@ -10,50 +10,60 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('[GlobalError]', error);
+    if (typeof window !== 'undefined') {
+      console.error('[Attendly:GlobalError]', error?.name, error?.message, error?.stack);
+    }
   }, [error]);
 
-  const clearAndReload = () => {
-    try {
-      localStorage.removeItem('attendly_site_config');
-      localStorage.removeItem('attendly-theme-mode');
-    } catch {}
-    window.location.href = '/qr-attendance/';
-  };
-
   return (
-    <html lang="en">
-      <head><title>Something went wrong — Attendly</title></head>
-      <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif', background: '#fafaf8', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <div style={{ maxWidth: 480, padding: '2rem', textAlign: 'center' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⚠️</div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem', color: '#0B1220' }}>
-            Something went wrong
-          </h1>
-          <p style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-            A site configuration error caused the page to crash. Resetting the config will restore it to defaults.
-          </p>
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button
-              onClick={clearAndReload}
-              style={{ background: '#6366f1', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.65rem 1.25rem', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}
-            >
-              Reset config &amp; reload
-            </button>
-            <button
-              onClick={reset}
-              style={{ background: 'transparent', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '0.65rem 1.25rem', fontSize: '0.875rem', cursor: 'pointer' }}
-            >
-              Try again
-            </button>
-          </div>
-          {error.message && (
-            <p style={{ marginTop: '1.5rem', fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-              {error.message}
-            </p>
-          )}
-        </div>
-      </body>
-    </html>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+      fontFamily: 'system-ui, sans-serif',
+      background: '#FAFAF7',
+      color: '#0B1220',
+      textAlign: 'center',
+      gap: 12,
+    }}>
+      <div style={{ fontSize: 28, fontWeight: 600 }}>Something went wrong</div>
+      <div style={{ fontSize: 14, color: '#6B7280', maxWidth: 540 }}>
+        We hit an unexpected error while loading the page. The team has been notified.
+      </div>
+      {error?.message && (
+        <pre style={{
+          marginTop: 12,
+          padding: 12,
+          background: '#0B1220',
+          color: '#F0EDE6',
+          borderRadius: 8,
+          fontSize: 11,
+          maxWidth: '90%',
+          overflow: 'auto',
+          textAlign: 'left',
+        }}>
+          {error.name}: {error.message}
+        </pre>
+      )}
+      <button
+        onClick={() => reset()}
+        style={{
+          marginTop: 8,
+          padding: '10px 20px',
+          borderRadius: 10,
+          background: 'var(--accent)',
+          color: 'white',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: 13,
+          fontWeight: 500,
+        }}
+      >
+        Try again
+      </button>
+    </div>
   );
 }

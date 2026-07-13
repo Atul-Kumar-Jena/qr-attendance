@@ -1,85 +1,68 @@
-'use client';
-
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Page not found',
+  robots: { index: false, follow: false },
+};
 
 export default function NotFound() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
-
   return (
-    <main className="min-h-screen relative flex items-center justify-center px-6 bg-cream-100 dark:bg-[#0D0F14] overflow-hidden">
-      {/* Animated grid backdrop */}
-      <div
-        aria-hidden
-        className="absolute inset-0 opacity-60"
-        style={{
-          backgroundImage: [
-            'linear-gradient(rgba(139,92,246,0.06) 1px, transparent 1px)',
-            'linear-gradient(90deg, rgba(139,92,246,0.06) 1px, transparent 1px)',
-          ].join(', '),
-          backgroundSize: '48px 48px',
-        }}
-      />
+    <main className="relative min-h-screen flex flex-col items-center justify-center px-6 py-20 text-center overflow-hidden">
+      <div className="relative z-10 max-w-lg">
+        {/* Brand mark */}
+        <Link href="/" className="inline-flex items-center gap-2.5 mb-10 text-ink">
+          <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden className="flex-shrink-0">
+            <rect x="0" y="0" width="9" height="9" rx="2" fill="currentColor" />
+            <rect x="13" y="0" width="9" height="9" rx="2" fill="currentColor" />
+            <rect x="0" y="13" width="9" height="9" rx="2" fill="currentColor" />
+            <rect x="15" y="15" width="7" height="7" rx="2" fill="var(--accent)" />
+          </svg>
+          <span className="font-display text-[1.25rem] tracking-tight">Attendly</span>
+        </Link>
 
-      {/* Soft glow blobs */}
-      <motion.div
-        aria-hidden
-        className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-accent/20 blur-3xl"
-        animate={{ y: [0, 20, 0], x: [0, 30, 0] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        aria-hidden
-        className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-indigo-500/20 blur-3xl"
-        animate={{ y: [0, -20, 0], x: [0, -30, 0] }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-      />
+        {/* Glitched QR motif → 404 */}
+        <div aria-hidden className="mx-auto mb-8 grid grid-cols-7 gap-1.5 w-[140px] opacity-60">
+          {Array.from({ length: 49 }).map((_, i) => {
+            const on = [0, 1, 2, 6, 8, 12, 14, 16, 18, 20, 24, 28, 30, 32, 34, 40, 42, 46, 47, 48, 3, 9, 21, 27, 36].includes(i);
+            return (
+              <span
+                key={i}
+                className="aspect-square rounded-[2px]"
+                style={{
+                  background: on ? 'var(--ink)' : 'transparent',
+                  border: on ? 'none' : '1px solid var(--line)',
+                  animation: on ? `iconPulse ${2 + (i % 5) * 0.3}s ease-in-out infinite` : undefined,
+                  animationDelay: `${(i % 7) * 0.08}s`,
+                }}
+              />
+            );
+          })}
+        </div>
 
-      <div className="relative z-10 max-w-lg text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={mounted ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <div className="text-[10.5px] tracking-[0.22em] uppercase text-ink-mute mb-5">
-            [ error 404 — page not found ]
-          </div>
+        <div className="font-display text-[5.5rem] sm:text-[7rem] leading-none tracking-tightest text-ink">
+          404
+        </div>
+        <h1 className="mt-4 font-display text-[1.6rem] sm:text-[2rem] tracking-tight text-ink">
+          This page wandered off.
+        </h1>
+        <p className="mt-3 text-[14px] leading-relaxed text-ink-mute max-w-sm mx-auto">
+          The link may be broken, or the page may have moved. Let&apos;s get you
+          back to something that scans.
+        </p>
 
-          <motion.h1
-            className="font-display text-[5rem] md:text-[7rem] leading-none tracking-tightest text-ink dark:text-[#F0EDE6] mb-2"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={mounted ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          >
-            4<span className="italic text-accent">0</span>4
-          </motion.h1>
+        <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+          <Link href="/" className="btn-solid rounded-full px-6 py-3 text-[13.5px] font-semibold">
+            Back to home
+          </Link>
+          <Link href="/#features" className="btn-outline-soft rounded-full px-6 py-3 text-[13.5px] font-medium">
+            Explore features
+          </Link>
+        </div>
 
-          <p className="text-[15px] text-ink-mute leading-relaxed mb-8 max-w-md mx-auto">
-            That URL doesn&apos;t exist — or it moved during a recent deploy.
-            Head back to the homepage and try again.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
-            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 rounded-xl bg-ink dark:bg-[#1A2236] dark:border dark:border-white/15 px-5 py-3 text-[13px] font-medium tracking-wide text-cream-50 hover:bg-ink-soft dark:hover:bg-[#222c3e] transition-colors"
-              >
-                <span aria-hidden>←</span> Back to site
-              </Link>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <Link
-                href="/admin"
-                className="inline-flex items-center gap-2 rounded-xl border border-ink/15 dark:border-white/15 px-5 py-3 text-[13px] tracking-wide text-ink dark:text-cream-50/90 hover:bg-ink/4 dark:hover:bg-white/6 transition-colors"
-              >
-                Open dashboard
-              </Link>
-            </motion.div>
-          </div>
-        </motion.div>
+        <div className="mt-10 font-mono text-[11px] tracking-[0.18em] uppercase text-ink-mute/70">
+          error · token not found · 404
+        </div>
       </div>
     </main>
   );

@@ -13,86 +13,79 @@ const PROBLEMS = [
   { n: '01', t: 'Proxy attendance', d: 'A roommate marks them present.' },
   { n: '02', t: 'Forwarded QR', d: 'A screenshot in the class group does the rest.' },
   { n: '03', t: 'Paper registers', d: 'Hours of data entry, signatures faked.' },
-  { n: '04', t: 'Fake GPS', d: 'One mock-location app and "I was there."' },
+  { n: '04', t: 'Fake GPS', d: 'One fake-GPS app and "I was there."' },
 ];
 
 const SOLUTIONS = [
-  { n: '01', t: 'Dynamic signed QR', d: 'Rotated every 7 seconds, single-use, signed server-side.' },
+  { n: '01', t: 'Dynamic signed QR', d: 'It changes every few seconds and only ever works once.' },
   { n: '02', t: 'Device binding', d: 'One student, one device — only admins can reset.' },
-  { n: '03', t: 'Geofence + accuracy', d: 'Haversine on the server; mock-location instantly flagged.' },
-  { n: '04', t: 'Play Integrity / App Attest', d: 'Requests outside the genuine app don\'t validate.' },
+  { n: '03', t: 'Must be in the room', d: 'We check they’re genuinely in the room — fake GPS is caught.' },
+  { n: '04', t: 'Only the real app', d: 'Only the genuine app on a real phone can mark attendance.' },
 ];
 
 const STATS = [
   { v: 38, s: '%', l: 'Of attendance is faked on average (paper)' },
-  { v: 7,  s: 's', l: 'QR token lifetime' },
-  { v: 0,  s: '',  l: 'Tenants ever cross-leaked (multi-tenant by design)' },
-  { v: 99, s: '.97%', l: 'Scan validation accuracy' },
+  { v: 7,  s: 's', l: 'How long a code stays valid' },
+  { v: 0,  s: '',  l: 'Times your data reached another school' },
+  { v: 99, s: '.97%', l: 'Scans we get right' },
 ];
 
 export function ProblemSolution() {
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      // Cards stagger in
-      gsap.utils.toArray<HTMLElement>('.ps-item').forEach((el, i) => {
-        gsap.fromTo(el,
-          { opacity: 0, y: 32, rotateX: -6 },
+    if (typeof window === 'undefined') return;
+    // Reduced motion: the final numbers are in the markup, content is visible —
+    // skip the reveal + count-up choreography entirely.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let ctx: ReturnType<typeof gsap.context> | undefined;
+    try {
+      ctx = gsap.context(() => {
+        // Headline reveal (1 trigger).
+        gsap.fromTo('.ps-head .reveal-line',
+          { yPercent: 110, rotateZ: 1.5 },
           {
-            opacity: 1, y: 0, rotateX: 0,
-            transformOrigin: 'center top',
-            duration: 0.9, ease: 'power3.out',
-            scrollTrigger: { trigger: el, start: 'top 84%' },
-            delay: i * 0.05,
+            yPercent: 0, rotateZ: 0, duration: 1.1, ease: 'expo.out', stagger: 0.09,
+            immediateRender: false,
+            scrollTrigger: { trigger: '.ps-head', start: 'top 90%' },
           },
         );
-      });
 
-      // Headline reveal
-      gsap.fromTo('.ps-head .reveal-line',
-        { yPercent: 110, rotateZ: 1.5 },
-        {
-          yPercent: 0, rotateZ: 0, duration: 1.1, ease: 'expo.out', stagger: 0.09,
-          scrollTrigger: { trigger: '.ps-head', start: 'top 80%' },
-        },
-      );
-
-      // Strike-through draw
-      gsap.utils.toArray<HTMLElement>('.strike-line').forEach((s) => {
-        gsap.fromTo(s,
-          { scaleX: 0 },
-          { scaleX: 1, transformOrigin: 'left center', duration: 0.65, ease: 'power3.inOut',
-            scrollTrigger: { trigger: s, start: 'top 82%' } },
-        );
-      });
-
-      // Stat counters
-      gsap.utils.toArray<HTMLElement>('.ps-num').forEach((el) => {
-        const target = Number(el.dataset.value);
-        const obj = { v: 0 };
+        // Stat strip: reveal blocks + run all 4 counters on ONE trigger.
+        // (from-state is applied inside onEnter, so if it never fires the
+        // markup's real numbers simply stay visible — never stranded.)
         ScrollTrigger.create({
-          trigger: el, start: 'top 86%',
+          trigger: '.ps-stats', start: 'top 85%', once: true,
           onEnter: () => {
-            gsap.to(obj, {
-              v: target, duration: 1.8, ease: 'expo.out',
-              onUpdate: () => (el.textContent = String(Math.floor(obj.v))),
+            gsap.fromTo('.ps-stat-block', { opacity: 0, y: 24 },
+              { opacity: 1, y: 0, duration: 0.75, ease: 'power3.out', stagger: 0.08 });
+            gsap.utils.toArray<HTMLElement>('.ps-num').forEach((el) => {
+              const target = Number(el.dataset.value);
+              if (!Number.isFinite(target)) return;
+              const obj = { v: 0 };
+              gsap.to(obj, {
+                v: target, duration: 1.8, ease: 'expo.out',
+                onUpdate: () => (el.textContent = String(Math.floor(obj.v))),
+              });
             });
           },
         });
-      });
 
-      // Stat block entrance
-      gsap.utils.toArray<HTMLElement>('.ps-stat-block').forEach((el, i) => {
-        gsap.fromTo(el,
-          { opacity: 0, y: 24 },
-          { opacity: 1, y: 0, duration: 0.75, ease: 'power3.out',
-            scrollTrigger: { trigger: el, start: 'top 88%' },
-            delay: i * 0.07 },
-        );
-      });
-    }, root);
-    return () => ctx.revert();
+        // Problem/fix grid: items + strike-throughs + fix-icons on ONE trigger.
+        ScrollTrigger.create({
+          trigger: '.ps-grid', start: 'top 82%', once: true,
+          onEnter: () => {
+            gsap.fromTo('.ps-item', { opacity: 0, y: 32, rotateX: -6 },
+              { opacity: 1, y: 0, rotateX: 0, transformOrigin: 'center top', duration: 0.9, ease: 'power3.out', stagger: 0.05 });
+            gsap.fromTo('.strike-line', { scaleX: 0 },
+              { scaleX: 1, transformOrigin: 'left center', duration: 0.65, ease: 'power3.inOut', stagger: 0.05, delay: 0.2 });
+            gsap.fromTo('.sol-icon', { rotate: -90, scale: 0, opacity: 0 },
+              { rotate: 0, scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(2)', stagger: 0.08, delay: 0.15 });
+          },
+        });
+      }, root);
+    } catch { /* GSAP failure must not crash the page */ }
+    return () => { try { ctx?.revert(); } catch {} };
   }, []);
 
   return (
@@ -109,11 +102,11 @@ export function ProblemSolution() {
         </div>
 
         {/* Stat strip */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-ink/6 my-20 rounded-2xl overflow-hidden">
+        <div className="ps-stats grid grid-cols-2 md:grid-cols-4 gap-px bg-ink/6 my-20 rounded-2xl overflow-hidden">
           {STATS.map((s, i) => (
             <div key={i} className="ps-stat-block bg-cream-50 p-7 hover:bg-cream-100 transition-colors">
               <div className="counter-num font-display text-[3.2rem] leading-none text-ink flex items-baseline gap-1.5">
-                <span className="ps-num" data-value={s.v}>0</span>
+                <span className="ps-num" data-value={s.v}>{s.v}</span>
                 {s.s && <span className="text-accent text-[1.6rem]">{s.s}</span>}
               </div>
               <div className="mt-3 text-[12px] leading-[1.5] text-ink-mute max-w-[180px]">{s.l}</div>
@@ -122,7 +115,7 @@ export function ProblemSolution() {
         </div>
 
         {/* Problem / Fix grid */}
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-20">
+        <div className="ps-grid grid lg:grid-cols-2 gap-10 lg:gap-20">
           {/* Problems */}
           <div>
             <div className="text-[11px] tracking-[0.3em] text-ink-mute uppercase mb-7">The problem</div>
@@ -201,5 +194,5 @@ const SOLUTION_ICONS = [
 ];
 
 function SolutionIcon({ index }: { index: number }) {
-  return <div className="text-accent">{SOLUTION_ICONS[index]}</div>;
+  return <div className="sol-icon text-accent inline-block">{SOLUTION_ICONS[index]}</div>;
 }

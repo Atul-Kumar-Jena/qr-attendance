@@ -8,8 +8,48 @@ import { useSiteConfig, type SiteConfig, type PricingMode } from '@/context/Site
 import { AuthModal } from '@/components/AuthModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SkeletonTable } from '@/components/Skeleton';
-import { CryptoPanel } from '@/components/admin/CryptoPanel';
-import { LedgerPanel } from '@/components/admin/LedgerPanel';
+import {
+  addRemark, createClass, createInstitution, createPendingUser, createStudent,
+  deleteClass, endSession, getOwnedInstitution, joinClassByCode, joinInstitutionByCode,
+  logAudit, onAllInstitutions, onAuditLogs, onClasses, onInstitution, onRemarks,
+  onSessions, onStudents, onStudentAttendance, onStudentClasses,
+  onTeacherPerm, onUsers, patchClass, patchStudent, patchUser, saveInstitution,
+  saveTeacherPerm, terminateInstitution,
+  type FSAttendanceRecord,
+} from '@/lib/firestore-db';
+
+const TOUR_STEPS = [
+  { element: '#tour-overview',     popover: { title: 'Overview',        description: 'Your dashboard at a glance — sessions, students, attendance stats.' } },
+  { element: '#tour-students',     popover: { title: 'Students',         description: 'Add, search and manage students. Click a student to add remarks.' } },
+  { element: '#tour-manage-users', popover: { title: 'Manage Users',     description: 'Invite admins and teachers, change roles, suspend accounts.' } },
+  { element: '#tour-institution',  popover: { title: 'Institution',      description: 'Your institution code lives here — share it so others can join.' } },
+  { element: '#tour-qr-btn',       popover: { title: 'Start QR Session', description: 'Launch a live QR session. Codes rotate every second — impossible to fake.' } },
+];
+
+// Run the tour. Safe to call on demand — skips silently if elements not mounted.
+function runTour() {
+  if (typeof window === 'undefined') return;
+  import('driver.js').then(({ driver }) => {
+    try {
+      // driver.js v1 reads offsetWidth on every step element. A null element
+      // throws → React 18's global error handler routes it to RootCrashScreen.
+      // Pre-filter so we only pass steps whose elements are actually in DOM.
+      const steps = TOUR_STEPS.filter(s => !!document.querySelector(s.element));
+      if (steps.length === 0) return;
+      const d = driver({
+        animate: true,
+        smoothScroll: true,
+        showProgress: true,
+        allowClose: true,
+        overlayClickBehavior: 'close',
+        popoverClass: 'atd-popover',
+        steps,
+        onDestroyStarted: () => { try { d.destroy(); } catch {} },
+      });
+      d.drive();
+    } catch { /* tour failure is non-fatal */ }
+  }).catch(() => {});
+}
 
 function useTourGuide(role: Role | null) {
   useEffect(() => {
@@ -17,20 +57,10 @@ function useTourGuide(role: Role | null) {
     const key = `atd_tour_${role}`;
     if (localStorage.getItem(key)) return;
     localStorage.setItem(key, '1');
-    import('driver.js').then(({ driver }) => {
-      import('driver.js/dist/driver.css' as any).catch(() => {});
-      const d = driver({
-        animate: true, smoothScroll: true, showProgress: true,
-        steps: [
-          { element: '#tour-overview', popover: { title: 'Overview', description: 'Your dashboard at a glance — sessions, students, attendance stats.' } },
-          { element: '#tour-students', popover: { title: 'Students', description: 'Add, search and manage students. Click a student to add remarks.' } },
-          { element: '#tour-manage-users', popover: { title: 'Manage Users', description: 'Invite admins and teachers, change roles, suspend accounts.' } },
-          { element: '#tour-institution', popover: { title: 'Institution', description: 'Your institution code lives here — share it so others can join.' } },
-          { element: '#tour-qr-btn', popover: { title: 'Start QR Session', description: 'Launch a live QR session. The code rotates every second — impossible to fake.' } },
-        ],
-      });
-      setTimeout(() => d.drive(), 800);
-    }).catch(() => {});
+    // Delay so React has committed the full sidebar/main DOM before driver.js
+    // reads element dimensions.
+    const timer = setTimeout(runTour, 1500);
+    return () => clearTimeout(timer);
   }, [role]);
 }
 
@@ -43,29 +73,28 @@ type Tab =
   | 'classes'
   | 'reports'
   | 'audit'
-  | 'crypto'
-  | 'ledger'
   | 'manage-users'
   | 'teacher-perms'
   | 'institution'
   | 'institutions'
-  | 'god-mode';
+  | 'god-mode'
+  | 'student-home';
 
 const ROLE_META: Record<Role, { label: string; dot: string; access: Tab[] }> = {
   developer: {
     label: 'Developer',
     dot: 'bg-red-500',
-    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'crypto', 'ledger', 'manage-users', 'teacher-perms', 'institution', 'institutions', 'god-mode'],
+    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'manage-users', 'teacher-perms', 'institution', 'institutions', 'god-mode'],
   },
   institution: {
     label: 'Institution',
     dot: 'bg-orange-500',
-    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'crypto', 'ledger', 'manage-users', 'teacher-perms', 'institution'],
+    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'manage-users', 'teacher-perms', 'institution'],
   },
   admin: {
     label: 'Admin',
     dot: 'bg-yellow-500',
-    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'crypto', 'ledger', 'manage-users', 'teacher-perms'],
+    access: ['overview', 'sessions', 'students', 'classes', 'reports', 'audit', 'manage-users', 'teacher-perms'],
   },
   teacher: {
     label: 'Teacher',
@@ -75,7 +104,7 @@ const ROLE_META: Record<Role, { label: string; dot: string; access: Tab[] }> = {
   student: {
     label: 'Student',
     dot: 'bg-gray-400',
-    access: [],
+    access: ['student-home'],
   },
 };
 
@@ -86,13 +115,12 @@ const TAB_LABELS: Record<Tab, string> = {
   'classes':       'Classes',
   'reports':       'Reports',
   'audit':         'Audit Logs',
-  'crypto':        '🔐 Crypto & Keys',
-  'ledger':        '⛓ Hash Ledger',
   'manage-users':  'Manage Users',
   'teacher-perms': 'Teacher Perms',
   'institution':   'Institution',
   'institutions':  '🌐 All Institutions',
   'god-mode':      '⚡ God Mode',
+  'student-home':  'My Dashboard',
 };
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
@@ -102,7 +130,6 @@ function useLiveSessionCount() {
   const [count, setCount] = useState(0);
   useEffect(() => {
     if (!institutionId) return;
-    const { onSessions } = require('@/lib/firestore-db');
     return onSessions(institutionId, (list: import('@/lib/firestore-db').FSSession[]) => {
       setCount(list.filter((s) => s.status === 'OPEN').length);
     });
@@ -111,8 +138,9 @@ function useLiveSessionCount() {
 }
 
 export default function AdminHome() {
-  const { user, role, loading, signOut } = useAuth();
+  const { user, role, loading } = useAuth();
   const [tab, setTab] = useState<Tab>('overview');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const liveCount = useLiveSessionCount();
   useTourGuide(role);
 
@@ -130,7 +158,7 @@ export default function AdminHome() {
         <div className="font-display text-[2.4rem]">Attendly</div>
         <p className="text-ink-mute text-[14px]">Sign in to access the admin panel.</p>
         <AuthModal trigger={
-          <button className="rounded-xl bg-accent text-cream-50 px-6 py-3 text-[14px] font-medium hover:bg-accent/90 transition-all">
+          <button className="rounded-xl btn-solid px-6 py-3 text-[14px] font-medium transition-all">
             Sign in with Google
           </button>
         } />
@@ -159,74 +187,92 @@ export default function AdminHome() {
   const allowedTabs = meta.access;
   const currentTab: Tab = allowedTabs.includes(tab) ? tab : allowedTabs[0] as Tab;
 
+  const SidebarContent = () => (
+    <>
+      <div className="font-display text-[1.4rem] mb-2">Attendly</div>
+      <div className="flex items-center gap-2 mb-8 text-[11px] text-ink-mute">
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${meta.dot}`} />
+        {meta.label}
+        {user.displayName && (
+          <span className="truncate text-ink/60 dark:text-white/40 ml-1">· {user.displayName.split(' ')[0]}</span>
+        )}
+      </div>
+      <nav className="flex-1 space-y-0.5">
+        {allowedTabs.map((t) => {
+          const isGod = t === 'god-mode';
+          const tourMap: Partial<Record<Tab, string>> = {
+            overview: 'tour-overview', students: 'tour-students',
+            'manage-users': 'tour-manage-users', institution: 'tour-institution',
+          };
+          const tourId = tourMap[t];
+          return (
+            <button key={t} id={tourId}
+              onClick={() => { setTab(t); setSidebarOpen(false); }}
+              className={`block w-full text-left px-3 py-2 rounded-md text-[13px] transition-colors ${
+                isGod
+                  ? currentTab === t ? 'bg-red-600 text-white font-semibold' : 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium'
+                  : currentTab === t ? 'bg-[#16161A] text-cream-50 dark:bg-white/10 dark:border dark:border-white/10'
+                  : 'text-ink-mute hover:text-ink dark:hover:text-white hover:bg-cream-100 dark:hover:bg-white/5'
+              }`}
+            >
+              {TAB_LABELS[t]}
+            </button>
+          );
+        })}
+      </nav>
+      <div className="mt-6 pt-6 border-t border-ink/8 dark:border-white/8 text-[11px] text-ink-mute space-y-2">
+        <button
+          type="button"
+          onClick={() => { setSidebarOpen(false); runTour(); }}
+          className="link-line block w-full text-left hover:text-ink dark:hover:text-white transition-colors"
+        >
+          Guide me
+        </button>
+        <Link href="/profile" className="link-line block hover:text-ink dark:hover:text-white transition-colors">
+          Profile
+        </Link>
+        <Link href="/" className="link-line block hover:text-ink dark:hover:text-white transition-colors">
+          ← back to site
+        </Link>
+      </div>
+    </>
+  );
+
   return (
-    <div className="min-h-screen flex bg-cream-100">
-      <aside className="w-64 border-r border-ink/10 dark:border-white/10 bg-cream-50 p-5 flex flex-col flex-shrink-0">
-        <div className="font-display text-[1.4rem] mb-2">Attendly</div>
-        <div className="flex items-center gap-2 mb-8 text-[11px] text-ink-mute">
-          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${meta.dot}`} />
-          {meta.label}
-          {user.displayName && (
-            <span className="truncate text-ink/60 ml-1">· {user.displayName.split(' ')[0]}</span>
-          )}
-        </div>
+    <div className="min-h-screen flex relative">
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-ink/40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-        <nav className="flex-1 space-y-0.5">
-          {(Object.keys(TAB_LABELS) as Tab[]).map((t) => {
-            const allowed = allowedTabs.includes(t);
-            const isGod = t === 'god-mode';
-            const tourMap: Partial<Record<Tab, string>> = {
-              overview: 'tour-overview', students: 'tour-students',
-              'manage-users': 'tour-manage-users', institution: 'tour-institution',
-            };
-            const tourId = tourMap[t];
-            return (
-              <button key={t} id={tourId} onClick={() => allowed && setTab(t)} disabled={!allowed}
-                className={`block w-full text-left px-3 py-2 rounded-md text-[13px] transition-colors ${
-                  isGod && allowed
-                    ? currentTab === t ? 'bg-red-600 text-white font-semibold' : 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium'
-                    : currentTab === t ? 'bg-ink text-cream-50 dark:bg-white/10 dark:border dark:border-white/10'
-                    : allowed ? 'text-ink-mute hover:text-ink hover:bg-cream-100'
-                    : 'text-ink/20 dark:text-white/20 cursor-not-allowed'
-                }`}
-              >
-                {TAB_LABELS[t]}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="mt-6 pt-6 border-t border-ink/10 dark:border-white/10 space-y-2">
-          <Link
-            href="/profile"
-            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl bg-ink/4 dark:bg-white/6 hover:bg-ink/10 dark:hover:bg-white/12 text-ink dark:text-cream-50 text-[13px] transition-all"
-          >
-            <span>👤</span>
-            <span>Profile</span>
-          </Link>
-          <Link
-            href="/"
-            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl bg-ink/6 dark:bg-white/8 hover:bg-ink/12 dark:hover:bg-white/14 text-ink dark:text-cream-50 text-[13px] font-medium transition-all"
-          >
-            <span>←</span>
-            <span>Back to site</span>
-          </Link>
-          <button
-            onClick={() => signOut()}
-            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl border border-red-500/25 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-[13px] transition-all"
-          >
-            <span>↩</span>
-            <span>Sign out</span>
-          </button>
-        </div>
+      {/* Sidebar */}
+      <aside
+        className={`fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto w-64 border-r border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#13161D] p-5 flex flex-col flex-shrink-0 transition-transform duration-300 lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <SidebarContent />
       </aside>
 
-      <main className="flex-1 p-10 overflow-auto">
-        <div className="flex items-center justify-between mb-8">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 overflow-auto min-w-0 relative z-10">
+        <div className="flex items-center justify-between mb-6 lg:mb-8 gap-3">
           <div className="flex items-center gap-3">
-            <h1 className="font-display text-[2.4rem]">{TAB_LABELS[currentTab]}</h1>
+            {/* Mobile sidebar toggle */}
+            <button
+              className="lg:hidden flex flex-col gap-1 p-1.5 rounded-lg border border-ink/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5 transition-colors flex-shrink-0"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation"
+            >
+              <span className="block h-px w-4 bg-ink dark:bg-white" />
+              <span className="block h-px w-4 bg-ink dark:bg-white" />
+              <span className="block h-px w-3 bg-ink dark:bg-white" />
+            </button>
+            <h1 className="font-display text-[1.6rem] sm:text-[2.4rem] truncate">{TAB_LABELS[currentTab]}</h1>
             {liveCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[11px] font-medium px-2.5 py-1">
+              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[11px] font-medium px-2.5 py-1 flex-shrink-0">
                 <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
                 {liveCount} live
               </span>
@@ -234,11 +280,16 @@ export default function AdminHome() {
           </div>
           {roleAtLeast(role, 'teacher') && (
             <Link id="tour-qr-btn" href="/admin/qr/demo"
-              className="rounded-full bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all">
-              Start QR session
+              className="rounded-full btn-solid px-3 py-1.5 sm:px-4 sm:py-2 text-[12px] sm:text-[12.5px] font-medium transition-all flex-shrink-0 whitespace-nowrap">
+              Start QR
             </Link>
           )}
         </div>
+
+        {/* Dev impersonation banner — appears when a developer is acting as
+            an institution. Every panel below sees the impersonated institution
+            via useAuth().institutionId, no other code changes needed. */}
+        {role === 'developer' && <ImpersonationBanner />}
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -255,17 +306,49 @@ export default function AdminHome() {
               {currentTab === 'classes'       && <ClassesPanel />}
               {currentTab === 'reports'       && <ReportsPanel />}
               {currentTab === 'audit'         && <AuditPanel role={role!} />}
-              {currentTab === 'crypto'        && <CryptoPanel />}
-              {currentTab === 'ledger'        && <LedgerPanel />}
               {currentTab === 'manage-users'  && <ManageUsersPanel role={role!} />}
               {currentTab === 'teacher-perms' && <TeacherPermsPanel />}
               {currentTab === 'institution'   && <InstitutionPanel />}
               {currentTab === 'institutions'  && <InstitutionsPanel />}
               {currentTab === 'god-mode'      && <GodModePanel />}
+              {currentTab === 'student-home'  && <StudentHomePanel />}
             </ErrorBoundary>
           </motion.div>
         </AnimatePresence>
       </main>
+    </div>
+  );
+}
+
+// ─── Dev impersonation banner ─────────────────────────────────────────────────
+
+function ImpersonationBanner() {
+  const { impersonatedInstitutionId, setImpersonatedInstitution } = useAuth();
+  const [name, setName] = useState<string>('');
+  useEffect(() => {
+    if (!impersonatedInstitutionId) { setName(''); return; }
+    return onInstitution(impersonatedInstitutionId, (i: import('@/lib/firestore-db').FSInstitution | null) => {
+      setName(i?.name ?? impersonatedInstitutionId);
+    });
+  }, [impersonatedInstitutionId]);
+  if (!impersonatedInstitutionId) return null;
+  return (
+    <div className="mb-6 rounded-xl bg-purple-50 dark:bg-purple-900/15 border border-purple-200 dark:border-purple-700/30 px-4 py-3 flex items-center justify-between gap-4">
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="text-purple-600 dark:text-purple-400 text-lg flex-shrink-0">👁</span>
+        <div className="min-w-0">
+          <div className="text-[12.5px] font-medium text-purple-800 dark:text-purple-300">
+            Acting as institution · <span className="font-mono">{name || '…'}</span>
+          </div>
+          <div className="text-[11px] text-purple-700/70 dark:text-purple-300/70 truncate">
+            Every read &amp; write below is scoped to this institution. Your audit-log entries are tagged with your dev account, never hidden.
+          </div>
+        </div>
+      </div>
+      <button onClick={() => setImpersonatedInstitution(null)}
+        className="text-[11.5px] rounded-lg bg-purple-600 text-white px-3 py-1.5 hover:bg-purple-700 transition-colors flex-shrink-0">
+        Exit impersonation
+      </button>
     </div>
   );
 }
@@ -308,6 +391,82 @@ function Toggle({ label, checked, onChange, description, danger }: {
         {description && <div className="text-[11px] text-ink-mute mt-0.5">{description}</div>}
       </div>
     </label>
+  );
+}
+
+// Pricing tier editor — used by GodModePanel.  Empty array means "use BASE_TIERS"
+// on the landing page, so cards are never blank.
+function PricingTierEditor({ tiers, onChange }: {
+  tiers: import('@/context/SiteConfigContext').PricingTier[];
+  onChange: (next: import('@/context/SiteConfigContext').PricingTier[]) => void;
+}) {
+  const DEFAULTS: import('@/context/SiteConfigContext').PricingTier[] = [
+    { name: 'Starter',    price: 0,    unit: '/ month', pitch: 'For coaching centers up to 200 students.', feats: ['1 institution','200 students','Dynamic QR','Email reports','Community support'], cta: 'Start free' },
+    { name: 'Pro',        price: 99,   unit: '/ month', pitch: 'Most schools and small colleges.',           feats: ['Up to 5000 students','Geofence + device binding','PDF / Excel reports','Fraud queue','Priority support'], cta: 'Choose Pro', highlight: true },
+    { name: 'Enterprise', price: null, unit: 'custom',  pitch: 'Universities, multi-campus, SSO.',           feats: ['Unlimited students','Custom geofence policies','SAML SSO + audit export','Webhooks','Dedicated SLA'], cta: 'Talk to sales' },
+  ];
+  const current = tiers && tiers.length > 0 ? tiers : DEFAULTS;
+  const editing = tiers && tiers.length > 0;
+
+  const patch = (i: number, p: Partial<import('@/context/SiteConfigContext').PricingTier>) => {
+    const next = current.map((t, idx) => (idx === i ? { ...t, ...p } : t));
+    onChange(next);
+  };
+
+  return (
+    <div className="space-y-3">
+      {current.map((t, i) => (
+        <div key={i} className="rounded-lg border border-ink/8 bg-cream-100 p-3 grid grid-cols-[1fr_auto_auto] items-end gap-3">
+          <Field label={`Tier ${i + 1} name`} value={t.name} onChange={(v) => patch(i, { name: v })} />
+          <div className="w-24">
+            <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Price ($)</label>
+            <input
+              type="number"
+              value={t.price ?? ''}
+              placeholder="Custom"
+              onChange={(e) => patch(i, { price: e.target.value === '' ? null : Number(e.target.value) })}
+              className="w-full text-[13px] text-ink bg-cream-50 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50 transition-colors"/>
+          </div>
+          <div className="w-28">
+            <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Unit</label>
+            <input
+              type="text"
+              value={t.unit}
+              onChange={(e) => patch(i, { unit: e.target.value })}
+              className="w-full text-[13px] text-ink bg-cream-50 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50 transition-colors"/>
+          </div>
+          <Field label="Pitch (one line)" value={t.pitch} onChange={(v) => patch(i, { pitch: v })} className="col-span-3" />
+          <div className="col-span-3">
+            <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Features (one per line)</label>
+            <textarea
+              value={t.feats.join('\n')}
+              onChange={(e) => patch(i, { feats: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })}
+              rows={3}
+              className="w-full text-[12.5px] text-ink bg-cream-50 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50 transition-colors resize-y"
+            />
+          </div>
+          <Field label="CTA label" value={t.cta} onChange={(v) => patch(i, { cta: v })} className="col-span-2" />
+          <label className="flex items-center gap-2 text-[12px] text-ink-mute h-9 mt-5">
+            <input type="checkbox" checked={!!t.highlight} onChange={(e) => patch(i, { highlight: e.target.checked })} />
+            Highlight
+          </label>
+        </div>
+      ))}
+      <div className="flex gap-2">
+        {!editing && (
+          <button onClick={() => onChange(DEFAULTS.map((t) => ({ ...t })))}
+            className="text-[12px] bg-[#16161A] text-cream-50 rounded-lg px-3 py-2 hover:bg-black transition-colors">
+            Start editing
+          </button>
+        )}
+        {editing && (
+          <button onClick={() => onChange([])}
+            className="text-[12px] border border-ink/10 text-ink-mute rounded-lg px-3 py-2 hover:text-ink hover:border-ink/20 transition-colors">
+            Reset to defaults
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -368,7 +527,6 @@ function OverviewPanel({ role }: { role: Role }) {
 
   useEffect(() => {
     if (!institutionId) return;
-    const { onStudents, onUsers, onSessions } = require('@/lib/firestore-db');
     const u1 = onStudents(institutionId, setStudents);
     const u2 = onUsers(institutionId, setUsers);
     const u3 = onSessions(institutionId, setSessions);
@@ -377,7 +535,6 @@ function OverviewPanel({ role }: { role: Role }) {
 
   useEffect(() => {
     if (!roleAtLeast(role, 'developer')) return;
-    const { onAllInstitutions, onUsers } = require('@/lib/firestore-db');
     const u1 = onAllInstitutions(setAllInstitutions);
     // Load all users globally for developer stats (no institutionId filter)
     const u2 = onUsers(null, (all: import('@/lib/firestore-db').FSUser[]) => {
@@ -444,7 +601,6 @@ function SessionsPanel() {
 
   useEffect(() => {
     if (!institutionId) { setLoading(false); return; }
-    const { onSessions } = require('@/lib/firestore-db');
     const unsub = onSessions(institutionId, (list: import('@/lib/firestore-db').FSSession[]) => {
       setSessions(list);
       setLoading(false);
@@ -454,7 +610,6 @@ function SessionsPanel() {
 
   const endSess = async (id: string, s: import('@/lib/firestore-db').FSSession) => {
     setEnding(id);
-    const { endSession, logAudit } = require('@/lib/firestore-db');
     await endSession(id);
     await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'SESSION_ENDED', targetId: id, details: `${s.subjectName} · ${s.className}` });
     setEnding(null);
@@ -490,7 +645,9 @@ function SessionsPanel() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <Link href="/admin/qr/demo" className="text-[12px] border border-accent/40 text-accent rounded-lg px-3 py-1.5 hover:bg-accent/5 transition-colors">
+                  <Link href="/admin/qr/demo"
+                    onClick={() => { try { sessionStorage.setItem('atd_resume_session', JSON.stringify({ id: s.id, subjectName: s.subjectName, className: s.className })); } catch {} }}
+                    className="text-[12px] border border-accent/40 text-accent rounded-lg px-3 py-1.5 hover:bg-accent/5 transition-colors">
                     View QR
                   </Link>
                   <button onClick={() => endSess(s.id, s)} disabled={ending === s.id}
@@ -508,7 +665,7 @@ function SessionsPanel() {
         <div className="rounded-xl border-2 border-dashed border-ink/10 p-8 text-center space-y-3">
           <div className="text-ink-mute text-[13px]">No active sessions right now.</div>
           <Link href="/admin/qr/demo"
-            className="inline-flex items-center gap-2 rounded-xl bg-accent text-cream-50 px-5 py-2.5 text-[13px] font-medium hover:bg-accent/90 transition-all">
+            className="inline-flex items-center gap-2 rounded-xl btn-solid px-5 py-2.5 text-[13px] font-medium transition-all">
             Start a QR session
           </Link>
         </div>
@@ -571,14 +728,12 @@ function StudentsPanel({ role }: { role: Role }) {
 
   useEffect(() => {
     if (!institutionId) return;
-    const { onStudents } = require('@/lib/firestore-db');
     const unsub = onStudents(institutionId, setStudents);
     return () => unsub();
   }, [institutionId]);
 
   useEffect(() => {
     if (!selected) { setRemarks([]); return; }
-    const { onRemarks } = require('@/lib/firestore-db');
     const unsub = onRemarks(selected.id, canAdmin, setRemarks);
     return () => unsub();
   }, [selected?.id, canAdmin]);
@@ -592,7 +747,6 @@ function StudentsPanel({ role }: { role: Role }) {
     if (!remarkText.trim() || !selected || !me || !institutionId) return;
     setRemarkSaving(true);
     try {
-      const { addRemark } = require('@/lib/firestore-db');
       await addRemark({
         teacherId: me.uid, teacherName: me.displayName ?? me.email ?? 'Unknown',
         studentId: selected.id, content: remarkText, isPrivate,
@@ -609,7 +763,6 @@ function StudentsPanel({ role }: { role: Role }) {
   const addStudent = async () => {
     if (!newStudent.fullName || !newStudent.rollNo || !institutionId) return;
     try {
-      const { createStudent } = require('@/lib/firestore-db');
       await createStudent({ ...newStudent, suspended: false, institutionId });
       setNewStudent({ rollNo: '', fullName: '', email: '', klassName: '' });
       setShowAddStudent(false);
@@ -628,7 +781,6 @@ function StudentsPanel({ role }: { role: Role }) {
     if (!selected || !editForm.fullName || !editForm.rollNo) return;
     setEditSaving(true);
     try {
-      const { patchStudent } = require('@/lib/firestore-db');
       await patchStudent(selected.id, { rollNo: editForm.rollNo, fullName: editForm.fullName, email: editForm.email, klassName: editForm.klassName });
       setSelected((s) => s ? { ...s, ...editForm } : null);
       setEditingStudent(false);
@@ -639,12 +791,26 @@ function StudentsPanel({ role }: { role: Role }) {
     }
   };
 
+  if (!institutionId) {
+    return (
+      <Card className="p-10 text-center space-y-3">
+        <div className="text-[2rem]">👥</div>
+        <div className="text-[15px] font-medium text-ink dark:text-white">No institution selected</div>
+        <p className="text-[13px] text-ink-mute max-w-xs mx-auto">
+          {role === 'developer'
+            ? 'Go to "🌐 All Institutions" and click "Drill in" on an institution to manage its students.'
+            : 'You are not linked to an institution yet.'}
+        </p>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {canAdmin && (
         <div className="flex justify-end">
           <button onClick={() => setShowAddStudent((x) => !x)}
-            className="rounded-xl bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all">
+            className="rounded-xl btn-solid px-4 py-2 text-[12.5px] font-medium transition-all">
             + Add student
           </button>
         </div>
@@ -660,7 +826,7 @@ function StudentsPanel({ role }: { role: Role }) {
             <Field label="Class / section" value={newStudent.klassName} onChange={(v) => setNewStudent((s) => ({ ...s, klassName: v }))} />
           </div>
           <div className="flex gap-3">
-            <button onClick={addStudent} className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all">Add</button>
+            <button onClick={addStudent} className="rounded-lg bg-[#16161A] text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-black transition-all">Add</button>
             <button onClick={() => setShowAddStudent(false)} className="rounded-lg border border-ink/10 px-4 py-2 text-[12.5px] text-ink-mute hover:text-ink transition-all">Cancel</button>
           </div>
         </Card>
@@ -707,7 +873,7 @@ function StudentsPanel({ role }: { role: Role }) {
                   </div>
                   <div className="flex gap-3">
                     <button onClick={saveEdit} disabled={editSaving || !editForm.fullName || !editForm.rollNo}
-                      className="rounded-lg bg-accent text-cream-50 px-4 py-1.5 text-[12.5px] font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
+                      className="rounded-lg btn-solid px-4 py-1.5 text-[12.5px] font-medium transition-all disabled:opacity-50">
                       {editSaving ? 'Saving…' : 'Save changes'}
                     </button>
                     <button onClick={() => setEditingStudent(false)}
@@ -733,7 +899,6 @@ function StudentsPanel({ role }: { role: Role }) {
                           ✎ Edit
                         </button>
                         <button onClick={async () => {
-                          const { patchStudent, logAudit } = require('@/lib/firestore-db');
                           await patchStudent(selected.id, { suspended: !selected.suspended });
                           await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: selected.suspended ? 'STUDENT_UNSUSPENDED' : 'STUDENT_SUSPENDED', targetId: selected.id, targetName: selected.fullName });
                           setSelected((s) => s ? { ...s, suspended: !s.suspended } : null);
@@ -778,7 +943,7 @@ function StudentsPanel({ role }: { role: Role }) {
                       Private (admin+ only)
                     </label>
                     <button onClick={submitRemark} disabled={remarkSaving || !remarkText.trim()}
-                      className="rounded-lg bg-accent text-cream-50 px-4 py-1.5 text-[12.5px] font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
+                      className="rounded-lg btn-solid px-4 py-1.5 text-[12.5px] font-medium transition-all disabled:opacity-50">
                       {remarkSaving ? 'Saving…' : 'Add remark'}
                     </button>
                   </div>
@@ -799,7 +964,7 @@ function StudentsPanel({ role }: { role: Role }) {
 // ─── Classes ─────────────────────────────────────────────────────────────────
 
 function ClassesPanel() {
-  const { institutionId, user: me } = useAuth();
+  const { institutionId, role, user: me } = useAuth();
   const [classes, setClasses] = useState<import('@/lib/firestore-db').FSClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -808,10 +973,10 @@ function ClassesPanel() {
   const [editForm, setEditForm] = useState({ name: '', section: '', description: '' });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!institutionId) { setLoading(false); return; }
-    const { onClasses } = require('@/lib/firestore-db');
     const unsub = onClasses(institutionId, (list: import('@/lib/firestore-db').FSClass[]) => {
       setClasses(list);
       setLoading(false);
@@ -823,7 +988,6 @@ function ClassesPanel() {
     if (!form.name.trim() || !institutionId) return;
     setSaving(true);
     try {
-      const { createClass, logAudit } = require('@/lib/firestore-db');
       await createClass({ institutionId, name: form.name.trim(), section: form.section.trim() || undefined, description: form.description.trim() || undefined });
       await logAudit({ institutionId, actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'CLASS_CREATED', details: form.name.trim() });
       setForm({ name: '', section: '', description: '' });
@@ -843,7 +1007,6 @@ function ClassesPanel() {
   const saveEdit = async (id: string) => {
     setSaving(true);
     try {
-      const { patchClass } = require('@/lib/firestore-db');
       await patchClass(id, { name: editForm.name.trim(), section: editForm.section.trim() || undefined, description: editForm.description.trim() || undefined });
       setEditingId(null);
     } catch (e: unknown) {
@@ -856,18 +1019,36 @@ function ClassesPanel() {
   const remove = async (id: string, name: string) => {
     if (!confirm(`Delete class "${name}"? This cannot be undone.`)) return;
     setDeleting(id);
-    const { deleteClass, logAudit } = require('@/lib/firestore-db');
     await deleteClass(id);
     await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'CLASS_DELETED', details: name });
     setDeleting(null);
   };
+
+  const copyJoinCode = async (code: string) => {
+    try { await navigator.clipboard.writeText(code); setCopiedCode(code); setTimeout(() => setCopiedCode(null), 1500); } catch {}
+  };
+
+  // Hierarchy guard: developers must drill-in to an institution first
+  if (!institutionId) {
+    return (
+      <Card className="p-10 text-center space-y-3">
+        <div className="text-[2rem]">🏫</div>
+        <div className="text-[15px] font-medium text-ink dark:text-white">No institution selected</div>
+        <p className="text-[13px] text-ink-mute max-w-xs mx-auto">
+          {role === 'developer'
+            ? 'Go to "🌐 All Institutions" and click "Drill in" on an institution to manage its classes.'
+            : 'You are not linked to an institution yet. Ask your institution admin for a join code.'}
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center justify-between">
         <p className="text-[13px] text-ink-mute">Manage class / batch / section records for your institution.</p>
         <button onClick={() => { setShowAdd((x) => !x); setEditingId(null); }}
-          className="rounded-xl bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all flex-shrink-0 ml-4">
+          className="rounded-xl btn-solid px-4 py-2 text-[12.5px] font-medium transition-all flex-shrink-0 ml-4">
           + Add class
         </button>
       </div>
@@ -882,7 +1063,7 @@ function ClassesPanel() {
           </div>
           <div className="flex gap-3">
             <button onClick={addClass} disabled={saving || !form.name.trim()}
-              className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all disabled:opacity-50">
+              className="rounded-lg bg-[#16161A] text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-black transition-all disabled:opacity-50">
               {saving ? 'Adding…' : 'Add class'}
             </button>
             <button onClick={() => setShowAdd(false)}
@@ -907,7 +1088,8 @@ function ClassesPanel() {
               <tr className="border-b border-ink/8 text-[10.5px] tracking-[0.15em] text-ink-mute uppercase">
                 <th className="text-left px-5 py-3">Class name</th>
                 <th className="text-left px-5 py-3">Section</th>
-                <th className="text-left px-5 py-3">Description</th>
+                <th className="text-left px-5 py-3">Join code</th>
+                <th className="text-left px-5 py-3">Students</th>
                 <th className="text-left px-5 py-3">Actions</th>
               </tr>
             </thead>
@@ -924,10 +1106,8 @@ function ClassesPanel() {
                         <input value={editForm.section} onChange={(e) => setEditForm((f) => ({ ...f, section: e.target.value }))}
                           className="w-full text-[13px] text-ink bg-cream-100 border border-ink/10 rounded px-2 py-1 focus:outline-none" />
                       </td>
-                      <td className="px-5 py-2">
-                        <input value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
-                          className="w-full text-[13px] text-ink bg-cream-100 border border-ink/10 rounded px-2 py-1 focus:outline-none" />
-                      </td>
+                      <td className="px-5 py-2 text-ink-mute text-[11px] font-mono">{c.joinCode ?? '—'}</td>
+                      <td className="px-5 py-2 text-ink-mute">{c.studentCount ?? 0}</td>
                       <td className="px-5 py-2">
                         <div className="flex items-center gap-2">
                           <button onClick={() => saveEdit(c.id)} disabled={saving || !editForm.name.trim()}
@@ -943,9 +1123,20 @@ function ClassesPanel() {
                     </>
                   ) : (
                     <>
-                      <td className="px-5 py-3 font-medium">{c.name}</td>
+                      <td className="px-5 py-3 font-medium">{c.name}{c.section ? <span className="text-ink-mute font-normal ml-1.5">· {c.section}</span> : null}</td>
                       <td className="px-5 py-3 text-ink-mute">{c.section ?? '—'}</td>
-                      <td className="px-5 py-3 text-ink-mute text-[12px]">{c.description ?? '—'}</td>
+                      <td className="px-5 py-3">
+                        {c.joinCode ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-bold tracking-widest text-accent text-[13px]">{c.joinCode}</span>
+                            <button onClick={() => copyJoinCode(c.joinCode!)}
+                              className="text-ink-mute hover:text-accent transition-colors text-[10px]">
+                              {copiedCode === c.joinCode ? '✓' : '⧉'}
+                            </button>
+                          </div>
+                        ) : <span className="text-ink-mute">—</span>}
+                      </td>
+                      <td className="px-5 py-3 text-ink-mute">{c.studentCount ?? 0}</td>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2">
                           <button onClick={() => startEdit(c)}
@@ -981,7 +1172,6 @@ function ReportsPanel() {
 
   useEffect(() => {
     if (!institutionId) { setLoading(false); return; }
-    const { onSessions, onStudents } = require('@/lib/firestore-db');
     const u1 = onSessions(institutionId, (list: import('@/lib/firestore-db').FSSession[]) => { setSessions(list); setLoading(false); });
     const u2 = onStudents(institutionId, setStudents);
     return () => { u1(); u2(); };
@@ -1144,7 +1334,6 @@ function AuditPanel({ role }: { role: Role }) {
 
   useEffect(() => {
     if (!institutionId) { setLoading(false); return; }
-    const { onAuditLogs } = require('@/lib/firestore-db');
     const unsub = onAuditLogs(institutionId, (list: import('@/lib/firestore-db').FSAuditLog[]) => {
       setLogs(list);
       setLoading(false);
@@ -1240,7 +1429,6 @@ function ManageUsersPanel({ role }: { role: Role }) {
   };
 
   useEffect(() => {
-    const { onUsers } = require('@/lib/firestore-db');
     const unsub = onUsers(role === 'developer' ? null : institutionId, (list: import('@/lib/firestore-db').FSUser[]) => {
       setUsers(list);
       setLoading(false);
@@ -1249,21 +1437,18 @@ function ManageUsersPanel({ role }: { role: Role }) {
   }, [institutionId, role]);
 
   const changeRole = async (uid: string, newRole: string, targetName?: string) => {
-    const { patchUser, logAudit } = require('@/lib/firestore-db');
     await patchUser(uid, { role: newRole.toLowerCase() as import('@/lib/firestore-db').UserRole });
     await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'ROLE_CHANGED', targetId: uid, targetName, details: `→ ${newRole}` });
     setEditingId(null);
   };
 
   const toggleSuspend = async (u: import('@/lib/firestore-db').FSUser) => {
-    const { patchUser, logAudit } = require('@/lib/firestore-db');
     await patchUser(u.uid, { suspended: !u.suspended });
     await logAudit({ institutionId: institutionId ?? '', actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: u.suspended ? 'USER_UNSUSPENDED' : 'USER_SUSPENDED', targetId: u.uid, targetName: u.displayName ?? u.email ?? '' });
   };
 
   const createUser = async () => {
     if (!form.email || !form.fullName) return;
-    const { createPendingUser } = require('@/lib/firestore-db');
     await createPendingUser({
       email: form.email, displayName: form.fullName,
       role: form.role.toLowerCase() as import('@/lib/firestore-db').UserRole,
@@ -1283,7 +1468,7 @@ function ManageUsersPanel({ role }: { role: Role }) {
           {roleAtLeast(role, 'admin') && ' Sub-admins you create cannot remove you.'}
         </p>
         <button onClick={() => setShowCreate(true)}
-          className="rounded-xl bg-accent text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-accent/90 transition-all flex-shrink-0 ml-4">
+          className="rounded-xl btn-solid px-4 py-2 text-[12.5px] font-medium transition-all flex-shrink-0 ml-4">
           + Invite user
         </button>
       </div>
@@ -1311,7 +1496,7 @@ function ManageUsersPanel({ role }: { role: Role }) {
           </div>
           <div className="flex gap-3">
             <button onClick={createUser}
-              className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all">
+              className="rounded-lg bg-[#16161A] text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-black transition-all">
               Create invite
             </button>
             <button onClick={() => setShowCreate(false)}
@@ -1419,7 +1604,6 @@ function TeacherPermsPanel() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const { onUsers } = require('@/lib/firestore-db');
     const unsub = onUsers(institutionId, (users: import('@/lib/firestore-db').FSUser[]) => {
       setTeachers(users.filter((u) => u.role === 'teacher'));
     });
@@ -1428,7 +1612,6 @@ function TeacherPermsPanel() {
 
   useEffect(() => {
     if (!selectedTeacher || !institutionId) return;
-    const { onTeacherPerm } = require('@/lib/firestore-db');
     const unsub = onTeacherPerm(selectedTeacher, institutionId, (p: import('@/lib/firestore-db').FSTeacherPerm) => {
       setPerms({
         canCreateSessions: p.canCreateSessions, canEndSessions: p.canEndSessions,
@@ -1443,7 +1626,6 @@ function TeacherPermsPanel() {
   const savePerms = async () => {
     if (!selectedTeacher || !institutionId) return;
     setSaving(true);
-    const { saveTeacherPerm, logAudit } = require('@/lib/firestore-db');
     await saveTeacherPerm(selectedTeacher, { ...perms, institutionId });
     const enabledPerms = Object.entries(perms).filter(([, v]) => v).map(([k]) => k).join(', ');
     await logAudit({ institutionId, actorId: me?.uid ?? '', actorName: me?.displayName ?? me?.email ?? '', action: 'PERMS_UPDATED', targetId: selectedTeacher, details: enabledPerms });
@@ -1483,7 +1665,7 @@ function TeacherPermsPanel() {
           </Card>
 
           <button onClick={savePerms} disabled={saving}
-            className="rounded-xl bg-accent text-cream-50 px-6 py-2.5 text-[13.5px] font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
+            className="rounded-xl btn-solid px-6 py-2.5 text-[13.5px] font-medium transition-all disabled:opacity-50">
             {saving ? 'Saving…' : saved ? 'Saved!' : 'Save permissions'}
           </button>
         </>
@@ -1504,7 +1686,6 @@ function InstitutionPanel() {
 
   useEffect(() => {
     if (!institutionId) return;
-    const { onInstitution } = require('@/lib/firestore-db');
     return onInstitution(institutionId, (i: import('@/lib/firestore-db').FSInstitution | null) => {
       setInst(i);
       if (i && !name) setName(i.name);
@@ -1521,7 +1702,6 @@ function InstitutionPanel() {
   const saveSettings = async () => {
     if (!institutionId) return;
     setSaving(true);
-    const { saveInstitution } = require('@/lib/firestore-db');
     await saveInstitution(institutionId, { name });
     setSaving(false);
     setSaved(true);
@@ -1532,7 +1712,7 @@ function InstitutionPanel() {
     return (
       <Card className="p-8 text-center space-y-3">
         <div className="text-ink-mute text-[13px]">You are not linked to any institution yet.</div>
-        <p className="text-[12px] text-ink-mute">Create one in God Mode or ask your admin to assign you.</p>
+        <p className="text-[12px] text-ink-mute">Contact your administrator to be assigned to an institution.</p>
       </Card>
     );
   }
@@ -1565,7 +1745,7 @@ function InstitutionPanel() {
       </Card>
 
       <button onClick={saveSettings} disabled={saving}
-        className="rounded-xl bg-accent text-cream-50 px-6 py-2.5 text-[13.5px] font-medium hover:bg-accent/90 transition-all disabled:opacity-60">
+        className="rounded-xl btn-solid px-6 py-2.5 text-[13.5px] font-medium transition-all disabled:opacity-60">
         {saving ? 'Saving…' : saved ? 'Saved!' : 'Save settings'}
       </button>
     </div>
@@ -1575,11 +1755,18 @@ function InstitutionPanel() {
 // ─── All Institutions (Developer) ─────────────────────────────────────────────
 
 function InstitutionsPanel() {
+  const { user, role, impersonatedInstitutionId, setImpersonatedInstitution } = useAuth();
   const [institutions, setInstitutions] = useState<import('@/lib/firestore-db').FSInstitution[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [terminating, setTerminating] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newInstForm, setNewInstForm] = useState({ name: '', type: 'University' });
+  const isDev = role === 'developer';
 
   useEffect(() => {
-    const { onAllInstitutions } = require('@/lib/firestore-db');
     return onAllInstitutions((list: import('@/lib/firestore-db').FSInstitution[]) => {
       setInstitutions(list);
       setLoading(false);
@@ -1594,16 +1781,92 @@ function InstitutionsPanel() {
     return `mailto:hello@attendly.app?subject=${subject}&body=${body}`;
   };
 
+  const copyId = async (id: string) => {
+    try { await navigator.clipboard.writeText(id); setCopiedId(id); setTimeout(() => setCopiedId(null), 1500); } catch {}
+  };
+
+  const terminate = async (id: string) => {
+    if (!user) return;
+    setTerminating(id);
+    try {
+      await terminateInstitution(id, user.uid, user.displayName ?? user.email ?? '');
+    } catch (e: unknown) {
+      alert('Terminate failed: ' + (e instanceof Error ? e.message : String(e)));
+    }
+    setTerminating(null);
+    setConfirmId(null);
+  };
+
+  const createInst = async () => {
+    if (!newInstForm.name.trim() || !user) return;
+    setCreating(true);
+    try {
+      const id = await createInstitution({ name: newInstForm.name.trim(), type: newInstForm.type }, user.uid);
+      await logAudit({ institutionId: id, actorId: user.uid, actorName: user.displayName ?? user.email ?? '', action: 'INSTITUTION_CREATED', details: newInstForm.name.trim() });
+      setNewInstForm({ name: '', type: 'University' });
+      setShowCreate(false);
+    } catch (e: unknown) {
+      alert('Failed to create institution: ' + (e instanceof Error ? e.message : String(e)));
+    }
+    setCreating(false);
+  };
+
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-5xl">
       <div className="flex items-center justify-between">
         <p className="text-[13px] text-ink-mute">
-          All institutions on the platform. Click <strong>Contact</strong> to open a pre-filled email for their owner.
+          All institutions on the platform.{isDev ? ' Developers can terminate any institution; audit row is written automatically.' : ' Click Contact to email the owner.'}
         </p>
-        <span className="text-[12px] text-ink-mute bg-ink/6 rounded-full px-3 py-1">
-          {institutions.length} total
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[12px] text-ink-mute bg-ink/6 rounded-full px-3 py-1">
+            {institutions.length} total
+          </span>
+          {isDev && (
+            <button onClick={() => setShowCreate((x) => !x)}
+              className="rounded-xl btn-solid px-4 py-2 text-[12.5px] font-medium transition-all">
+              + Create institution
+            </button>
+          )}
+        </div>
       </div>
+
+      {isDev && showCreate && (
+        <Card className="p-5 space-y-3 border-accent/30">
+          <SectionTitle>New institution</SectionTitle>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Institution name *" value={newInstForm.name} onChange={(v) => setNewInstForm((f) => ({ ...f, name: v }))} placeholder="e.g. MIT" />
+            <div>
+              <label className="block text-[11px] tracking-wide text-ink-mute mb-1">Type</label>
+              <select value={newInstForm.type} onChange={(e) => setNewInstForm((f) => ({ ...f, type: e.target.value }))}
+                className="w-full text-[13px] text-ink bg-cream-100 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50 transition-colors">
+                <option>University</option>
+                <option>College</option>
+                <option>School</option>
+                <option>Coaching</option>
+                <option>Corporate</option>
+                <option>Other</option>
+              </select>
+            </div>
+          </div>
+          <p className="text-[11px] text-ink-mute">A 6-character join code will be auto-generated for this institution.</p>
+          <div className="flex gap-3">
+            <button onClick={createInst} disabled={creating || !newInstForm.name.trim()}
+              className="rounded-lg bg-[#16161A] text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-black transition-all disabled:opacity-50">
+              {creating ? 'Creating…' : 'Create institution'}
+            </button>
+            <button onClick={() => setShowCreate(false)}
+              className="rounded-lg border border-ink/10 px-4 py-2 text-[12.5px] text-ink-mute hover:text-ink transition-all">
+              Cancel
+            </button>
+          </div>
+        </Card>
+      )}
+
+      {isDev && (
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-700/30 p-3 text-[12px] text-amber-800 dark:text-amber-300">
+          ⚠ Terminate detaches every member (their role drops to <code>student</code>, institution link cleared) and deletes the institution doc. Audit log is kept for 1 day (set a TTL on <code className="font-mono">auditLogs.createdAt</code> in Firebase console).
+        </div>
+      )}
 
       <Card className="overflow-hidden">
         {loading ? (
@@ -1617,7 +1880,7 @@ function InstitutionsPanel() {
                 <th className="text-left px-5 py-3">Institution</th>
                 <th className="text-left px-5 py-3">Code</th>
                 <th className="text-left px-5 py-3">Type</th>
-                <th className="text-left px-5 py-3">Owner ID</th>
+                <th className="text-left px-5 py-3">Owner</th>
                 <th className="text-left px-5 py-3">Actions</th>
               </tr>
             </thead>
@@ -1626,7 +1889,13 @@ function InstitutionsPanel() {
                 <tr key={inst.id} className="border-b border-ink/6 last:border-0 hover:bg-cream-100/50 transition-colors">
                   <td className="px-5 py-3">
                     <div className="font-medium">{inst.name}</div>
-                    <div className="text-[11px] text-ink-mute font-mono">{inst.id}</div>
+                    <div className="text-[11px] text-ink-mute font-mono flex items-center gap-1.5">
+                      <span className="truncate max-w-[180px]">{inst.id}</span>
+                      <button onClick={() => copyId(inst.id)}
+                        className="text-ink-mute hover:text-accent transition-colors text-[10px]">
+                        {copiedId === inst.id ? '✓' : '⧉'}
+                      </button>
+                    </div>
                   </td>
                   <td className="px-5 py-3">
                     <span className="font-mono font-bold tracking-widest text-accent">{inst.code ?? '—'}</span>
@@ -1636,10 +1905,31 @@ function InstitutionsPanel() {
                     <span className="font-mono text-[11px] text-ink-mute truncate max-w-[120px] block">{inst.ownerId ?? '—'}</span>
                   </td>
                   <td className="px-5 py-3">
-                    <a href={contactHref(inst)}
-                      className="text-[11px] border border-ink/15 rounded px-2 py-1 hover:border-accent hover:text-accent transition-colors">
-                      Contact owner
-                    </a>
+                    <div className="flex gap-2 flex-wrap">
+                      {isDev && (
+                        impersonatedInstitutionId === inst.id ? (
+                          <button onClick={() => setImpersonatedInstitution(null)}
+                            className="text-[11px] border border-purple-300 text-purple-600 rounded px-2 py-1 bg-purple-50 dark:bg-purple-900/20 transition-colors">
+                            Exit drill-in
+                          </button>
+                        ) : (
+                          <button onClick={() => setImpersonatedInstitution(inst.id)}
+                            className="text-[11px] border border-purple-300 text-purple-600 rounded px-2 py-1 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors">
+                            Drill in
+                          </button>
+                        )
+                      )}
+                      <a href={contactHref(inst)}
+                        className="text-[11px] border border-ink/15 rounded px-2 py-1 hover:border-accent hover:text-accent transition-colors">
+                        Contact
+                      </a>
+                      {isDev && (
+                        <button onClick={() => setConfirmId(inst.id)}
+                          className="text-[11px] border border-red-300 text-red-500 rounded px-2 py-1 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                          Terminate
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1647,6 +1937,214 @@ function InstitutionsPanel() {
           </table>
         )}
       </Card>
+
+      {/* Terminate confirm modal */}
+      {confirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm">
+          <div className="bg-cream-50 dark:bg-[#13161D] rounded-2xl border border-ink/10 p-7 max-w-md w-full mx-4 shadow-2xl">
+            <h2 className="font-display text-[1.4rem] mb-2">Terminate institution?</h2>
+            <p className="text-[13px] text-ink-mute mb-4">
+              This will:
+            </p>
+            <ul className="text-[13px] space-y-1 mb-5 pl-4">
+              <li className="list-disc text-ink-mute">Detach every member to <code className="font-mono text-[11px]">student</code> with no institution</li>
+              <li className="list-disc text-ink-mute">Delete the institution document and join code</li>
+              <li className="list-disc text-amber-600 font-medium">Write an append-only audit row that lives for 1 day</li>
+            </ul>
+            <div className="flex gap-3">
+              <button onClick={() => terminate(confirmId)} disabled={terminating === confirmId}
+                className="flex-1 rounded-xl bg-red-600 text-white py-2.5 text-[13px] font-medium hover:bg-red-700 transition-all disabled:opacity-50">
+                {terminating === confirmId ? 'Terminating…' : 'Terminate'}
+              </button>
+              <button onClick={() => setConfirmId(null)}
+                className="flex-1 rounded-xl border border-ink/10 py-2.5 text-[13px] text-ink-mute hover:text-ink transition-all">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Student Home ─────────────────────────────────────────────────────────────
+
+function StudentHomePanel() {
+  const { user, institutionId, role } = useAuth();
+  const [inst, setInst] = useState<import('@/lib/firestore-db').FSInstitution | null>(null);
+  const [myClasses, setMyClasses] = useState<import('@/lib/firestore-db').FSClass[]>([]);
+  const [attendance, setAttendance] = useState<FSAttendanceRecord[]>([]);
+  const [joinInstCode, setJoinInstCode] = useState('');
+  const [joinClassCode, setJoinClassCode] = useState('');
+  const [joiningInst, setJoiningInst] = useState(false);
+  const [joiningClass, setJoiningClass] = useState(false);
+  const [joinInstMsg, setJoinInstMsg] = useState('');
+  const [joinClassMsg, setJoinClassMsg] = useState('');
+
+  useEffect(() => {
+    if (!institutionId) { setInst(null); return; }
+    return onInstitution(institutionId, setInst);
+  }, [institutionId]);
+
+  useEffect(() => {
+    if (!user) return;
+    return onStudentClasses(user.uid, setMyClasses);
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user || !institutionId) return;
+    return onStudentAttendance(user.uid, institutionId, setAttendance);
+  }, [user?.uid, institutionId]);
+
+  const joinInstitution = async () => {
+    if (!joinInstCode.trim() || !user) return;
+    setJoiningInst(true); setJoinInstMsg('');
+    try {
+      const result = await joinInstitutionByCode(user.uid, joinInstCode.trim());
+      if (result) {
+        setJoinInstMsg(`✓ Joined ${result.name}! Refresh to see your dashboard.`);
+      } else {
+        setJoinInstMsg('Institution not found. Check the code and try again.');
+      }
+    } catch (e: unknown) {
+      setJoinInstMsg('Error: ' + (e instanceof Error ? e.message : String(e)));
+    }
+    setJoiningInst(false);
+  };
+
+  const joinClass = async () => {
+    if (!joinClassCode.trim() || !user || !institutionId) return;
+    setJoiningClass(true); setJoinClassMsg('');
+    try {
+      const result = await joinClassByCode(user.uid, joinClassCode.trim(), institutionId);
+      if (result) {
+        setJoinClassMsg(`✓ Joined class: ${result.name}${result.section ? ' · ' + result.section : ''}!`);
+        setJoinClassCode('');
+      } else {
+        setJoinClassMsg('Class not found. Check the code and try again.');
+      }
+    } catch (e: unknown) {
+      setJoinClassMsg('Error: ' + (e instanceof Error ? e.message : String(e)));
+    }
+    setJoiningClass(false);
+  };
+
+  const fmtTime = (ts: unknown) => {
+    if (!ts) return '—';
+    try { return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date((ts as any).seconds * 1000)); } catch { return '—'; }
+  };
+
+  if (!institutionId) {
+    return (
+      <div className="space-y-6 max-w-lg">
+        <Card className="p-6 space-y-4 border-accent/30">
+          <div className="text-[2rem]">👋</div>
+          <div className="text-[15px] font-medium text-ink dark:text-white">Welcome! Join your institution</div>
+          <p className="text-[13px] text-ink-mute">Enter the 6-character code your institution admin shared with you.</p>
+          <div className="flex gap-2">
+            <input value={joinInstCode} onChange={(e) => setJoinInstCode(e.target.value.toUpperCase())}
+              placeholder="e.g. ABC123"
+              className="flex-1 text-[14px] text-ink bg-cream-100 border border-ink/10 rounded-lg px-3 py-2.5 focus:outline-none focus:border-accent/50 font-mono tracking-widest" />
+            <button onClick={joinInstitution} disabled={joiningInst || !joinInstCode.trim()}
+              className="rounded-lg btn-solid px-4 py-2.5 text-[13px] font-medium transition-all disabled:opacity-50">
+              {joiningInst ? 'Joining…' : 'Join'}
+            </button>
+          </div>
+          {joinInstMsg && (
+            <p className={`text-[12px] ${joinInstMsg.startsWith('✓') ? 'text-green-600' : 'text-red-500'}`}>{joinInstMsg}</p>
+          )}
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      {/* Institution info */}
+      {inst && (
+        <Card className="p-5 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center text-accent text-[18px]">🏫</div>
+          <div>
+            <div className="text-[14px] font-medium text-ink dark:text-white">{inst.name}</div>
+            <div className="text-[11px] text-ink-mute mt-0.5">
+              Code: <span className="font-mono font-bold text-accent">{inst.code}</span>
+              {inst.type && <span className="ml-2 text-ink-mute">· {inst.type}</span>}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Join a class */}
+      <Card className="p-5 space-y-3">
+        <SectionTitle>Join a class</SectionTitle>
+        <p className="text-[12.5px] text-ink-mute -mt-2">Ask your teacher for the class join code.</p>
+        <div className="flex gap-2">
+          <input value={joinClassCode} onChange={(e) => setJoinClassCode(e.target.value.toUpperCase())}
+            placeholder="Class code (e.g. XY7K3P)"
+            className="flex-1 text-[14px] text-ink bg-cream-100 border border-ink/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/50 font-mono tracking-widest" />
+          <button onClick={joinClass} disabled={joiningClass || !joinClassCode.trim()}
+            className="rounded-lg btn-solid px-4 py-2 text-[13px] font-medium transition-all disabled:opacity-50">
+            {joiningClass ? '…' : 'Join'}
+          </button>
+        </div>
+        {joinClassMsg && (
+          <p className={`text-[12px] ${joinClassMsg.startsWith('✓') ? 'text-green-600' : 'text-red-500'}`}>{joinClassMsg}</p>
+        )}
+      </Card>
+
+      {/* My classes */}
+      <div>
+        <SectionTitle>My classes ({myClasses.length})</SectionTitle>
+        {myClasses.length === 0 ? (
+          <Card className="p-6 text-center text-[13px] text-ink-mute">
+            No classes joined yet. Ask your teacher for a join code above.
+          </Card>
+        ) : (
+          <div className="grid gap-3">
+            {myClasses.map((c) => (
+              <Card key={c.id} className="p-4 flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[14px] font-medium text-ink dark:text-white">{c.name}{c.section ? <span className="text-ink-mute font-normal ml-1.5">· {c.section}</span> : null}</div>
+                  {c.description && <div className="text-[12px] text-ink-mute mt-0.5">{c.description}</div>}
+                </div>
+                <span className="text-[10.5px] px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium flex-shrink-0">Enrolled</span>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* My attendance */}
+      <div>
+        <SectionTitle>My attendance history ({attendance.length} records)</SectionTitle>
+        {attendance.length === 0 ? (
+          <Card className="p-6 text-center text-[13px] text-ink-mute">
+            No attendance records yet. Once you scan a QR in class, records appear here.
+          </Card>
+        ) : (
+          <Card className="overflow-hidden">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-ink/8 text-[10.5px] tracking-[0.15em] text-ink-mute uppercase">
+                  <th className="text-left px-5 py-3">Session</th>
+                  <th className="text-left px-5 py-3">Class</th>
+                  <th className="text-left px-5 py-3">Scanned at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {attendance.slice(0, 30).map((r) => (
+                  <tr key={r.id} className="border-b border-ink/6 last:border-0">
+                    <td className="px-5 py-3 font-mono text-[11px] text-ink-mute truncate max-w-[100px]">{r.sessionId.slice(0, 10)}…</td>
+                    <td className="px-5 py-3 text-ink-mute">{r.studentName ?? '—'}</td>
+                    <td className="px-5 py-3 text-ink-mute">{fmtTime(r.scannedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
@@ -1654,68 +2152,44 @@ function InstitutionsPanel() {
 // ─── God Mode ─────────────────────────────────────────────────────────────────
 
 function GodModePanel() {
-  const { config, save } = useSiteConfig();
+  const { config, save, loading } = useSiteConfig();
   const [local, setLocal] = useState<SiteConfig>({ ...config });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [savedMsg, setSavedMsg] = useState('');
-  const [pricingDialog, setPricingDialog] = useState<'paid' | 'free' | null>(null);
-  const [draftPrice, setDraftPrice] = useState('');
-  const [draftPriceLabel, setDraftPriceLabel] = useState('per month');
-  const [draftPaymentUrl, setDraftPaymentUrl] = useState('');
-  const rootRef = useRef<HTMLDivElement>(null);
+  const [showPricingConfirm, setShowPricingConfirm] = useState(false);
+  const pendingPricingMode = useRef<PricingMode | null>(null);
+  const configLoadedRef = useRef(false);
 
-  // GSAP card stagger entrance
+  // Sync local state once — after Firestore sends the real config (loading→false).
+  // Without this, GodMode opens with DEFAULT_CONFIG before Firestore responds,
+  // and a premature "Save all changes" would overwrite the real Firestore data.
   useEffect(() => {
-    if (typeof window === 'undefined' || !rootRef.current) return;
-    let cancelled = false;
-    import('gsap').then(({ default: gsap }) => {
-      if (cancelled || !rootRef.current) return;
-      try {
-        const cards = rootRef.current.querySelectorAll(':scope > div, :scope > .glass');
-        gsap.fromTo(
-          cards,
-          { opacity: 0, y: 18 },
-          { opacity: 1, y: 0, duration: 0.55, ease: 'power3.out', stagger: 0.06 },
-        );
-      } catch {}
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
+    if (!loading && !configLoadedRef.current) {
+      configLoadedRef.current = true;
+      setLocal({ ...config });
+    }
+  }, [loading, config]);
 
   const set = useCallback(<K extends keyof SiteConfig>(k: K, v: SiteConfig[K]) => {
     setLocal((c) => ({ ...c, [k]: v }));
   }, []);
 
   const handlePricingToggle = (mode: PricingMode) => {
-    if (mode === local.pricingMode) return;
-    if (mode === 'PAID') {
-      setDraftPrice(String(local.customPrice ?? ''));
-      setDraftPriceLabel(local.customPriceLabel || 'per month');
-      setDraftPaymentUrl(local.paymentUrl || '');
-      setPricingDialog('paid');
-    } else if (mode === 'FREE') {
-      setPricingDialog('free');
+    if (mode === 'PAID' && local.pricingMode === 'LIMITED_OFFER') {
+      pendingPricingMode.current = mode;
+      setShowPricingConfirm(true);
     } else {
       set('pricingMode', mode);
     }
   };
 
-  const confirmPaid = () => {
-    const price = parseFloat(draftPrice);
-    setLocal((c) => ({
-      ...c,
-      pricingMode: 'PAID',
-      customPrice: isNaN(price) ? null : price,
-      customPriceLabel: draftPriceLabel || 'per month',
-      paymentUrl: draftPaymentUrl,
-    }));
-    setPricingDialog(null);
-  };
-
-  const confirmFree = () => {
-    set('pricingMode', 'FREE');
-    setPricingDialog(null);
+  const confirmPricingSwitch = () => {
+    if (pendingPricingMode.current) {
+      set('pricingMode', pendingPricingMode.current);
+      pendingPricingMode.current = null;
+    }
+    setShowPricingConfirm(false);
   };
 
   const persist = async () => {
@@ -1733,7 +2207,7 @@ function GodModePanel() {
   };
 
   return (
-    <div ref={rootRef} className="space-y-8 max-w-3xl">
+    <div className="space-y-8 max-w-3xl">
       {/* Warning banner */}
       <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40 px-4 py-3 text-[12.5px] text-red-700 dark:text-red-400 flex items-start gap-3">
         <span className="text-red-500 text-lg leading-none flex-shrink-0">⚡</span>
@@ -1746,45 +2220,32 @@ function GodModePanel() {
       {/* Pricing mode toggle — prominent */}
       <Card className="p-6 space-y-4 border-amber-200 dark:border-amber-700/30 bg-amber-50/30 dark:bg-amber-900/10">
         <SectionTitle>Pricing mode</SectionTitle>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => handlePricingToggle('LIMITED_OFFER')}
-            className={`flex-1 rounded-xl border-2 py-4 text-[13px] font-medium transition-all text-center ${
+            className={`flex-1 rounded-xl border-2 py-4 text-[13px] font-medium transition-all ${
               local.pricingMode === 'LIMITED_OFFER'
-                ? 'border-accent bg-accent/10 text-accent dark:text-accent'
-                : 'border-ink/10 dark:border-white/10 text-ink-mute hover:border-ink/20 dark:hover:border-white/20'
+                ? 'border-accent bg-accent/10 text-accent'
+                : 'border-ink/10 text-ink-mute hover:border-ink/20'
             }`}
           >
             <div className="text-lg mb-1">🎟️</div>
             <div>Limited offer</div>
-            <div className="text-[11px] mt-0.5 opacity-70">Discounted prices</div>
+            <div className="text-[11px] mt-0.5 opacity-70">Discounted prices shown to everyone</div>
           </button>
           <button
             onClick={() => handlePricingToggle('PAID')}
-            className={`flex-1 rounded-xl border-2 py-4 text-[13px] font-medium transition-all text-center ${
+            className={`flex-1 rounded-xl border-2 py-4 text-[13px] font-medium transition-all ${
               local.pricingMode === 'PAID'
-                ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400'
-                : 'border-ink/10 dark:border-white/10 text-ink-mute hover:border-ink/20 dark:hover:border-white/20'
+                ? 'border-red-500 bg-red-50 text-red-700'
+                : 'border-ink/10 text-ink-mute hover:border-ink/20'
             }`}
           >
             <div className="text-lg mb-1">💳</div>
-            <div>Custom price</div>
-            <div className="text-[11px] mt-0.5 opacity-70">Set your own rate</div>
-          </button>
-          <button
-            onClick={() => handlePricingToggle('FREE')}
-            className={`flex-1 rounded-xl border-2 py-4 text-[13px] font-medium transition-all text-center ${
-              local.pricingMode === 'FREE'
-                ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                : 'border-ink/10 dark:border-white/10 text-ink-mute hover:border-ink/20 dark:hover:border-white/20'
-            }`}
-          >
-            <div className="text-lg mb-1">🎁</div>
-            <div>Free</div>
-            <div className="text-[11px] mt-0.5 opacity-70">All plans at no cost</div>
+            <div>Full pricing</div>
+            <div className="text-[11px] mt-0.5 opacity-70">All plans charged at full rate</div>
           </button>
         </div>
-
         {local.pricingMode === 'LIMITED_OFFER' && (
           <div className="grid grid-cols-2 gap-3">
             <Field label="Offer label" value={local.limitedOfferLabel}
@@ -1793,110 +2254,41 @@ function GodModePanel() {
               onChange={(v) => set('limitedOfferDiscountPct', Number(v))} type="number" />
           </div>
         )}
-
-        {local.pricingMode === 'PAID' && (
-          <div className="rounded-xl bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-700/30 p-4 space-y-3">
-            <p className="text-[12px] text-orange-700 dark:text-orange-400 font-medium">Custom pricing active</p>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Custom price ($)" value={local.customPrice !== null ? String(local.customPrice) : ''}
-                onChange={(v) => set('customPrice', v === '' ? null : parseFloat(v))} type="number" placeholder="e.g. 49" />
-              <Field label="Price label" value={local.customPriceLabel}
-                onChange={(v) => set('customPriceLabel', v)} placeholder="per month" />
-            </div>
-            <Field label="Payment URL (leave blank if not ready)" value={local.paymentUrl}
-              onChange={(v) => set('paymentUrl', v)} placeholder="https://buy.stripe.com/…" />
-            {!local.paymentUrl && (
-              <p className="text-[11px] text-orange-600 dark:text-orange-500">
-                No payment URL set — CTAs will show &quot;coming soon&quot; until you add one.
-              </p>
-            )}
-          </div>
-        )}
-
-        {local.pricingMode === 'FREE' && (
-          <div className="rounded-xl bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-700/30 p-4">
-            <p className="text-[12px] text-green-700 dark:text-green-400">
-              All plans show as <strong>Free</strong> across the site. No payment required.
-            </p>
-          </div>
-        )}
       </Card>
 
-      {/* PAID pricing dialog */}
-      {pricingDialog === 'paid' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 dark:bg-black/60 backdrop-blur-sm">
-          <div className="bg-cream-50 dark:bg-[#13161D] rounded-2xl border border-ink/10 dark:border-white/10 p-8 max-w-md w-full mx-4 shadow-2xl">
-            <h2 className="font-display text-[1.6rem] mb-1 dark:text-cream-50">Set custom pricing</h2>
-            <p className="text-[13px] text-ink-mute dark:text-white/50 mb-5">
-              Visitors will see this price on the Pro plan. Leave the payment URL blank if you haven&apos;t set up payments yet.
-            </p>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[11px] tracking-wide text-ink-mute dark:text-white/50 mb-1">Custom price ($)</label>
-                <input
-                  type="number" min="0" value={draftPrice}
-                  onChange={(e) => setDraftPrice(e.target.value)}
-                  placeholder="e.g. 49"
-                  className="w-full rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-2 text-[13px] dark:text-cream-50 focus:outline-none focus:ring-2 focus:ring-accent/40"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] tracking-wide text-ink-mute dark:text-white/50 mb-1">Price label</label>
-                <input
-                  type="text" value={draftPriceLabel}
-                  onChange={(e) => setDraftPriceLabel(e.target.value)}
-                  placeholder="per month"
-                  className="w-full rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-2 text-[13px] dark:text-cream-50 focus:outline-none focus:ring-2 focus:ring-accent/40"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] tracking-wide text-ink-mute dark:text-white/50 mb-1">Payment URL <span className="text-ink/30 dark:text-white/30">(optional — leave blank if not ready)</span></label>
-                <input
-                  type="url" value={draftPaymentUrl}
-                  onChange={(e) => setDraftPaymentUrl(e.target.value)}
-                  placeholder="https://buy.stripe.com/…"
-                  className="w-full rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-2 text-[13px] dark:text-cream-50 focus:outline-none focus:ring-2 focus:ring-accent/40"
-                />
-                {!draftPaymentUrl && (
-                  <p className="mt-1 text-[11px] text-ink/40 dark:text-white/30">CTAs will show &quot;coming soon&quot; until you add a payment link.</p>
-                )}
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button onClick={confirmPaid}
-                className="flex-1 rounded-xl bg-orange-600 text-white py-2.5 text-[13px] font-medium hover:bg-orange-700 transition-all">
-                Apply custom pricing
-              </button>
-              <button onClick={() => setPricingDialog(null)}
-                className="flex-1 rounded-xl border border-ink/10 dark:border-white/10 py-2.5 text-[13px] text-ink-mute dark:text-white/50 hover:text-ink dark:hover:text-cream-50 transition-all">
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Per-tier price editor — devs can set any price (including 0) */}
+      <Card className="p-6 space-y-4">
+        <SectionTitle>Pricing tiers</SectionTitle>
+        <p className="text-[12px] text-ink-mute -mt-2">
+          Override the three landing-page pricing cards. Leave empty to keep the built-in defaults (Starter $0, Pro $99, Enterprise Custom). Set any price to 0 to make it free.
+        </p>
+        <PricingTierEditor
+          tiers={local.pricingTiers}
+          onChange={(tiers) => set('pricingTiers', tiers)}
+        />
+      </Card>
 
-      {/* FREE pricing confirmation dialog */}
-      {pricingDialog === 'free' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 dark:bg-black/60 backdrop-blur-sm">
-          <div className="bg-cream-50 dark:bg-[#13161D] rounded-2xl border border-ink/10 dark:border-white/10 p-8 max-w-md w-full mx-4 shadow-2xl">
-            <h2 className="font-display text-[1.6rem] mb-1 dark:text-cream-50">Make everything free?</h2>
-            <p className="text-[13px] text-ink-mute dark:text-white/50 mb-4">
-              All pricing plans will display as <strong className="text-green-600 dark:text-green-400">Free</strong> across the entire site. No payment required from visitors.
+      {/* Pricing confirm modal */}
+      {showPricingConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm">
+          <div className="bg-cream-50 dark:bg-[#13161D] rounded-2xl border border-ink/10 p-8 max-w-md w-full mx-4 shadow-2xl">
+            <h2 className="font-display text-[1.6rem] mb-2">End limited offer?</h2>
+            <p className="text-[13px] text-ink-mute mb-4">
+              Switching to <strong>Full Pricing</strong> will:
             </p>
             <ul className="text-[13px] space-y-1 mb-6 pl-4">
-              <li className="list-disc text-ink-mute dark:text-white/50">Starter, Pro, and Enterprise all show as free</li>
-              <li className="list-disc text-ink-mute dark:text-white/50">CTAs change to &quot;Start for free&quot;</li>
-              <li className="list-disc text-green-600 dark:text-green-400 font-medium">You can switch back at any time</li>
+              <li className="list-disc text-ink-mute">Show full prices to all new visitors</li>
+              <li className="list-disc text-ink-mute">Flag existing limited-offer subscribers for payment</li>
+              <li className="list-disc text-amber-600 font-medium">This cannot be undone without switching back manually</li>
             </ul>
             <div className="flex gap-3">
-              <button onClick={confirmFree}
-                className="flex-1 rounded-xl bg-green-600 text-white py-2.5 text-[13px] font-medium hover:bg-green-700 transition-all">
-                Yes, make it free
+              <button onClick={confirmPricingSwitch}
+                className="flex-1 rounded-xl bg-red-600 text-white py-2.5 text-[13px] font-medium hover:bg-red-700 transition-all">
+                Yes, switch to full pricing
               </button>
-              <button onClick={() => setPricingDialog(null)}
-                className="flex-1 rounded-xl border border-ink/10 dark:border-white/10 py-2.5 text-[13px] text-ink-mute dark:text-white/50 hover:text-ink dark:hover:text-cream-50 transition-all">
-                Cancel
+              <button onClick={() => setShowPricingConfirm(false)}
+                className="flex-1 rounded-xl border border-ink/10 py-2.5 text-[13px] text-ink-mute hover:text-ink transition-all">
+                Keep limited offer
               </button>
             </div>
           </div>
@@ -1942,36 +2334,6 @@ function GodModePanel() {
         </div>
       </Card>
 
-      {/* Stats editor — "Numbers that speak for themselves" */}
-      <Card className="p-6 space-y-4">
-        <SectionTitle>Numbers — &quot;speak for themselves&quot;</SectionTitle>
-        <p className="text-[12px] text-ink-mute">8 stat cards (4 left column, 4 right). Leave all blank to restore defaults.</p>
-        <div className="space-y-2">
-          {Array.from({ length: 8 }, (_, i) => {
-            const stat = (local.siteStats?.[i]) || { tag: '', value: '', sub: '' };
-            const update = (field: 'tag' | 'value' | 'sub', val: string) => {
-              const next = Array.from({ length: 8 }, (__, j) => local.siteStats?.[j] || { tag: '', value: '', sub: '' }) as { tag: string; value: string; sub: string }[];
-              next[i] = { ...next[i], [field]: val };
-              set('siteStats', next);
-            };
-            return (
-              <div key={i} className="grid grid-cols-3 gap-2 items-center">
-                {i === 0 && <><div className="text-[10px] text-ink-mute">Label</div><div className="text-[10px] text-ink-mute">Value</div><div className="text-[10px] text-ink-mute">Subtitle</div></>}
-                <input value={stat.tag} onChange={e => update('tag', e.target.value)} placeholder={`Label ${i + 1}`}
-                  className="rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-1.5 text-[12px] dark:text-cream-50 focus:outline-none focus:ring-1 focus:ring-accent/40" />
-                <input value={stat.value} onChange={e => update('value', e.target.value)} placeholder="e.g. 99.7%"
-                  className="rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-1.5 text-[12px] dark:text-cream-50 focus:outline-none focus:ring-1 focus:ring-accent/40" />
-                <input value={stat.sub} onChange={e => update('sub', e.target.value)} placeholder={`Subtitle ${i + 1}`}
-                  className="rounded-lg border border-ink/10 dark:border-white/10 bg-cream-50 dark:bg-[#1A2236] px-3 py-1.5 text-[12px] dark:text-cream-50 focus:outline-none focus:ring-1 focus:ring-accent/40" />
-              </div>
-            );
-          })}
-        </div>
-        <button onClick={() => set('siteStats', [])} className="text-[11px] text-ink-mute hover:text-accent transition-colors">
-          ↺ Reset to defaults
-        </button>
-      </Card>
-
       {/* Feature flags */}
       <Card className="p-6 space-y-4">
         <SectionTitle>Feature flags</SectionTitle>
@@ -1989,73 +2351,15 @@ function GodModePanel() {
           checked={local.maintenanceMode} onChange={(v) => set('maintenanceMode', v)} danger />
       </Card>
 
-      {/* QR security defaults — live preview */}
-      <Card className="p-6 space-y-5">
-        <SectionTitle>QR security defaults</SectionTitle>
-        <p className="text-[11.5px] text-ink-mute">
-          Live across the landing page demo and every new QR session. Animates smoothly when changed.
-        </p>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-[12.5px] text-ink dark:text-cream-50 font-medium">Rotation interval</label>
-            <span className="text-[12px] font-mono tabular-nums text-accent">
-              {Number(local.defaultQrRotationSec).toFixed(1)}s
-            </span>
-          </div>
-          <input
-            type="range"
-            min={1}
-            max={3}
-            step={0.1}
-            value={local.defaultQrRotationSec}
-            onChange={(e) => set('defaultQrRotationSec', parseFloat(e.target.value))}
-            className="w-full accent-accent cursor-pointer"
-          />
-          <div className="flex justify-between text-[10.5px] font-mono text-ink-mute">
-            <span>1.0s · strict</span>
-            <span>1.5s · balanced</span>
-            <span>2.0s</span>
-            <span>3.0s · slow nets</span>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-[12.5px] text-ink dark:text-cream-50 font-medium">Max scans per token</label>
-            <span className="text-[12px] font-mono tabular-nums text-accent">
-              {local.defaultQrMaxScans === 0 ? 'unlimited' : local.defaultQrMaxScans}
-            </span>
-          </div>
-          <div className="grid grid-cols-5 gap-2">
-            {[0, 1, 5, 25, 100].map((n) => (
-              <button
-                key={n}
-                onClick={() => set('defaultQrMaxScans', n)}
-                className={`rounded-lg border px-2.5 py-2 text-[12px] font-medium transition-colors ${
-                  local.defaultQrMaxScans === n
-                    ? 'border-accent bg-accent/10 text-accent'
-                    : 'border-ink/10 dark:border-white/10 text-ink-mute hover:border-ink/20 dark:hover:border-white/20'
-                }`}
-              >
-                {n === 0 ? '∞' : n}
-              </button>
-            ))}
-          </div>
-          <p className="text-[11px] text-ink-mute">
-            <strong>1</strong> = strongest anti-replay (each token consumed after first valid scan).
-            <strong> ∞</strong> = unlimited within the TTL window.
-          </p>
-        </div>
-      </Card>
-
       {/* System config */}
       <Card className="p-6 space-y-4">
-        <SectionTitle>Rate limits</SectionTitle>
+        <SectionTitle>System config</SectionTitle>
         <p className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
-          Rate limit changes require API restart on the server side.
+          Rate limit changes require API restart. QR rotation default applies to new sessions.
         </p>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
+          <Field label="Default QR rotation (sec)" value={String(local.defaultQrRotationSec)}
+            onChange={(v) => set('defaultQrRotationSec', Number(v))} type="number" />
           <Field label="Login rate limit (req/min)" value={String(local.loginRateLimitMax)}
             onChange={(v) => set('loginRateLimitMax', Number(v))} type="number" />
           <Field label="Scan rate limit (req/min)" value={String(local.scanRateLimitMax)}
@@ -2079,7 +2383,7 @@ function GodModePanel() {
       <Card className="p-5 border-blue-200 dark:border-blue-900/40 bg-blue-50/30 dark:bg-blue-900/10 space-y-2">
         <SectionTitle>Firebase setup — Firestore rules</SectionTitle>
         <p className="text-[12px] text-ink-mute">Deploy these rules in Firebase Console → Firestore → Rules to enable all collections:</p>
-        <pre className="text-[11px] bg-ink text-cream-50 rounded-lg p-4 overflow-x-auto leading-relaxed">{`rules_version = '2';
+        <pre className="text-[11px] bg-[#16161A] text-cream-50 rounded-lg p-4 overflow-x-auto leading-relaxed">{`rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /config/{docId} {
@@ -2110,28 +2414,23 @@ service cloud.firestore {
     match /classes/{id} {
       allow read, write: if request.auth != null;
     }
+    match /classMembers/{id} {
+      allow read, write: if request.auth != null;
+    }
+    match /attendanceRecords/{id} {
+      allow read, write: if request.auth != null;
+    }
   }
 }`}</pre>
       </Card>
 
       {/* Save button + status */}
-      <div className="flex items-start gap-4 flex-wrap">
+      <div className="flex items-start gap-4">
         <button onClick={persist} disabled={saving}
           className="rounded-xl bg-red-600 text-white px-6 py-2.5 text-[13.5px] font-medium hover:bg-red-700 transition-all active:scale-[0.98] disabled:opacity-50">
           {saving ? 'Saving…' : 'Save all changes'}
         </button>
-        <button
-          onClick={() => {
-            if (confirm('Reset all site config to factory defaults? This will clear localStorage and cannot be undone.')) {
-              localStorage.removeItem('attendly_site_config');
-              window.location.reload();
-            }
-          }}
-          className="rounded-xl border border-ink/10 dark:border-white/10 px-4 py-2.5 text-[12px] text-ink-mute dark:text-white/50 hover:text-ink dark:hover:text-cream-50 hover:border-ink/20 dark:hover:border-white/20 transition-all"
-        >
-          Reset to defaults
-        </button>
-        {savedMsg && <span className="text-[13px] text-green-600 dark:text-green-400 mt-2">{savedMsg}</span>}
+        {savedMsg && <span className="text-[13px] text-green-600 mt-2">{savedMsg}</span>}
         {saveError && (
           <div className={`flex-1 rounded-lg px-4 py-2 text-[12px] whitespace-pre-wrap ${
             saveError.startsWith('Saved locally')
@@ -2156,7 +2455,6 @@ function CreateUserForm() {
     if (!form.email || !form.fullName) return;
     setSaving(true);
     try {
-      const { createPendingUser } = require('@/lib/firestore-db');
       await createPendingUser({
         email: form.email, displayName: form.fullName,
         role: form.role.toLowerCase() as import('@/lib/firestore-db').UserRole,
@@ -2189,7 +2487,7 @@ function CreateUserForm() {
         <Field label="Full name" value={form.fullName} onChange={set('fullName')} />
       </div>
       <button onClick={create} disabled={saving || !form.email || !form.fullName}
-        className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all disabled:opacity-50">
+        className="rounded-lg bg-[#16161A] text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-black transition-all disabled:opacity-50">
         {saving ? 'Creating…' : 'Create pending user'}
       </button>
       {status && <p className="text-[11px] text-ink-mute font-mono">{status}</p>}
@@ -2209,7 +2507,6 @@ function CreateInstitutionForm() {
     if (!name.trim()) return;
     setSaving(true);
     try {
-      const { createInstitution, getOwnedInstitution } = require('@/lib/firestore-db');
       if (user) {
         const existing = await getOwnedInstitution(user.uid);
         if (existing) {
@@ -2247,7 +2544,7 @@ function CreateInstitutionForm() {
       </div>
       <p className="text-[11.5px] text-ink-mute">A unique join code is generated automatically.</p>
       <button onClick={create} disabled={saving || !name.trim()}
-        className="rounded-lg bg-ink text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-ink/80 transition-all disabled:opacity-50">
+        className="rounded-lg bg-[#16161A] text-cream-50 px-4 py-2 text-[12.5px] font-medium hover:bg-black transition-all disabled:opacity-50">
         {saving ? 'Creating…' : 'Create institution'}
       </button>
       {status && (

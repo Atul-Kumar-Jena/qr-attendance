@@ -9,10 +9,7 @@ import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { OnboardingFlow } from '@/components/OnboardingFlow';
 import { CookieConsent } from '@/components/CookieConsent';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { NetStatus } from '@/components/NetStatus';
-import { AutoSync } from '@/components/AutoSync';
-import { RootCrashScreen } from '@/components/RootCrashScreen';
+import { Cursor } from '@/components/Cursor';
 import type { User } from 'firebase/auth';
 
 function AuthWithToasts({ children }: { children: ReactNode }) {
@@ -53,23 +50,17 @@ function OnboardingGate({ children }: { children: ReactNode }) {
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <ErrorBoundary
-      name="root"
-      fallback={(err) => <RootCrashScreen error={err} />}
-    >
-      <ThemeProvider>
-        <ToastProvider>
-          <SiteConfigProvider>
-            <AuthWithToasts>
-              {children}
-              <ErrorBoundary name="toasts" fallback={null}><ToastContainer /></ErrorBoundary>
-              <ErrorBoundary name="cookie-consent" fallback={null}><CookieConsent /></ErrorBoundary>
-              <ErrorBoundary name="net-status" fallback={null}><NetStatus /></ErrorBoundary>
-              <ErrorBoundary name="auto-sync" fallback={null}><AutoSync /></ErrorBoundary>
-            </AuthWithToasts>
-          </SiteConfigProvider>
-        </ToastProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+    <ThemeProvider>
+      <ToastProvider>
+        <SiteConfigProvider>
+          <AuthWithToasts>
+            {children}
+            <ToastContainer />
+            <CookieConsent />
+            <Cursor />
+          </AuthWithToasts>
+        </SiteConfigProvider>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }

@@ -1,11 +1,24 @@
 'use client';
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { db } from '@/lib/firebase';
+import {
+  doc, onSnapshot, setDoc, serverTimestamp,
+} from 'firebase/firestore';
 
-export type PricingMode = 'LIMITED_OFFER' | 'PAID' | 'FREE';
-export const VALID_PRICING_MODES: PricingMode[] = ['LIMITED_OFFER', 'PAID', 'FREE'];
+export type PricingMode = 'LIMITED_OFFER' | 'PAID';
 
-export interface StatItem { tag: string; value: string; sub: string; }
+// Per-tier pricing override — `price: null` keeps the tier label "Custom"
+// (used for Enterprise). Anything else is rendered as a dollar amount. Devs
+// can set 0 to make a plan free for everyone.
+export interface PricingTier {
+  name: string;
+  price: number | null;
+  unit: string;
+  pitch: string;
+  feats: string[];
+  cta: string;
+  highlight?: boolean;
+}
 
 export interface SiteConfig {
   siteTitle: string;
@@ -17,9 +30,7 @@ export interface SiteConfig {
   pricingMode: PricingMode;
   limitedOfferLabel: string;
   limitedOfferDiscountPct: number;
-  customPrice: number | null;
-  customPriceLabel: string;
-  paymentUrl: string;
+  pricingTiers: PricingTier[];        // dev-editable; empty = use built-in defaults
   geofencingEnabled: boolean;
   deviceBindingEnabled: boolean;
   attestationEnabled: boolean;
@@ -27,10 +38,8 @@ export interface SiteConfig {
   qrRotationEnabled: boolean;
   maintenanceMode: boolean;
   defaultQrRotationSec: number;
-  defaultQrMaxScans: number;
   loginRateLimitMax: number;
   scanRateLimitMax: number;
-  siteStats: StatItem[];
 }
 
 export const DEFAULT_CONFIG: SiteConfig = {
@@ -43,20 +52,16 @@ export const DEFAULT_CONFIG: SiteConfig = {
   pricingMode: 'LIMITED_OFFER',
   limitedOfferLabel: 'Early access — 60% off',
   limitedOfferDiscountPct: 60,
-  customPrice: null,
-  customPriceLabel: 'per month',
-  paymentUrl: '',
+  pricingTiers: [],
   geofencingEnabled: true,
   deviceBindingEnabled: true,
   attestationEnabled: false,
   mockLocationDetection: true,
   qrRotationEnabled: true,
   maintenanceMode: false,
-  defaultQrRotationSec: 1.5,
-  defaultQrMaxScans: 0,
+  defaultQrRotationSec: 2,
   loginRateLimitMax: 5,
   scanRateLimitMax: 10,
-  siteStats: [],
 };
 
 interface SaveResult { ok: boolean; error?: string }
@@ -79,19 +84,7 @@ function readLocalStorage(): Partial<SiteConfig> {
   if (typeof window === 'undefined') return {};
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    // Validate critical fields to avoid rendering crashes
-    if (parsed.pricingMode && !VALID_PRICING_MODES.includes(parsed.pricingMode)) {
-      parsed.pricingMode = DEFAULT_CONFIG.pricingMode;
-    }
-    if (parsed.limitedOfferDiscountPct != null && (typeof parsed.limitedOfferDiscountPct !== 'number' || isNaN(parsed.limitedOfferDiscountPct))) {
-      parsed.limitedOfferDiscountPct = DEFAULT_CONFIG.limitedOfferDiscountPct;
-    }
-    if (parsed.customPrice != null && typeof parsed.customPrice !== 'number') {
-      parsed.customPrice = null;
-    }
-    return parsed;
+    return raw ? JSON.parse(raw) : {};
   } catch { return {}; }
 }
 
@@ -100,14 +93,11 @@ function writeLocalStorage(cfg: SiteConfig) {
   try { localStorage.setItem(LS_KEY, JSON.stringify(cfg)); } catch { /* quota full */ }
 }
 
-function clearLocalStorage() {
-  if (typeof window === 'undefined') return;
-  try { localStorage.removeItem(LS_KEY); } catch {}
-}
-
 export function SiteConfigProvider({ children }: { children: ReactNode }) {
-  // Initialize with DEFAULT_CONFIG on both server and client to prevent hydration mismatch.
-  // localStorage is read only after mount inside useEffect.
+  // Always start with DEFAULT_CONFIG so the server-rendered HTML matches the
+  // first client render — reading localStorage at initial state would cause a
+  // React 18 hydration mismatch on any consumer (e.g. <Pricing/>) that renders
+  // conditionally based on config.
   const configRef = useRef<SiteConfig>(DEFAULT_CONFIG);
   const [config, setConfigState] = useState<SiteConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(!!db);
@@ -117,20 +107,12 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
     setConfigState(next);
   };
 
-  // Hydrate from localStorage after mount (safe — runs only client-side)
-  // Also handle ?reset URL param to clear corrupted config
+  // Hydrate from localStorage after mount (client only)
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.search.includes('reset')) {
-      clearLocalStorage();
-      // Remove ?reset from URL without reload
-      const url = new URL(window.location.href);
-      url.searchParams.delete('reset');
-      window.history.replaceState({}, '', url.toString());
-      return; // Keep DEFAULT_CONFIG
-    }
     const stored = readLocalStorage();
     if (Object.keys(stored).length > 0) {
-      setConfig({ ...DEFAULT_CONFIG, ...stored } as SiteConfig);
+      const next = { ...DEFAULT_CONFIG, ...stored };
+      setConfig(next);
     }
   }, []);
 
@@ -141,43 +123,26 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
     }
     let unsub: (() => void) | undefined;
     try {
-      const { doc, onSnapshot } = require('firebase/firestore');
       const ref = doc(db, 'config', 'site');
       unsub = onSnapshot(
         ref,
-        (snap: { exists: () => boolean; data: () => Record<string, unknown> }) => {
-          try {
-            if (snap.exists()) {
-              const raw = snap.data() || {};
-              // Validate Firestore data the same way as localStorage — never trust remote data
-              const safe: Record<string, unknown> = {};
-              for (const [k, v] of Object.entries(raw)) {
-                if (k in DEFAULT_CONFIG) safe[k] = v;
-              }
-              if (safe.pricingMode && !(VALID_PRICING_MODES as string[]).includes(safe.pricingMode as string)) {
-                delete safe.pricingMode;
-              }
-              if (safe.limitedOfferDiscountPct != null && (typeof safe.limitedOfferDiscountPct !== 'number' || isNaN(safe.limitedOfferDiscountPct as number))) {
-                delete safe.limitedOfferDiscountPct;
-              }
-              if (safe.customPrice != null && typeof safe.customPrice !== 'number') {
-                safe.customPrice = null;
-              }
-              const next = { ...DEFAULT_CONFIG, ...safe } as SiteConfig;
-              setConfig(next);
-              writeLocalStorage(next);
-            }
-          } catch {
-            // Firestore data corrupt — keep current state, do not crash render
+        (snap) => {
+          if (snap.exists()) {
+            const next = { ...DEFAULT_CONFIG, ...snap.data() } as SiteConfig;
+            setConfig(next);
+            writeLocalStorage(next);
           }
           setLoading(false);
         },
-        (_err: unknown) => {
+        (_err) => {
           // Firestore read failed — use localStorage fallback silently
           setLoading(false);
         },
       );
-    } catch {
+    } catch (e) {
+      // Firestore failed to initialise — site still works on local config
+      // eslint-disable-next-line no-console
+      console.warn('[Attendly] SiteConfig Firestore subscribe failed:', e);
       setLoading(false);
     }
     return () => { try { unsub?.(); } catch {} };
@@ -209,7 +174,6 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { doc, setDoc, serverTimestamp } = require('firebase/firestore');
       await setDoc(
         doc(db, 'config', 'site'),
         { ...next, updatedAt: serverTimestamp() },

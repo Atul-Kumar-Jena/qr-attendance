@@ -1,6 +1,8 @@
 'use client';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { SplitText } from 'gsap/SplitText';
+import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
 
 let initialized = false;
 
@@ -8,28 +10,34 @@ export function initGSAP() {
   if (typeof window === 'undefined' || initialized) return;
   initialized = true;
 
-  gsap.registerPlugin(ScrollTrigger);
+  // GSAP 3.13+ made the whole toolset free — register the bonus plugins so the
+  // site can be genuinely GSAP-first (real SplitText + DrawSVG, not hacks).
+  gsap.registerPlugin(ScrollTrigger, SplitText, DrawSVGPlugin);
 
-  // Prevent GSAP from trying to compensate for time skipped while tab was hidden.
-  // Without this, a page opened in a background tab plays all animations instantly
-  // when the user finally focuses it.
+  // Fewer console warnings + force GSAP to use the single rAF we drive.
+  gsap.config({ nullTargetWarn: false, force3D: true });
+
+  // Mobile browsers fire `resize` whenever the URL bar shows/hides while
+  // scrolling. Letting that re-run ScrollTrigger.refresh() mid-scroll is the #1
+  // cause of mobile scroll jank + animation desync — ignore it.
+  ScrollTrigger.config({ ignoreMobileResize: true });
+
+  // Don't let GSAP try to "catch up" after a slow/backgrounded frame — that's
+  // what makes scrubbed animations lurch after a stall. One tick = one frame.
   gsap.ticker.lagSmoothing(0);
 
-  // GSAP pauses its global timeline when document.hidden = true.
-  // On first focus (tab was opened in background) we seek back to 0 so
-  // entrance animations replay cleanly from the start.
+  // A tab opened in the background pauses GSAP's global timeline. On first
+  // focus, replay entrance animations cleanly from 0 and recalc triggers.
   let firstFocus = true;
   const onVisible = () => {
-    if (!document.hidden) {
-      if (firstFocus) {
-        firstFocus = false;
-        // Restart entrance animations by seeking globalTimeline to 0
-        gsap.globalTimeline.time(0, true);
-        gsap.globalTimeline.resume();
-        ScrollTrigger.refresh();
-      } else {
-        gsap.globalTimeline.resume();
-      }
+    if (document.hidden) return;
+    if (firstFocus) {
+      firstFocus = false;
+      gsap.globalTimeline.time(0, true);
+      gsap.globalTimeline.resume();
+      ScrollTrigger.refresh();
+    } else {
+      gsap.globalTimeline.resume();
     }
   };
   document.addEventListener('visibilitychange', onVisible);

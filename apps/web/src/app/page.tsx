@@ -1,48 +1,52 @@
 import { Nav } from '@/components/Nav';
 import { Hero } from '@/components/Hero';
 import { Marquee } from '@/components/Marquee';
+import { RollCallTransition } from '@/components/RollCallTransition';
 import { ProblemSolution } from '@/components/ProblemSolution';
+import { HowItWorks } from '@/components/HowItWorks';
 import { ParallaxColumns } from '@/components/ParallaxColumns';
 import { Features } from '@/components/Features';
 import { SecurityLayers } from '@/components/SecurityLayers';
+import { Interactive3D } from '@/components/Interactive3D';
 import { DashboardPreview } from '@/components/DashboardPreview';
 import { MobilePreview } from '@/components/MobilePreview';
+import { Testimonials } from '@/components/Testimonials';
 import { Pricing } from '@/components/Pricing';
 import { Faq } from '@/components/Faq';
 import { CTA } from '@/components/CTA';
 import { Footer } from '@/components/Footer';
-import { Cursor } from '@/components/Cursor';
 import { ScrollProgress } from '@/components/ScrollProgress';
+import { ScrollReveal } from '@/components/ScrollReveal';
 import { SmoothScroll } from '@/components/SmoothScroll';
-import { GridBackground } from '@/components/GridBackground';
 import { DarkModeNudge } from '@/components/DarkModeNudge';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-
-const Safe = ({ name, children }: { name: string; children: React.ReactNode }) => (
-  <ErrorBoundary name={name} fallback={<div />}>{children}</ErrorBoundary>
-);
 
 export default function Page() {
   return (
     <main className="relative">
-      <Safe name="grid"><GridBackground /></Safe>
-      <Safe name="smooth-scroll"><SmoothScroll /></Safe>
-      <Safe name="scroll-progress"><ScrollProgress /></Safe>
-      <Safe name="cursor"><Cursor /></Safe>
-      <Safe name="dark-mode-nudge"><DarkModeNudge /></Safe>
-      <Safe name="nav"><Nav /></Safe>
-      <Safe name="hero"><Hero /></Safe>
-      <Safe name="marquee"><Marquee /></Safe>
-      <Safe name="problem-solution"><ProblemSolution /></Safe>
-      <Safe name="parallax-columns"><ParallaxColumns /></Safe>
-      <Safe name="features"><Features /></Safe>
-      <Safe name="security-layers"><SecurityLayers /></Safe>
-      <Safe name="dashboard-preview"><DashboardPreview /></Safe>
-      <Safe name="mobile-preview"><MobilePreview /></Safe>
-      <Safe name="pricing"><Pricing /></Safe>
-      <Safe name="faq"><Faq /></Safe>
-      <Safe name="cta"><CTA /></Safe>
-      <Safe name="footer"><Footer /></Safe>
+      <SmoothScroll />
+      <ScrollProgress />
+      <ScrollReveal />
+      <DarkModeNudge />
+      <Nav />
+      {/* Modern SaaS skeleton: hero → social proof → the problem → how it works
+          → features → by-the-numbers → security → product → testimonials →
+          pricing → faq → CTA → footer. Vertical spine, GSAP moments throughout. */}
+      <Hero />
+      <Marquee />
+      <RollCallTransition />
+      <ProblemSolution />
+      <HowItWorks />
+      <Features />
+      <ParallaxColumns />
+      <SecurityLayers />
+      <Interactive3D />
+      <DashboardPreview />
+      <MobilePreview />
+      <Testimonials />
+      <Pricing />
+      <Faq />
+      <CTA />
+      <Footer />
     </main>
   );
 }

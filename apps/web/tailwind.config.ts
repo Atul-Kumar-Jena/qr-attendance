@@ -7,29 +7,26 @@ const config: Config = {
     container: { center: true, padding: '1.5rem', screens: { '2xl': '1280px' } },
     extend: {
       fontFamily: {
-        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-display)', 'serif'],
-        mono: ['ui-monospace', 'SFMono-Regular', 'monospace'],
+        sans:    ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        mono:    ['ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {
         ink: {
-          DEFAULT: '#0B1220',
-          soft: '#1A2236',
-          mute: '#5A6783',
+          DEFAULT: 'rgb(var(--ink-rgb) / <alpha-value>)',
+          soft:    'rgb(var(--ink-soft-rgb) / <alpha-value>)',
+          mute:    'rgb(var(--ink-mute-rgb) / <alpha-value>)',
         },
         cream: {
-          50: '#FAFAF7',
-          100: '#F4F3EC',
-          200: '#EAE7DA',
-        },
-        sage: {
-          400: '#9DB39A',
-          500: '#7C967A',
-          600: '#5F7B5E',
+          50:  '#FFFFFF',
+          100: '#F8F8F8',
+          200: '#EEEEEE',
         },
         accent: {
-          DEFAULT: '#FF6B3D',
-          warm: '#F2A65A',
+          DEFAULT: 'rgb(var(--accent-rgb) / <alpha-value>)',
+          warm:    'rgb(var(--accent-2-rgb) / <alpha-value>)',
+          rose:    'rgb(var(--accent-2-rgb) / <alpha-value>)',
+          violet:  'rgb(var(--accent-3-rgb) / <alpha-value>)',
         },
       },
       letterSpacing: {

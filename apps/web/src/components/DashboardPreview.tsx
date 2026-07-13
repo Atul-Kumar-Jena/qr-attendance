@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initGSAP } from '@/lib/gsap-init';
 import { useTheme } from '@/context/ThemeContext';
+import { SplitText } from './SplitText';
 
 if (typeof window !== 'undefined') initGSAP();
 
@@ -74,10 +75,10 @@ export function DashboardPreview() {
   return (
     <section id="dashboard" ref={root} className="py-28 lg:py-40">
       <div className="container mb-12 text-center">
-        <span className="text-[11px] tracking-[0.3em] text-ink-mute uppercase">[ 04 — dashboard ]</span>
-        <h2 className="mt-4 font-display text-[2.5rem] lg:text-[4rem] leading-[1.02] tracking-tightish max-w-3xl mx-auto">
-          A dashboard you'd actually want to open.
-        </h2>
+        <span data-reveal className="text-[11px] tracking-[0.3em] text-ink-mute uppercase">[ 04 — dashboard ]</span>
+        <SplitText as="h2" className="mt-4 font-display text-[2.5rem] lg:text-[4rem] leading-[1.02] tracking-tightish max-w-3xl mx-auto block">
+          A dashboard you&apos;d actually want to open.
+        </SplitText>
       </div>
 
       <div className="container" style={{ perspective: '1600px' }}>
@@ -104,7 +105,7 @@ export function DashboardPreview() {
             <aside className="col-span-2 bg-cream-50 p-4 text-[12px] hidden md:block">
               <div className="font-mono text-[10px] tracking-wider text-ink-mute mb-3">MENU</div>
               {['Overview', 'Sessions', 'QR Live', 'Students', 'Reports', 'Audit'].map((m, i) => (
-                <div key={m} className={`px-2 py-2 rounded-md ${i === 2 ? 'bg-ink text-cream-50' : 'text-ink-mute'}`}>
+                <div key={m} className={`px-2 py-2 rounded-md ${i === 2 ? 'bg-[#16161A] dark:bg-white/15 text-cream-50 dark:text-white' : 'text-ink-mute'}`}>
                   {m}
                 </div>
               ))}
@@ -137,19 +138,14 @@ export function DashboardPreview() {
                     </div>
                     <span className="text-[11px] text-sage-600">+4.2% wk/wk</span>
                   </div>
-                  {/* grid-cols-14 doesn't exist in Tailwind's default scale — declare the
-                      14 columns explicitly or the "bars" collapse into stacked stripes */}
-                  <div
-                    className="h-40 grid items-end gap-1.5"
-                    style={{ gridTemplateColumns: 'repeat(14, minmax(0, 1fr))' }}
-                  >
+                  <div className="h-40 grid grid-cols-14 items-end gap-1.5">
                     {[68, 74, 82, 60, 88, 90, 72, 86, 94, 80, 91, 85, 96, 92].map((h, i) => (
                       <div
                         key={i}
                         className="bar rounded-t-sm"
                         style={{
                           height: `${h}%`,
-                          background: i === 12 ? '#FF6B3D' : barBg,
+                          background: i === 12 ? 'var(--accent)' : barBg,
                         }}
                       />
                     ))}

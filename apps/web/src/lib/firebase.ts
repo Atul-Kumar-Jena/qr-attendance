@@ -3,12 +3,12 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey:            process.env.NEXT_PUBLIC_FIREBASE_API_KEY             || 'AIzaSyB15t0bE5Q_0hlBUnA6qlDHmYf-EijcWvg',
-  authDomain:        process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN         || 'attendly-the-solution.firebaseapp.com',
-  projectId:         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID          || 'attendly-the-solution',
-  storageBucket:     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET      || 'attendly-the-solution.firebasestorage.app',
+  apiKey:            process.env.NEXT_PUBLIC_FIREBASE_API_KEY            || 'AIzaSyB15t0bE5Q_0hlBUnA6qlDHmYf-EijcWvg',
+  authDomain:        process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN        || 'attendly-the-solution.firebaseapp.com',
+  projectId:         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID         || 'attendly-the-solution',
+  storageBucket:     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET     || 'attendly-the-solution.firebasestorage.app',
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '1076860949595',
-  appId:             process.env.NEXT_PUBLIC_FIREBASE_APP_ID              || '1:1076860949595:web:4014332de453c2d6cedb7e',
+  appId:             process.env.NEXT_PUBLIC_FIREBASE_APP_ID             || '1:1076860949595:web:4014332de453c2d6cedb7e',
 };
 
 const isConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
@@ -22,8 +22,6 @@ const app = isConfigured
 export const auth = app ? getAuth(app) : null;
 export const db   = app ? getFirestore(app) : null;
 export const googleProvider = new GoogleAuthProvider();
-// Always show the Google account chooser so users can pick a different account
-googleProvider.setCustomParameters({ prompt: 'select_account' });
 export { isConfigured };
 
 export async function signInWithGoogle() {

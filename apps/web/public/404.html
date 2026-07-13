@@ -1,25 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8">
   <title>Attendly</title>
   <script>
-    // GitHub Pages SPA redirect: store the full path in sessionStorage,
-    // then bounce to the app root. The root page reads it and restores routing.
+    // GitHub Pages SPA redirect: store the deep-link path in sessionStorage,
+    // then bounce to the root so the React app can handle it via DeepLinkRestore.
     (function () {
       var base = '/qr-attendance';
       var path = window.location.pathname;
-      var search = window.location.search;
-      var hash = window.location.hash;
-
-      // Strip the basePath prefix so we store only the relative route
       var route = path.startsWith(base) ? path.slice(base.length) : path;
-      if (!route) route = '/';
-
-      // Persist the intended destination
-      sessionStorage.setItem('atd_redirect', route + search + hash);
-
-      // Redirect to app root
+      if (!route || route === '/') route = '/';
+      var search = window.location.search || '';
+      var hash   = window.location.hash   || '';
+      try {
+        sessionStorage.setItem('atd_redirect', route + search + hash);
+      } catch (e) {}
       window.location.replace(base + '/?_r=1');
     })();
   </script>

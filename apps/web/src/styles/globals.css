@@ -3,24 +3,62 @@
 @tailwind utilities;
 @import 'driver.js/dist/driver.css';
 
-/* ─── Design tokens ──────────────────────────────────────────────────────── */
+/* ─── Design tokens · pure black/white ──────────────────────────────────── */
 :root {
-  --bg: #FAFAF7;
-  --bg-2: #F4F3EC;
-  --ink: #0B1220;
-  --ink-soft: #1A2236;
-  --ink-mute: #5A6783;
-  --line: rgba(11, 18, 32, 0.07);
-  --sage: #7C967A;
-  --accent: #FF6B3D;
-  --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --bg:        #FFFFFF;
+  --bg-2:      #F5F5F5;
+  --ink:       #000000;
+  --ink-soft:  #1A1A1A;
+  --ink-mute:  #6B6B6B;
+  --ink-rgb:       0 0 0;
+  --ink-soft-rgb:  26 26 26;
+  --ink-mute-rgb:  107 107 107;
+  --line:      rgba(0, 0, 0, 0.10);
+  --accent-rgb:   0 0 0;
+  --accent-2-rgb: 26 26 26;
+  --accent-3-rgb: 107 107 107;
+  --accent:    #000000;
+  --accent-2:  #1A1A1A;
+  --accent-3:  #6B6B6B;
+  --grid-line: rgba(0, 0, 0, 0.04);
+  --grid-dot:  rgba(0, 0, 0, 0.08);
+  --glow:      rgba(0, 0, 0, 0.05);
+  --glow-2:    rgba(0, 0, 0, 0.03);
+  --page-bg:   #FFFFFF;
+  --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────── */
 
-/* Hide system cursor on desktop so custom cursor dot is visible */
+/* Hide the system cursor ONLY once the custom cursor has actually mounted
+   (Cursor.tsx adds .cursor-ready). If that JS never runs, the native cursor
+   stays — so the page is never left without a usable pointer. Interactive
+   elements still fall back to the real pointer for safety. */
 @media (pointer: fine) {
-  * { cursor: none !important; }
+  html.cursor-ready,
+  html.cursor-ready * { cursor: none !important; }
+}
+
+/* ─── Skip-to-content (a11y) ─────────────────────────────────────────────── */
+.skip-link {
+  position: fixed;
+  top: 12px; left: 12px;
+  z-index: 2147483647;
+  transform: translateY(-160%);
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 30px -8px rgba(0,0,0,0.4);
+  transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+}
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 html, body {
@@ -30,18 +68,6 @@ html, body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   letter-spacing: 0.01em;
-}
-
-/* Film-grain overlay */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image: var(--grain);
-  opacity: 0.4;
-  mix-blend-mode: multiply;
-  z-index: 1;
 }
 
 ::selection { background: var(--ink); color: var(--bg); }
@@ -58,19 +84,20 @@ html { scroll-behavior: smooth; }
 }
 
 /* ─── Typography scale ───────────────────────────────────────────────────── */
-/* Display headings use Cormorant Garamond — slightly larger, more generous tracking */
+/* Display headings — Nunito Sans at heavier weight, slightly tightened. */
 .font-display {
-  font-feature-settings: "liga", "kern";
-  letter-spacing: -0.02em;
+  font-feature-settings: "kern";
+  letter-spacing: -0.015em;
+  font-weight: 700;
 }
 
-/* Body copy: relax inter-character spacing slightly */
 body, p, span, li {
   line-height: 1.65;
 }
 
 h1, h2, h3 {
-  line-height: 1.05;
+  line-height: 1.1;
+  font-weight: 700;
 }
 
 /* ─── Stat numbers: always tabular + tight ───────────────────────────────── */
@@ -112,15 +139,70 @@ h1, h2, h3 {
 .qr-cell {
   background: var(--ink);
   border-radius: 2px;
-  will-change: transform, opacity;
+  /* No persistent will-change here — there are 441 of these; promoting every
+     one to its own GPU layer wrecks memory. They composite fine during the
+     brief flip transition without it. */
 }
 
 /* ─── Glass card ─────────────────────────────────────────────────────────── */
 .glass {
-  background: rgba(250, 250, 247, 0.6);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid var(--line);
+  box-shadow: 0 2px 0 rgba(255,255,255,0.6) inset, 0 8px 32px -8px rgba(0,0,0,0.06);
+}
+
+/* ─── Apple-style premium button ─────────────────────────────────────────── */
+.btn-premium {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.75rem;
+  border-radius: 980px; /* pill */
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1),
+              box-shadow 0.22s ease,
+              background-color 0.18s ease;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-premium:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: 0 4px 16px -4px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.08) inset;
+}
+.btn-primary:hover {
+  box-shadow: 0 6px 24px -4px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.08) inset;
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(var(--ink-rgb) / 0.18);
+  color: var(--ink);
+}
+.btn-ghost:hover {
+  background: rgba(var(--ink-rgb) / 0.05);
+  border-color: rgba(var(--ink-rgb) / 0.28);
+}
+
+/* ─── Premium card hover (Apple-style lift) ──────────────────────────────── */
+.card-lift {
+  transition: transform 0.28s cubic-bezier(.34,1.3,.64,1),
+              box-shadow 0.28s ease;
+}
+.card-lift:hover {
+  transform: translateY(-4px) scale(1.005);
+  box-shadow: 0 20px 60px -12px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.06) inset;
+}
+html.dark .card-lift:hover {
+  box-shadow: 0 20px 60px -12px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.06) inset;
 }
 
 /* ─── Divider ────────────────────────────────────────────────────────────── */
@@ -134,10 +216,17 @@ h1, h2, h3 {
 .reveal-line  { display: block; will-change: transform; }
 
 /* ─── Section entrance — used by GSAP for scroll-triggered items ─────────── */
+/* Tiny initial offset + safety fallback animation: even if GSAP misses or
+   trigger fires late, content reveals automatically in 1.6s. GSAP's inline
+   styles override the fallback keyframe whenever it does fire. */
 .section-fade {
-  opacity: 0;
-  transform: translateY(28px);
+  opacity: 0.001;
+  transform: translateY(18px);
   will-change: opacity, transform;
+  animation: sectionFadeFallback 1.6s ease-out 0.3s forwards;
+}
+@keyframes sectionFadeFallback {
+  to { opacity: 1; transform: none; }
 }
 
 /* ─── Animated icon containers ───────────────────────────────────────────── */
@@ -187,6 +276,57 @@ h1, h2, h3 {
   100% { stroke-dashoffset: 276.46; }
 }
 
+/* Counter-clockwise accent arc on QR */
+@keyframes qrOrbitCCW {
+  from { transform: rotate(270deg) translate(0, 0); stroke-dashoffset: 0; }
+  to   { transform: rotate(-90deg) translate(0, 0); stroke-dashoffset: -310; }
+}
+
+/* QR scan beam */
+@keyframes qrScanBeam {
+  0%   { top: 0%;   opacity: 0; }
+  10%  { opacity: 1; }
+  50%  { top: 98%;  opacity: 0.8; }
+  90%  { opacity: 1; }
+  100% { top: 0%;   opacity: 0; }
+}
+
+/* ─── DemoModal scene animations ────────────────────────────────────────── */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes scanBeam {
+  0%, 100% { top: 0; }
+  50%       { top: calc(100% - 2px); }
+}
+@keyframes pulseGreen {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.15); }
+}
+@keyframes arrowPulse {
+  from { transform: translateX(0); }
+  to   { transform: translateX(4px); }
+}
+@keyframes qrGlow {
+  from { box-shadow: 0 0 0 rgba(244, 242, 238, 0); }
+  to   { box-shadow: 0 0 12px rgba(244, 242, 238, 0.3); }
+}
+@keyframes qrPulse {
+  from { opacity: 0.7; }
+  to   { opacity: 1; }
+}
+@keyframes shakeBounce {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-6px); }
+  75%      { transform: translateX(6px); }
+}
+@keyframes bounceIn {
+  from { transform: scale(0.5); opacity: 0; }
+  80%  { transform: scale(1.1); }
+  to   { transform: scale(1); opacity: 1; }
+}
+
 /* ─── Scroll progress bar ────────────────────────────────────────────────── */
 /* (rendered by ScrollProgress.tsx — no extra CSS needed) */
 
@@ -198,41 +338,59 @@ body {
 
 /* ─── Dark mode overrides ────────────────────────────────────────────────── */
 html.dark {
-  --bg: #0D0F14;
-  --bg-2: #13161D;
-  --ink: #F0EDE6;
-  --ink-soft: #D4D0C8;
-  --ink-mute: #7A8199;
-  --line: rgba(240, 237, 230, 0.08);
-  --sage: #7C967A;
-  --accent: #FF6B3D;
+  --bg:        #000000;
+  --bg-2:      #0A0A0A;
+  --ink:       #FFFFFF;
+  --ink-soft:  #E8E8E8;
+  --ink-mute:  #888888;
+  --ink-rgb:       255 255 255;
+  --ink-soft-rgb:  232 232 232;
+  --ink-mute-rgb:  136 136 136;
+  --line:      rgba(255, 255, 255, 0.10);
+  --accent-rgb:   255 255 255;
+  --accent-2-rgb: 232 232 232;
+  --accent-3-rgb: 136 136 136;
+  --accent:    #FFFFFF;
+  --accent-2:  #E8E8E8;
+  --accent-3:  #888888;
+  --grid-line: rgba(255, 255, 255, 0.04);
+  --grid-dot:  rgba(255, 255, 255, 0.08);
+  --glow:      rgba(255, 255, 255, 0.08);
+  --glow-2:    rgba(255, 255, 255, 0.05);
+  --page-bg:   #000000;
 }
 
-html.dark body { background: var(--bg); color: var(--ink); }
+/* Dark mode: sections transparent so global aurora bleeds through */
+html.dark section:not(.section-dark) {
+  background-color: transparent;
+}
+html.dark body {
+  background: #000000;
+}
+
+html.dark body { background: #000000; color: var(--ink); }
 
 html.dark .glass {
-  background: rgba(20, 23, 32, 0.7);
-  border-color: rgba(240, 237, 230, 0.08);
+  background: rgba(28, 28, 30, 0.78);
+  border-color: rgba(255, 255, 255, 0.10);
 }
 
-/* grain overlay handled below in the fixes section */
-
-html.dark .bg-cream-50 { background: var(--bg) !important; }
-html.dark .bg-cream-100 { background: var(--bg-2) !important; }
-html.dark .text-ink { color: var(--ink) !important; }
+html.dark .bg-cream-50  { background: var(--bg)   !important; }
+html.dark .bg-cream-100 { background: var(--bg-2)  !important; }
+html.dark .text-ink      { color: var(--ink)      !important; }
 html.dark .text-ink-mute { color: var(--ink-mute) !important; }
 html.dark .border-ink\/10 { border-color: var(--line) !important; }
-html.dark .border-ink\/8 { border-color: var(--line) !important; }
+html.dark .border-ink\/8  { border-color: var(--line) !important; }
 
 /* Dark mode nav pill */
 html.dark header .bg-cream-50\/80 {
-  background: rgba(13, 15, 20, 0.85) !important;
-  border-color: rgba(240, 237, 230, 0.08) !important;
+  background: rgba(0, 0, 0, 0.88) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
 }
 
 /* Dark mode mobile menu */
 html.dark .bg-cream-50\/95 {
-  background: rgba(13, 15, 20, 0.95) !important;
+  background: rgba(0, 0, 0, 0.96) !important;
 }
 
 /* Dark mode section backgrounds */
@@ -261,6 +419,32 @@ html.dark [class*="border-ink"] {
   border-color: var(--line) !important;
 }
 
+/* Nav pill — always present in DOM with transparent bg/border so the .scrolled
+   state only animates COLOURS (no border-width flash). */
+.nav-pill {
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: 0 0 0 0 transparent;
+  /* Explicit property list — never use `all` here or border-width interpolates
+     and produces a white outline flash on dark backgrounds. */
+  transition:
+    background-color 380ms cubic-bezier(.4, 0, .2, 1),
+    border-color    380ms cubic-bezier(.4, 0, .2, 1),
+    box-shadow      380ms cubic-bezier(.4, 0, .2, 1),
+    padding         380ms cubic-bezier(.4, 0, .2, 1),
+    max-width       380ms cubic-bezier(.4, 0, .2, 1);
+}
+.nav-pill-scrolled {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 32px -4px rgba(0, 0, 0, 0.08);
+}
+html.dark .nav-pill-scrolled {
+  background: rgba(0, 0, 0, 0.88);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 4px 40px -4px rgba(0, 0, 0, 0.6);
+}
+
 /* divide-* borders (divide-ink/X uses a different class than border-ink/X) */
 html.dark .divide-ink\/10 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(240, 237, 230, 0.10) !important; }
 html.dark .divide-ink\/8  > :not([hidden]) ~ :not([hidden]) { border-color: rgba(240, 237, 230, 0.08) !important; }
@@ -275,52 +459,43 @@ html.dark .qr-cell {
 }
 
 /* bg-ink opacity variants for decorative circles / dots */
-html.dark .bg-ink\/15 { background-color: rgba(240, 237, 230, 0.15) !important; }
+html.dark .bg-ink\/15 { background-color: rgba(245, 245, 247, 0.15) !important; }
 
 /* ParallaxColumns in dark mode */
 html.dark .pcol-card {
-  background: rgba(25, 30, 42, 0.85);
-  border-color: rgba(240, 237, 230, 0.08);
+  background: rgba(28, 28, 30, 0.9);
+  border-color: rgba(255, 255, 255, 0.10);
 }
 
 /* ── Dark mode hover & opacity-variant fixes ──────────────────────────────── */
 
-/* Hover text → theme-adaptive (Tailwind hover:text-ink uses hardcoded #0B1220) */
-html.dark .hover\:text-ink:hover { color: var(--ink) !important; }
+html.dark .hover\:text-ink:hover      { color: var(--ink)      !important; }
 html.dark .hover\:text-ink-soft:hover { color: var(--ink-soft) !important; }
 
-/* Hover backgrounds → theme-adaptive */
-html.dark .hover\:bg-cream-50:hover  { background-color: var(--bg)   !important; }
-html.dark .hover\:bg-cream-100:hover { background-color: var(--bg-2)  !important; }
-html.dark .hover\:bg-ink-soft:hover  { background-color: #222c3e !important; }
+html.dark .hover\:bg-cream-50:hover  { background-color: var(--bg)  !important; }
+html.dark .hover\:bg-cream-100:hover { background-color: var(--bg-2) !important; }
+html.dark .hover\:bg-ink-soft:hover  { background-color: #2C2C2E !important; }
 
-/* Opacity-variant backgrounds not caught by base `.bg-cream-*` selectors */
-html.dark .bg-cream-100\/60 { background-color: rgba(19, 22, 29, 0.6) !important; }
-html.dark .bg-cream-100\/70 { background-color: rgba(19, 22, 29, 0.7) !important; }
-html.dark .bg-cream-100\/80 { background-color: rgba(19, 22, 29, 0.8) !important; }
-html.dark .bg-cream-50\/50  { background-color: rgba(13, 15, 20, 0.5) !important; }
-html.dark .bg-cream-50\/30  { background-color: rgba(13, 15, 20, 0.3) !important; }
-html.dark .bg-cream-50\/10  { background-color: rgba(13, 15, 20, 0.1) !important; }
+/* Opacity-variant backgrounds */
+html.dark .bg-cream-100\/60 { background-color: rgba(28, 28, 30, 0.6) !important; }
+html.dark .bg-cream-100\/70 { background-color: rgba(28, 28, 30, 0.7) !important; }
+html.dark .bg-cream-100\/80 { background-color: rgba(28, 28, 30, 0.8) !important; }
+html.dark .bg-cream-50\/50  { background-color: rgba(0,  0,  0,  0.5) !important; }
+html.dark .bg-cream-50\/30  { background-color: rgba(0,  0,  0,  0.3) !important; }
+html.dark .bg-cream-50\/10  { background-color: rgba(0,  0,  0,  0.1) !important; }
 
-/* Hover opacity-variant backgrounds */
-html.dark .hover\:bg-cream-100\/70:hover { background-color: rgba(19, 22, 29, 0.7) !important; }
-html.dark .hover\:bg-cream-100\/50:hover { background-color: rgba(19, 22, 29, 0.5) !important; }
+html.dark .hover\:bg-cream-100\/70:hover { background-color: rgba(28, 28, 30, 0.7) !important; }
+html.dark .hover\:bg-cream-100\/50:hover { background-color: rgba(28, 28, 30, 0.5) !important; }
 
-/* bg-ink opacity variants used as 1-px card-gap dividers */
-html.dark .bg-ink\/6  { background-color: rgba(240, 237, 230, 0.06) !important; }
-html.dark .bg-ink\/8  { background-color: rgba(240, 237, 230, 0.08) !important; }
-html.dark .bg-ink\/10 { background-color: rgba(240, 237, 230, 0.10) !important; }
+/* bg-ink opacity variants used as card-gap dividers */
+html.dark .bg-ink\/6  { background-color: rgba(255, 255, 255, 0.06) !important; }
+html.dark .bg-ink\/8  { background-color: rgba(255, 255, 255, 0.08) !important; }
+html.dark .bg-ink\/10 { background-color: rgba(255, 255, 255, 0.10) !important; }
 
-/* bg-ink buttons in dark mode — add subtle border so button shape is visible */
+/* bg-ink buttons in dark mode */
 html.dark button.bg-ink,
 html.dark a.bg-ink {
-  border: 1px solid rgba(240, 237, 230, 0.12);
-}
-
-/* Grain overlay — screen blend mode creates white scroll artifacts on dark bg */
-html.dark body::before {
-  mix-blend-mode: normal;
-  opacity: 0.04;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 /* ─── Theme toggle button ────────────────────────────────────────────────── */
@@ -394,13 +569,18 @@ html.dark body::before {
 }
 
 .atd-popover .driver-popover-next-btn {
-  background: #FF6B3D !important;
-  color: #FAFAF7 !important;
-  border-color: #FF6B3D !important;
+  background: #000000 !important;
+  color: #FFFFFF !important;
+  border-color: #000000 !important;
+}
+html.dark .atd-popover .driver-popover-next-btn {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #FFFFFF !important;
 }
 
 .atd-popover .driver-popover-next-btn:hover {
-  background: #e55c30 !important;
+  background: #000000 !important;
 }
 
 .atd-popover .driver-popover-prev-btn:hover {
@@ -419,6 +599,37 @@ html.dark body::before {
 .atd-popover .driver-popover-arrow-side-bottom { border-top-color: var(--bg) !important; }
 .atd-popover .driver-popover-arrow-side-left { border-right-color: var(--bg) !important; }
 .atd-popover .driver-popover-arrow-side-right { border-left-color: var(--bg) !important; }
+
+/* Dark-mode driver.js: pop card uses site bg (no white card flashing on dark) */
+html.dark .atd-popover.driver-popover {
+  background: var(--bg-2) !important;
+  border: 1px solid rgba(240, 237, 230, 0.10) !important;
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.5),
+              0 0 0 1px rgba(240, 237, 230, 0.04) !important;
+}
+html.dark .atd-popover .driver-popover-title { color: var(--ink) !important; }
+html.dark .atd-popover .driver-popover-description { color: var(--ink-mute) !important; }
+html.dark .atd-popover .driver-popover-progress-text { color: var(--ink-mute) !important; }
+html.dark .atd-popover .driver-popover-prev-btn {
+  background: transparent !important;
+  color: var(--ink-mute) !important;
+  border-color: rgba(240, 237, 230, 0.12) !important;
+}
+html.dark .atd-popover .driver-popover-prev-btn:hover {
+  background: rgba(240, 237, 230, 0.06) !important;
+  color: var(--ink) !important;
+}
+html.dark .atd-popover .driver-popover-close-btn { color: var(--ink-mute) !important; }
+html.dark .driver-overlay { background: rgba(0, 0, 0, 0.65) !important; }
+html.dark .atd-popover .driver-popover-arrow-side-top    { border-bottom-color: var(--bg-2) !important; }
+html.dark .atd-popover .driver-popover-arrow-side-bottom { border-top-color:    var(--bg-2) !important; }
+html.dark .atd-popover .driver-popover-arrow-side-left   { border-right-color:  var(--bg-2) !important; }
+html.dark .atd-popover .driver-popover-arrow-side-right  { border-left-color:   var(--bg-2) !important; }
+
+/* Driver.js own children sometimes re-enable the system cursor — hide it. */
+.driver-popover, .driver-popover *, .driver-overlay {
+  cursor: none !important;
+}
 
 /* ─── Dark mode comprehensive text-color fixes ──────────────────────────────── */
 /* Root cause: Tailwind compiles text-ink to hardcoded #0B1220 (invisible on dark bg) */
@@ -454,6 +665,713 @@ html.dark select option { background-color: var(--bg-2); color: var(--ink); }
 html.theme-transitioning *,
 html.theme-transitioning *::before,
 html.theme-transitioning *::after {
-  transition: background-color 0.3s ease, color 0.2s ease, border-color 0.25s ease !important;
+  transition:
+    background-color 0.45s cubic-bezier(.4, 0, .2, 1),
+    color           0.38s cubic-bezier(.4, 0, .2, 1),
+    border-color    0.42s cubic-bezier(.4, 0, .2, 1),
+    fill            0.42s cubic-bezier(.4, 0, .2, 1),
+    box-shadow      0.42s cubic-bezier(.4, 0, .2, 1) !important;
   transition-delay: 0s !important;
 }
+/* Never animate transform/filter during the theme morph — keeps GSAP scroll
+   animations perfectly in sync (no lurch) while colours interpolate. */
+html.theme-transitioning .sp-card,
+html.theme-transitioning [data-magnetic],
+html.theme-transitioning .atd-cursor-ring,
+html.theme-transitioning .atd-cursor-dot {
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transitioning *,
+  html.theme-transitioning *::before,
+  html.theme-transitioning *::after { transition: none !important; }
+}
+
+/* ─── Mobile layout & performance ───────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Tighter base typography on small screens */
+  html, body { font-size: 15px; line-height: 1.55; }
+  body, p, span, li { line-height: 1.55; }
+
+  /* Hero headline: ensure readable on small screens */
+  .hero-headline {
+    font-size: clamp(2.2rem, 9vw, 3rem) !important;
+    line-height: 1.06 !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  /* Stats: allow wrapping on very small screens */
+  .hero-stat { min-width: 80px; }
+
+  /* Section headings: clamp to screen width */
+  .section-heading-xl,
+  h1.font-display, h2.font-display {
+    font-size: clamp(1.8rem, 7.5vw, 2.8rem) !important;
+    line-height: 1.1 !important;
+  }
+  h3.font-display { font-size: clamp(1.4rem, 5.5vw, 2rem) !important; }
+
+  /* Performance: skip heavy glass blur on mobile */
+  .glass {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(255, 255, 255, 0.97) !important;
+  }
+  html.dark .glass {
+    background: rgba(0, 0, 0, 0.97) !important;
+  }
+
+  /* Skip backdrop-blur — it's expensive on phone GPUs */
+  .backdrop-blur-sm, .backdrop-blur, .backdrop-blur-md,
+  .backdrop-blur-lg, .backdrop-blur-xl, .backdrop-blur-2xl {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Disable GPU-heavy will-change on small screens */
+  * { will-change: auto !important; }
+
+  /* Ensure animated sections are always readable (GSAP fallback) */
+  .reveal-line  { transform: none !important; }
+  .section-fade { opacity: 1 !important; transform: none !important; }
+
+  /* Touch-friendly tap targets: ensure buttons/links are at least 40x40 */
+  button, a[role="button"], [role="menuitem"], .tap-target {
+    min-height: 40px;
+  }
+
+  /* Tables: allow horizontal scroll inside a wrapper */
+  .admin-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-left: -1rem; margin-right: -1rem;
+    padding: 0 1rem;
+  }
+  .admin-table-wrap table { min-width: 540px; }
+
+  /* Auto-scroll tables on mobile (admin panels) — thead+tbody align as
+     synced sub-tables inside a scrollable block container */
+  table.w-full {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  table.w-full thead,
+  table.w-full tbody {
+    display: table;
+    width: 100%;
+    min-width: 540px;
+    table-layout: auto;
+  }
+  table.w-full th, table.w-full td {
+    white-space: nowrap;
+    font-size: 12.5px !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  /* Admin cards: tighter padding so content fits */
+  main h1.font-display { font-size: 1.5rem !important; }
+
+  /* Make modal dialogs full-width on small screens */
+  .atd-modal { padding-left: 1rem !important; padding-right: 1rem !important; }
+
+  /* Profile / admin: lighter shadows on mobile (perf) */
+  .shadow-2xl { box-shadow: 0 4px 12px rgba(0,0,0,0.10) !important; }
+  .shadow-xl  { box-shadow: 0 3px 8px rgba(0,0,0,0.08) !important; }
+
+  /* Driver.js popovers: scale down on mobile */
+  .atd-popover.driver-popover {
+    max-width: calc(100vw - 32px) !important;
+    padding: 14px 16px 12px !important;
+  }
+  .atd-popover .driver-popover-title { font-size: 14px !important; }
+  .atd-popover .driver-popover-description { font-size: 12.5px !important; }
+}
+
+/* ─── Even smaller screens (≤ 380px) ─────────────────────────────────────── */
+@media (max-width: 380px) {
+  html, body { font-size: 14.5px; }
+  .hero-headline { font-size: clamp(1.9rem, 9vw, 2.6rem) !important; }
+  /* Tighten admin sidebar slightly on tiny screens */
+  aside { width: 14rem !important; }
+}
+
+/* ─── Touch device (any size): hide system cursor reveal layer ──────────── */
+@media (pointer: coarse) {
+  /* Hide the cursor-reveal layer of the GridBackground (it's invisible anyway,
+     but removing it saves a paint layer) */
+  body * [data-grid-reveal] { display: none !important; }
+}
+
+/* ─── Admin sidebar mobile ───────────────────────────────────────────────── */
+@media (max-width: 1023px) {
+  .admin-sidebar-mobile-hidden {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  .admin-sidebar-mobile-visible {
+    transform: translateX(0);
+    transition: transform 0.3s ease;
+  }
+}
+
+/* ─── Smooth tap feedback for touch devices ─────────────────────────────── */
+@media (hover: none) {
+  /* Disable hover styles that linger after tap on touch */
+  *:hover { transition-duration: 150ms !important; }
+  /* No "cursor: none" on touch (was inside the pointer: fine media query, but
+     adding belt-and-suspenders here) */
+  * { cursor: auto !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EMBER · animation system (redesign)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Always-dark "bookend" sections (dark even while site is in light mode) ─ */
+.section-dark {
+  --bg:       #000000;
+  --bg-2:     #0A0A0A;
+  --ink:      #FFFFFF;
+  --ink-soft: #E8E8E8;
+  --ink-mute: #888888;
+  --ink-rgb:       255 255 255;
+  --ink-soft-rgb:  232 232 232;
+  --ink-mute-rgb:  136 136 136;
+  --line:     rgba(255, 255, 255, 0.10);
+  --accent-rgb:   255 255 255;
+  --accent-2-rgb: 232 232 232;
+  --accent-3-rgb: 136 136 136;
+  --accent:   #FFFFFF;
+  --accent-2: #E8E8E8;
+  --accent-3: #888888;
+  background: transparent;
+  color: var(--ink);
+  position: relative;
+  isolation: isolate;
+}
+html:not(.dark) .section-dark {
+  background: #050507;
+}
+.section-dark .text-ink       { color: var(--ink) !important; }
+.section-dark .text-ink-soft  { color: var(--ink-soft) !important; }
+.section-dark .text-ink-mute  { color: var(--ink-mute) !important; }
+.section-dark .bg-cream-50    { background: var(--bg) !important; }
+.section-dark .bg-cream-100   { background: var(--bg-2) !important; }
+.section-dark [class*="border-ink"] { border-color: var(--line) !important; }
+.section-dark .glass {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.section-dark .bg-ink\/6   { background-color: rgba(244, 242, 238, 0.06) !important; }
+.section-dark .bg-ink\/8   { background-color: rgba(244, 242, 238, 0.08) !important; }
+.section-dark .bg-ink\/10  { background-color: rgba(244, 242, 238, 0.10) !important; }
+.section-dark .bg-ink\/12  { background-color: rgba(244, 242, 238, 0.12) !important; }
+.section-dark .bg-ink\/15  { background-color: rgba(244, 242, 238, 0.15) !important; }
+.section-dark .hover\:text-ink:hover      { color: var(--ink) !important; }
+.section-dark .hover\:bg-cream-100:hover  { background-color: var(--bg-2) !important; }
+.section-dark .hover\:bg-cream-50:hover   { background-color: var(--bg-2) !important; }
+
+/* ── Global aurora blobs (fixed background, dark mode only) ─────────────── */
+.aurora-blob-g {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  mix-blend-mode: screen;
+  will-change: transform;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+html.dark .aurora-blob-g { opacity: 0.72; }
+
+/* The whole global-aurora layer only renders its glow in dark mode */
+.global-aurora { opacity: 0; transition: opacity 0.8s ease; }
+html.dark .global-aurora { opacity: 1; }
+
+/* In dark mode, the GridBackground's solid-black edge vignette would bury the
+   aurora — neutralise it so the grey field shows through across the page. */
+html.dark .grid-bg-vignette { background: transparent !important; }
+
+/* ── Robo circuit-board scan-line (dark mode) ────────────────────────────── */
+@keyframes scanLine {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.4; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+html.dark body::after {
+  content: '';
+  position: fixed;
+  inset-x: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(to right, transparent, rgba(180,200,255,0.15), rgba(140,200,255,0.08), transparent);
+  pointer-events: none;
+  z-index: 9999;
+  animation: scanLine 8s ease-in-out infinite;
+}
+
+/* ── Aurora · matte-glass moving colour field ───────────────────────────── */
+.aurora { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.aurora-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(64px);
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+.aurora-glass {
+  position: absolute; inset: 0;
+  backdrop-filter: blur(48px) saturate(108%);
+  -webkit-backdrop-filter: blur(48px) saturate(108%);
+  background: rgba(8, 8, 9, 0.20);
+}
+.aurora-grain {
+  position: absolute; inset: 0;
+  background-image: var(--grain);
+  background-size: 180px 180px;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+}
+@keyframes auroraDrift1 {
+  0%, 100% { transform: translate3d(-8%, -6%, 0) scale(1); }
+  50%      { transform: translate3d(12%, 10%, 0) scale(1.25); }
+}
+@keyframes auroraDrift2 {
+  0%, 100% { transform: translate3d(10%, -4%, 0) scale(1.1); }
+  50%      { transform: translate3d(-12%, 8%, 0) scale(0.9); }
+}
+@keyframes auroraDrift3 {
+  0%, 100% { transform: translate3d(-4%, 8%, 0) scale(0.95); }
+  50%      { transform: translate3d(8%, -10%, 0) scale(1.2); }
+}
+
+/* ── Natural light-spread (GridBackground ambient glows) ────────────────── */
+@keyframes glowDrift1 {
+  0%, 100% { transform: translate3d(-5%, -4%, 0) scale(1); }
+  50%      { transform: translate3d(7%, 6%, 0) scale(1.18); }
+}
+@keyframes glowDrift2 {
+  0%, 100% { transform: translate3d(6%, 5%, 0) scale(1.1); }
+  50%      { transform: translate3d(-7%, -8%, 0) scale(0.92); }
+}
+
+/* ── Smooth entrance reveals (GSAP sets the from-state; these are the
+      no-JS / reduced-motion safety states so content never sticks hidden) ─
+   NB: no persistent will-change — these are one-shot reveals and there are
+   many of them; permanent layer promotion would bloat GPU memory. */
+
+/* ── 3D tilt card ───────────────────────────────────────────────────────── */
+.tilt-card { transform-style: preserve-3d; will-change: transform; }
+.tilt-card__layer { transform: translateZ(38px); transform-style: preserve-3d; }
+
+/* ── Generic / Spline loader (SplineScene Suspense fallback uses .loader) ── */
+.loader {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 2.5px solid var(--line);
+  border-top-color: var(--accent);
+  animation: loaderSpin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes loaderSpin { to { transform: rotate(360deg); } }
+
+/* ── Hero scroll cue ────────────────────────────────────────────────────── */
+@keyframes scrollCue {
+  0%   { transform: translateY(-12px); opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: translateY(36px); opacity: 0; }
+}
+
+/* ── Gentle 3D float (Spline showcase pedestal) ─────────────────────────── */
+@keyframes float3d {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+@keyframes pedestalPulse {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 0.8; transform: translate(-50%, -50%) scale(1.08); }
+}
+
+/* ── aceternity spotlight ───────────────────────────────────────────────── */
+@keyframes spotlight {
+  0%   { opacity: 0; transform: translate(-72%, -62%) scale(0.5); }
+  100% { opacity: 1; transform: translate(-50%, -40%) scale(1); }
+}
+.animate-spotlight { animation: spotlight 2s ease 0.75s 1 forwards; }
+
+/* ── Global micro-interaction polish ────────────────────────────────────── */
+[data-magnetic] { will-change: transform; }
+button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ═══ Premium polish layer ══════════════════════════════════════════════════
+   Small, high-leverage refinements that lift the whole site toward a
+   world-class feel: anchor offsets, balanced headlines, richer elevation. */
+
+/* Anchor jumps land cleanly BELOW the fixed nav instead of hiding under it. */
+:root { scroll-padding-top: 96px; }
+section[id], [data-scroll-anchor] { scroll-margin-top: 96px; }
+
+/* Typographic finesse — no orphans/widows on big type, smoother optical sizing. */
+h1, h2, h3, .font-display { text-wrap: balance; font-optical-sizing: auto; }
+p { text-wrap: pretty; }
+
+/* Layered, soft elevation tokens (used by .card-lift / premium surfaces). */
+:root {
+  --elev-1: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px -4px rgba(0,0,0,0.08);
+  --elev-2: 0 2px 4px rgba(0,0,0,0.05), 0 12px 32px -8px rgba(0,0,0,0.12);
+  --elev-3: 0 4px 8px rgba(0,0,0,0.06), 0 24px 60px -12px rgba(0,0,0,0.18);
+}
+html.dark {
+  --elev-1: 0 1px 2px rgba(0,0,0,0.4), 0 6px 18px -6px rgba(0,0,0,0.6);
+  --elev-2: 0 2px 6px rgba(0,0,0,0.5), 0 16px 40px -10px rgba(0,0,0,0.7);
+  --elev-3: 0 6px 14px rgba(0,0,0,0.55), 0 30px 70px -14px rgba(0,0,0,0.8);
+}
+
+/* Refined selection that adapts to the always-dark bookend sections. */
+.section-dark ::selection { background: #ffffff; color: #000000; }
+
+/* Buttons get a crisp focus ring that matches the pill radius. */
+.btn-premium:focus-visible { outline-offset: 3px; }
+
+/* Images never overflow their box and inherit smooth rounding. */
+img { max-width: 100%; height: auto; }
+
+/* ── Auto-inverting buttons ──────────────────────────────────────────────────
+   The recurring "invisible button" bug came from `bg-accent text-cream-50`,
+   which is black-on-cream in light mode but WHITE-on-cream (invisible) in dark
+   (accent → white in dark). These token-based classes always contrast because
+   text uses --bg, which is the exact inverse of --ink/--accent. */
+.btn-solid {
+  background: var(--ink);
+  color: var(--bg);
+  transition: opacity .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+.btn-solid:hover { opacity: .9; }
+.btn-solid:active { transform: scale(.97); }
+.btn-outline-soft {
+  border: 1px solid rgba(var(--ink-rgb) / 0.18);
+  color: var(--ink);
+  background: transparent;
+  transition: background .2s ease, border-color .2s ease, transform .2s ease;
+}
+.btn-outline-soft:hover { background: rgba(var(--ink-rgb) / 0.06); border-color: rgba(var(--ink-rgb) / 0.32); }
+.btn-outline-soft:active { transform: scale(.97); }
+
+/* For surfaces that are ALWAYS dark regardless of site theme (e.g. the live-QR
+   screen). Stays light-on-dark in both themes so it's never invisible. */
+.btn-on-dark {
+  background: #F4F2EE;
+  color: #0A0A0B;
+  transition: opacity .2s ease, transform .2s ease;
+}
+.btn-on-dark:hover { opacity: .9; }
+.btn-on-dark:active { transform: scale(.97); }
+
+/* Robust gradient text — solid-white fallback so it is NEVER invisible if
+   background-clip:text is unsupported or a CSS-var gradient fails to resolve. */
+.text-gradient-silver { color: #ffffff; }
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .text-gradient-silver {
+    background-image: linear-gradient(100deg, #ffffff 0%, #d7d9de 45%, #8c8f97 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+}
+
+/* ── Smooth rendering for animated elements ─────────────────────────────── */
+.feat-card, .tier, .hero-cta {
+  will-change: transform, opacity;
+  transform: translateZ(0); /* force GPU layer */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Smooth scroll on iOS */
+html { -webkit-overflow-scrolling: touch; }
+
+/* Glass cards transition smoothly on hover-driven border/shadow changes. */
+.glass { transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; }
+
+/* ── Preloader curtain ──────────────────────────────────────────────────── */
+.preloader {
+  position: fixed; inset: 0; z-index: 100000;
+  background: #0A0A0B;
+  display: flex; align-items: center; justify-content: center;
+  /* No-JS / slow-hydration safety: lift away on its own (fast — never an LCP
+     bottleneck). React removes it sooner; this is only the fallback. */
+  animation: preloaderOut 0.5s ease 1.3s forwards;
+}
+/* Repeat visits within a session (boot script adds .loaded) skip the intro
+   entirely — it never blocks content again. */
+html.loaded .preloader { display: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .preloader { display: none !important; }
+}
+@keyframes preloaderOut {
+  to { opacity: 0; transform: translateY(-100%); visibility: hidden; }
+}
+@keyframes loadFill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+/* ── Route-change curtain wipe (cinematic) ──────────────────────────────── */
+.pt-curtain {
+  position: fixed; inset: 0; z-index: 9999;
+  /* Deep black with a faint vertical sheen so the sweep reads as a solid panel
+     moving across, not an invisible fade. */
+  background:
+    radial-gradient(120% 80% at 50% 50%, rgba(40,40,44,0.55), transparent 60%),
+    #050506;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+}
+/* Centered brand mark that fades in while the curtain covers the screen. */
+.pt-curtain__mark {
+  width: 46px; height: 46px;
+  border-radius: 13px;
+  background: #F4F2EE;
+  opacity: 0;
+  transform: scale(0.6) rotate(-8deg);
+  box-shadow: 0 0 40px -6px rgba(244,242,238,0.35);
+}
+.pt-curtain__bar {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(to right, transparent, rgba(244,242,238,0.9), transparent);
+  opacity: 0;
+}
+
+/* ── Mobile / reduced-motion: flatten the expensive bits ────────────────── */
+@media (max-width: 767px) {
+  .aurora-blob  { filter: blur(46px) !important; animation: none !important; }
+  .aurora-glass { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: rgba(10, 10, 11, 0.42) !important; }
+  .aurora-grain { opacity: 0.32; }
+  .tilt-card    { transform: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob { animation: none !important; }
+  .animate-spotlight { animation: none !important; opacity: 1 !important; }
+}
+
+/* ═══ Features — 3D spiral flythrough ═══════════════════════════════════════ */
+.sp-pin { display: none; }
+.sp-fallback { display: block; }
+.sp-active .sp-pin { display: block; height: 100vh; }
+.sp-active .sp-fallback { display: none; }
+
+.sp-scene {
+  position: absolute; inset: 0; overflow: hidden;
+  perspective: 1100px; perspective-origin: 50% 48%;
+}
+/* faint editorial grid behind the spiral */
+.sp-grid {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 60px 60px;
+  -webkit-mask-image: radial-gradient(ellipse 92% 82% at 50% 50%, #000 38%, transparent 92%);
+          mask-image: radial-gradient(ellipse 92% 82% at 50% 50%, #000 38%, transparent 92%);
+}
+
+/* 3D world */
+.sp-world { position: absolute; top: 50%; left: 50%; width: 0; height: 0; transform-style: preserve-3d; z-index: 3; }
+
+.sp-card {
+  position: absolute; top: 0; left: 0;
+  border-radius: 16px; overflow: hidden; cursor: pointer;
+  background: linear-gradient(150deg, #16171c, #0b0c10);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 24px 70px -22px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transform-style: preserve-3d; backface-visibility: hidden;
+  will-change: transform, opacity, filter; opacity: 0;
+  transform: translate(-50%, -50%);
+  /* cards are always dark → force the illustration art light in both themes */
+  --accent: #ffffff; --accent-2: #e8e8e8; --accent-3: #8a8a8a;
+}
+.sp-card::after {                       /* soft top sheen for depth, monochrome */
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 3;
+  background: radial-gradient(120% 80% at 50% 22%, rgba(255, 255, 255, 0.06), transparent 58%);
+}
+/* the thumbnail: feature illustration framed large in the upper area */
+.sp-card-thumb {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 72px; z-index: 1;
+  display: flex; align-items: center; justify-content: center; padding: 26px 26px 8px;
+  background: radial-gradient(110% 90% at 50% 38%, rgba(255, 255, 255, 0.05), transparent 70%);
+}
+.sp-card-thumb svg { width: 84%; height: 84%; }
+/* caption strip — like a gallery label */
+.sp-card-foot {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; height: 72px;
+  padding: 0 16px; display: flex; flex-direction: column; justify-content: center; gap: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+}
+.sp-card-foot h3 { font: 700 1.05rem/1.1 var(--font-sans); letter-spacing: -0.01em; color: #fff; }
+.sp-card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sp-card-tag {
+  font: 500 8px/1 ui-monospace, SFMono-Regular, monospace; letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55); padding: 3px 7px; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px;
+}
+.sp-card-idx { font: 500 9px/1 ui-monospace, monospace; letter-spacing: 0.18em; color: rgba(255, 255, 255, 0.32); }
+
+/* floating name pill — white chip with a dark mini-thumbnail of the front card */
+.sp-tip {
+  position: absolute; left: 50%; bottom: 12%; transform: translateX(-50%); z-index: 7;
+  display: flex; align-items: center; gap: 12px; padding: 7px 18px 7px 7px; border-radius: 999px;
+  background: #fff; box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45); pointer-events: none;
+}
+.sp-tip-thumb {
+  position: relative; width: 40px; height: 30px; border-radius: 8px; flex: none; overflow: hidden;
+  background: #0c0d12; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --accent: #ffffff; --accent-2: #e8e8e8; --accent-3: #8a8a8a;   /* white art on the dark mini */
+}
+.sp-tip-mini {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 5px;
+  transition: opacity 0.3s ease;
+}
+.sp-tip-mini svg { width: 80%; height: 80%; }
+.sp-tip-name { font: 700 14px/1 var(--font-sans); letter-spacing: -0.01em; color: #111; white-space: nowrap; }
+
+/* rotating showreel badge */
+.sp-badge { position: absolute; left: 30px; bottom: 30px; width: 112px; height: 112px; z-index: 6; pointer-events: none; }
+.sp-badge-ring { width: 100%; height: 100%; transform-origin: 50% 50%; animation: spBadgeSpin 16s linear infinite; }
+@keyframes spBadgeSpin { to { transform: rotate(360deg); } }
+.sp-badge-text { fill: var(--ink-mute); font: 600 8.6px/1 ui-monospace, monospace; letter-spacing: 0.18em; text-transform: uppercase; }
+.sp-badge-core {
+  position: absolute; left: 50%; top: 50%; width: 42px; height: 42px; transform: translate(-50%, -50%);
+  border-radius: 50%; background: conic-gradient(from 90deg, #ffffff, #9a9a9a, #5a5a5a, #d0d0d0, #ffffff);
+}
+
+/* static fallback list (mobile / reduced-motion) */
+.sp-fallback { padding: 5.5rem 0; }
+.sp-fallback-head { margin-bottom: 2rem; }
+.sp-fallback-card {
+  display: flex; align-items: center; gap: 1rem; cursor: pointer;
+  padding: 1rem 1.25rem; margin-bottom: 10px; border-radius: 18px;
+  background: rgba(12, 12, 14, 0.94); border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.sp-fallback-num { flex: none; width: 2.4rem; font: 800 2rem/1 var(--font-sans); letter-spacing: -0.05em; color: rgba(255, 255, 255, 0.10); }
+.sp-fallback-card h3 { font: 700 1.05rem/1.15 var(--font-sans); color: #fff; }
+.sp-fallback-card p {
+  margin-top: 2px; font-size: 11px; line-height: 1.5; color: rgba(255, 255, 255, 0.4);
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+
+@media (max-width: 900px) {
+  .sp-pin { display: none !important; }
+  .sp-fallback { display: block !important; }
+}
+
+
+/* spiral: minimal eyebrow (no toggle) */
+.sp-eyebrow {
+  position: absolute; top: 26px; left: 50%; transform: translateX(-50%); z-index: 8;
+  font: 600 12px/1 var(--font-sans); letter-spacing: 0.18em; text-transform: lowercase;
+  color: var(--ink-mute); pointer-events: none; white-space: nowrap;
+}
+
+/* ═══ Features — horizontal-scroll gallery (replaces the 3D spiral) ══════════ */
+.feat-h-pin {
+  display: none;
+  min-height: 100vh;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2rem;
+  overflow: hidden;
+  --fg: max(1.5rem, calc((100vw - 1280px) / 2 + 1.5rem));
+}
+@media (min-width: 768px) {
+  .feat-h-pin { display: flex; }
+  .feat-h-mobile { display: none !important; }
+}
+
+.feat-h-head { padding-inline: var(--fg); }
+.feat-h-track {
+  display: flex;
+  gap: 1.5rem;
+  padding-inline: var(--fg);
+  width: max-content;
+  will-change: transform;
+}
+
+.feat-h-card {
+  flex: 0 0 auto;
+  width: clamp(320px, 33vw, 440px);
+  height: clamp(430px, 58vh, 560px);
+  text-align: left;
+  border-radius: 24px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  background: #0b0c10;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 30px 80px -34px rgba(0, 0, 0, 0.85);
+  transition: transform .45s cubic-bezier(.2, .8, .2, 1), border-color .3s ease, box-shadow .3s ease;
+  cursor: pointer;
+  position: relative;
+}
+.feat-h-card:hover { transform: translateY(-8px); border-color: rgba(255, 255, 255, 0.24); box-shadow: 0 44px 100px -34px rgba(0, 0, 0, 0.92); }
+
+/* Light thumbnail panel — dark art on light, exactly how the illustrations were
+   designed, so every line is fully visible (fixes the faint-on-dark problem). */
+.feat-h-thumb {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column; gap: .5rem;
+  padding: 1.25rem 1.35rem 0.75rem;
+  background: linear-gradient(180deg, #f7f6f0, #eae8de);
+  --accent: #15161b; --accent-2: #303137; --accent-3: #6a6b72;
+  position: relative;
+}
+.feat-h-thumb::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(120% 80% at 50% 28%, transparent 55%, rgba(0, 0, 0, 0.05));
+}
+.feat-h-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; position: relative; z-index: 1; }
+.feat-h-idx { font: 500 10px/1 ui-monospace, SFMono-Regular, monospace; letter-spacing: .16em; color: rgba(20, 21, 26, 0.42); white-space: nowrap; padding-top: 4px; }
+.feat-h-tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.feat-h-tag { font: 600 8.5px/1 ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; color: rgba(20, 21, 26, 0.6); padding: 5px 9px; border: 1px solid rgba(20, 21, 26, 0.16); background: rgba(20, 21, 26, 0.03); border-radius: 999px; white-space: nowrap; }
+.feat-h-illu { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: .75rem 0 1rem; min-height: 0; position: relative; z-index: 1; }
+.feat-h-illu svg { width: 100%; height: 100%; max-height: 215px; }
+
+/* Dark info footer */
+.feat-h-foot {
+  background: linear-gradient(158deg, #181a20, #0b0c10);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.3rem 1.5rem 1.6rem;
+  color: #fff;
+}
+.feat-h-title { font: 700 1.45rem/1.1 var(--font-sans); letter-spacing: -0.01em; color: #fff; }
+.feat-h-desc {
+  margin-top: .5rem; font-size: 12.5px; line-height: 1.5; color: rgba(255, 255, 255, 0.55);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.feat-h-open { margin-top: .9rem; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #fff; opacity: .75; transition: gap .3s ease, opacity .3s ease; }
+.feat-h-card:hover .feat-h-open { gap: 11px; opacity: 1; }
+
+.feat-h-progress { padding-inline: var(--fg); position: relative; }
+.feat-h-progress::before { content: ""; display: block; height: 2px; background: var(--line); border-radius: 2px; }
+.feat-h-progress-bar { position: absolute; left: var(--fg); top: 0; height: 2px; width: calc(100% - 2 * var(--fg)); background: var(--ink); border-radius: 2px; transform-origin: left center; transform: scaleX(0); }
+
+/* Mobile: native horizontal scroll-snap (swipeable) */
+.feat-h-mobile { display: block; padding: 4rem 0 3rem; }
+@media (min-width: 768px) { .feat-h-mobile { display: none; } }
+.feat-h-track-mobile {
+  display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory;
+  padding: 1.5rem 1.25rem 2rem; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.feat-h-track-mobile::-webkit-scrollbar { display: none; }
+.feat-h-track-mobile .feat-h-card { width: 80vw; height: 64vh; scroll-snap-align: center; }
