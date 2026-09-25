@@ -77,7 +77,10 @@ export function SecurityLayers() {
   }, []);
 
   return (
-    <section id="security" ref={root} className="py-28 lg:py-40 relative" style={{ background: 'var(--bg-2)' }}>
+    <section id="security" ref={root} className="py-28 lg:py-40 relative"
+      // Feathered band: a flat var(--bg-2) block cut the page aurora off with a
+      // hard line at the section's top and bottom edges.
+      style={{ background: 'linear-gradient(to bottom, transparent 0, var(--bg-2) 160px, var(--bg-2) calc(100% - 160px), transparent 100%)' }}>
       <div className="container">
         <div className="mb-16">
           <span className="text-[11px] tracking-[0.3em] text-ink-mute uppercase">[ 03 — security ]</span>

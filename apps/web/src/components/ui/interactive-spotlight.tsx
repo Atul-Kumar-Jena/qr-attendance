@@ -28,27 +28,30 @@ export function InteractiveSpotlight({ className, size = 200 }: SpotlightProps) 
     let tx = 0, ty = 0, cx = 0, cy = 0, vis = 0, tvis = 0, raf = 0;
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-    const onMove = (e: MouseEvent) => {
-      const r = parent.getBoundingClientRect();
-      tx = e.clientX - r.left;
-      ty = e.clientY - r.top;
-    };
-    const onEnter = () => { tvis = 1; };
-    const onLeave = () => { tvis = 0; };
-
+    // Only animate while catching up to the pointer; an idle page runs no loop.
     const loop = () => {
       cx = lerp(cx, tx, 0.12);
       cy = lerp(cy, ty, 0.12);
       vis = lerp(vis, tvis, 0.1);
       el.style.transform = `translate3d(${cx - size / 2}px, ${cy - size / 2}px, 0)`;
       el.style.opacity = String(vis);
-      raf = requestAnimationFrame(loop);
+      const settled = Math.abs(tx - cx) < 0.5 && Math.abs(ty - cy) < 0.5 && Math.abs(tvis - vis) < 0.01;
+      raf = settled ? 0 : requestAnimationFrame(loop);
     };
+    const wake = () => { if (!raf) raf = requestAnimationFrame(loop); };
+
+    const onMove = (e: MouseEvent) => {
+      const r = parent.getBoundingClientRect();
+      tx = e.clientX - r.left;
+      ty = e.clientY - r.top;
+      wake();
+    };
+    const onEnter = () => { tvis = 1; wake(); };
+    const onLeave = () => { tvis = 0; wake(); };
 
     parent.addEventListener('mousemove', onMove);
     parent.addEventListener('mouseenter', onEnter);
     parent.addEventListener('mouseleave', onLeave);
-    raf = requestAnimationFrame(loop);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -63,7 +66,7 @@ export function InteractiveSpotlight({ className, size = 200 }: SpotlightProps) 
       ref={ref}
       aria-hidden
       className={cn(
-        'pointer-events-none absolute left-0 top-0 z-[2] rounded-full blur-2xl opacity-0',
+        'pointer-events-none absolute left-0 top-0 z-[2] rounded-full opacity-0',
         'bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops),transparent_80%)]',
         'from-accent/25 via-accent-rose/15 to-transparent',
         className,

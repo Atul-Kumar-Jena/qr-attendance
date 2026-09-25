@@ -66,12 +66,12 @@ export function GridBackground() {
   return (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden>
       {/* Soft drifting ambient glows — the "light spread" (compositor transforms) */}
-      <div className="absolute" style={{
+      <div className="grid-glow absolute" style={{
         width: '70vw', height: '70vw', left: '-15vw', top: '-20vh',
         background: 'radial-gradient(circle at 50% 50%, var(--glow) 0%, transparent 70%)',
         animation: 'glowDrift1 26s ease-in-out infinite',
       }} />
-      <div className="absolute" style={{
+      <div className="grid-glow absolute" style={{
         width: '60vw', height: '60vw', right: '-12vw', bottom: '-18vh',
         background: 'radial-gradient(circle at 50% 50%, var(--glow-2) 0%, transparent 72%)',
         animation: 'glowDrift2 32s ease-in-out infinite',

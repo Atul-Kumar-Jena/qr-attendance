@@ -4,7 +4,6 @@ import '../styles/globals.css';
 import { PageTransition } from '@/components/PageTransition';
 import { Providers } from '@/components/Providers';
 import { DeepLinkRestore } from '@/components/DeepLinkRestore';
-import { Loader } from '@/components/Loader';
 import { GridBackground } from '@/components/GridBackground';
 import { GlobalAurora } from '@/components/GlobalAurora';
 
@@ -105,7 +104,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a href="#content" className="skip-link">Skip to content</a>
         <GlobalAurora />
         <GridBackground />
-        <Loader />
         <Providers>
           <DeepLinkRestore />
           <PageTransition>

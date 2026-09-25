@@ -60,8 +60,7 @@ export function Interactive3D() {
               aria-hidden
               className="absolute left-1/2 top-1/2 w-[68%] h-[68%] rounded-full pointer-events-none"
               style={{
-                background: 'radial-gradient(circle, rgba(244,242,238,0.16), rgba(244,242,238,0.05) 45%, transparent 68%)',
-                filter: 'blur(26px)',
+                background: 'radial-gradient(circle, rgba(244,242,238,0.15) 0%, rgba(244,242,238,0.09) 28%, rgba(244,242,238,0.04) 48%, rgba(244,242,238,0.012) 62%, transparent 72%)',
                 animation: 'pedestalPulse 6s ease-in-out infinite',
               }}
             />

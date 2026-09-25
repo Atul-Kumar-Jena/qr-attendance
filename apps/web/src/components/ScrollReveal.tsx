@@ -27,14 +27,17 @@ export function ScrollReveal() {
     const desktop = !window.matchMedia('(max-width: 900px)').matches;
 
     const ctx = gsap.context(() => {
-      gsap.set(els, { opacity: 0, y: 36, filter: 'blur(6px)' });
+      // Fade + rise only. (A per-element blur filter here was left behind as
+      // `filter: blur(0px)` on every revealed element, each one an extra
+      // compositor layer for the rest of the session.)
+      gsap.set(els, { opacity: 0, y: 36 });
       ScrollTrigger.batch('[data-reveal]', {
         start: 'top 86%',
         once: true,
         onEnter: (batch) =>
           gsap.to(batch, {
-            opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.0, ease: 'expo.out',
-            stagger: 0.1, overwrite: true,
+            opacity: 1, y: 0, duration: 1.0, ease: 'expo.out',
+            stagger: 0.1, overwrite: true, clearProps: 'transform',
           }),
       });
 

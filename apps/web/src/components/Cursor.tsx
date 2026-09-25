@@ -180,11 +180,11 @@ export function Cursor() {
           left: 0, top: 0,
           width: 32, height: 32,
           borderRadius: '50%',
-          // White + mix-blend-mode: difference → always inverts to a contrasting
-          // colour on whatever's behind (cream bg, ink bg, white driver.js
-          // popover, accent buttons — visible on all).
+          // White with a thin dark outline stays visible on light and dark
+          // surfaces. (mix-blend-mode: difference did the same, but forced the
+          // whole page to be re-blended under the cursor on every frame.)
           border: '1.5px solid #FFFFFF',
-          mixBlendMode: 'difference',
+          boxShadow: '0 0 0 1px rgba(0,0,0,0.28), inset 0 0 0 1px rgba(0,0,0,0.18)',
           opacity: 0,
           pointerEvents: 'none',
           zIndex: 2147483646,
@@ -201,7 +201,7 @@ export function Cursor() {
           width: 8, height: 8,
           borderRadius: '50%',
           background: '#FFFFFF',
-          mixBlendMode: 'difference',
+          boxShadow: '0 0 0 1px rgba(0,0,0,0.3)',
           opacity: 0,
           pointerEvents: 'none',
           zIndex: 2147483647,

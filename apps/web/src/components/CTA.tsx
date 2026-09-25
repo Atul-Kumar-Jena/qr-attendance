@@ -21,22 +21,31 @@ export function CTA() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const desktop = window.matchMedia('(min-width: 768px) and (pointer: fine)').matches;
     const ctx = gsap.context(() => {
-      gsap.fromTo(big.current,
-        { scale: 0.6, yPercent: 30, opacity: 0, letterSpacing: '0.4em' },
-        {
-          scale: 1, yPercent: 0, opacity: 1, letterSpacing: '-0.04em',
-          ease: 'expo.out',
-          scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'center center', scrub: 1 },
-        });
-
+      // Transform + opacity on the word only. Tweening letterSpacing on the
+      // wrapper forced a full re-layout every scroll frame and leaked its
+      // tight tracking into the subtitle ("Demoonyourrealclassroom…").
       const p = path.current!;
       const len = p.getTotalLength();
       gsap.set(p, { strokeDasharray: len, strokeDashoffset: len });
-      gsap.to(p, {
-        strokeDashoffset: 0, ease: 'none',
-        scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'bottom 60%', scrub: 1 },
-      });
+
+      if (desktop) {
+        gsap.fromTo(big.current,
+          { scale: 0.72, yPercent: 24, opacity: 0 },
+          {
+            scale: 1, yPercent: 0, opacity: 1, ease: 'expo.out',
+            scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'center center', scrub: 1 },
+          });
+        gsap.to(p, {
+          strokeDashoffset: 0, ease: 'none',
+          scrollTrigger: { trigger: root.current, start: 'top 70%', end: 'bottom 60%', scrub: 1 },
+        });
+      } else {
+        const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top 80%', once: true } });
+        tl.fromTo(big.current, { scale: 0.85, opacity: 0 }, { scale: 1, opacity: 1, duration: 1, ease: 'expo.out' })
+          .to(p, { strokeDashoffset: 0, duration: 1.4, ease: 'power2.inOut' }, 0.1);
+      }
     }, root);
     return () => ctx.revert();
   }, []);
@@ -52,8 +61,8 @@ export function CTA() {
           stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"
         />
       </svg>
-      <div ref={big} className="relative z-10 will-change-transform text-center">
-        <div className="font-display text-[16vw] leading-none tracking-tightest text-ink">
+      <div className="relative z-10 text-center">
+        <div ref={big} className="font-display text-[16vw] leading-none tracking-tightest text-ink will-change-transform">
           attend.
         </div>
         <p className="mt-6 max-w-md mx-auto text-[14px] text-ink-mute">

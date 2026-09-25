@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText as GSAPSplitText } from 'gsap/SplitText';
+import { QRCodeSVG } from 'qrcode.react';
 import { Magnetic } from './Magnetic';
 import { initGSAP } from '@/lib/gsap-init';
 import { DemoModal } from './DemoModal';
@@ -18,10 +18,12 @@ const HEADLINE = ['Attendance,', 'unforgeable.'];
 const SUB =
   'A code that can’t be shared, screenshotted, or scanned from outside the room. The end of proxy attendance — and the ten-minute roll call.';
 
+/** Seconds between QR rotations — matches the "QR rotation 7s" claim site-wide. */
+const ROTATE_S = 7;
+
 export function Hero() {
   const root = useRef<HTMLDivElement>(null);
   const orb  = useRef<HTMLDivElement>(null);
-  const qr   = useRef<HTMLDivElement>(null);
   const sub  = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
@@ -31,101 +33,88 @@ export function Hero() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let ctx: ReturnType<typeof gsap.context> | undefined;
     let heroSplit: GSAPSplitText | undefined;
+    let decodeRaf = 0;
+    const target = sub.current;
     try {
       ctx = gsap.context(() => {
-        // Modern "decrypt / focus-in" headline: real GSAP SplitText splits the
-        // lines into glyphs, each resolving from large + blurred into sharp
-        // focus in RANDOM order — on-theme with the security/decode subtext.
+        // "Decrypt / focus-in" headline: glyphs resolve from large + faded into
+        // place in random order. Transform + opacity only — animating a blur
+        // filter on every glyph was what made the hero stutter on phones.
         heroSplit = new GSAPSplitText('.hero-line', { type: 'chars', aria: 'none' });
         gsap.fromTo(heroSplit.chars,
-          { opacity: 0, scale: 1.7, filter: 'blur(16px)', yPercent: 8 },
+          { opacity: 0, scale: 1.6, yPercent: 10 },
           {
-            opacity: 1, scale: 1, filter: 'blur(0px)', yPercent: 0,
-            duration: 1.0, ease: 'power3.out',
-            stagger: { each: 0.024, from: 'random' }, delay: 0.3,
+            opacity: 1, scale: 1, yPercent: 0,
+            duration: 0.9, ease: 'power3.out',
+            stagger: { each: 0.022, from: 'random' }, delay: 0.15,
           },
         );
         gsap.fromTo('.hero-badge',
           { y: 20, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.9, ease: 'power3.out', delay: 0.1 },
+          { y: 0, opacity: 1, duration: 0.9, ease: 'power3.out', delay: 0.05 },
         );
-        // "Decode" the subtext — on-brand for a security product. The real copy
-        // is in the markup (SEO / no-JS), so we prime a scrambled state first to
-        // avoid any blank flash, then resolve it character by character.
-        const target = sub.current;
+
+        // Subtext "decode": a short cipher window sweeps across the real copy
+        // once. Time-based (never frame-counted), so it finishes in ~1s even on
+        // a slow phone, and the copy stays readable throughout.
         if (target) {
-          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*';
-          const scrambled = SUB.split('').map((c) => (c === ' ' ? ' ' : chars[Math.floor(Math.random() * chars.length)])).join('');
-          target.textContent = scrambled;
-          let frame = 0;
-          const total = 28;
-          const tick = () => {
-            let out = '';
-            for (let i = 0; i < SUB.length; i++) {
-              const p = Math.max(0, Math.min(1, (frame - i * 0.6) / 8));
-              out += p >= 1 ? SUB[i] : chars[Math.floor(Math.random() * chars.length)];
-            }
-            target.textContent = out;
-            frame++;
-            if (frame < total + SUB.length * 0.6) requestAnimationFrame(tick);
-            else target.textContent = SUB;
+          const glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%*';
+          const W = 7, D = 1100, n = SUB.length;
+          let t0 = 0;
+          const tick = (now: number) => {
+            if (!t0) t0 = now;
+            const t = Math.min(1, (now - t0) / D);
+            const head = Math.floor(t * (n + W));
+            const from = Math.max(0, head - W), to = Math.min(n, head);
+            let cipher = '';
+            for (let i = from; i < to; i++) cipher += SUB[i] === ' ' ? ' ' : glyphs[(Math.random() * glyphs.length) | 0];
+            target.textContent = t < 1 ? SUB.slice(0, from) + cipher + SUB.slice(to) : SUB;
+            if (t < 1) decodeRaf = requestAnimationFrame(tick);
           };
-          gsap.delayedCall(0.5, () => requestAnimationFrame(tick));
+          gsap.delayedCall(0.5, () => { decodeRaf = requestAnimationFrame(tick); });
         }
 
-        gsap.fromTo('.qr-cell',
-          { scale: 0, opacity: 0, rotation: () => gsap.utils.random(-90, 90) },
-          {
-            scale: 1, opacity: 1, rotation: 0,
-            transformOrigin: 'center center',
-            duration: 0.85, ease: 'back.out(1.5)',
-            stagger: { each: 0.005, from: 'random' }, delay: 0.4,
-          },
+        gsap.fromTo('.hero-qr',
+          { opacity: 0, scale: 0.94, y: 18 },
+          { opacity: 1, scale: 1, y: 0, duration: 1.1, ease: 'expo.out', delay: 0.3 },
         );
-        gsap.to(qr.current, {
-          rotate: 0.8, scale: 1.014, duration: 4,
-          ease: 'sine.inOut', yoyo: true, repeat: -1,
-        });
-
-        // Parallax orb follows the pointer. quickTo reuses ONE tween instead of
-        // spawning a new gsap.to() on every pointermove (no tween churn), and
-        // viewport dims are cached (no per-event layout reads).
-        let vw = window.innerWidth, vh = window.innerHeight;
-        const onResize = () => { vw = window.innerWidth; vh = window.innerHeight; };
-        const xTo = gsap.quickTo(orb.current, 'x', { duration: 1.1, ease: 'power3.out' });
-        const yTo = gsap.quickTo(orb.current, 'y', { duration: 1.1, ease: 'power3.out' });
-        const onMove = (e: PointerEvent) => {
-          xTo((e.clientX - vw / 2) * 0.05);
-          yTo((e.clientY - vh / 2) * 0.05);
-        };
-        window.addEventListener('pointermove', onMove, { passive: true });
-        window.addEventListener('resize', onResize, { passive: true });
-
-        ScrollTrigger.create({
-          trigger: root.current,
-          start: 'top top', end: '+=500', scrub: 1.2,
-          animation: gsap.timeline()
-            .to('.hero-line',  { yPercent: -12, opacity: 0.5 }, 0)
-            .to(qr.current,   { yPercent: -4 }, 0)
-            .to(orb.current,  { scale: 0.65, opacity: 0.35 }, 0),
-        });
-
         gsap.fromTo('.hero-cta',
           { y: 24, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.9, ease: 'power3.out', stagger: 0.1, delay: 0.6 },
+          { y: 0, opacity: 1, duration: 0.9, ease: 'power3.out', stagger: 0.1, delay: 0.5 },
         );
         gsap.fromTo('.hero-stat',
           { y: 20, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out', stagger: 0.08, delay: 0.85 },
+          { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out', stagger: 0.08, delay: 0.7 },
         );
 
-        return () => {
-          window.removeEventListener('pointermove', onMove);
-          window.removeEventListener('resize', onResize);
-        };
+        // Parallax aurora follows a real mouse only (touch "pointermove" fires
+        // during scroll drags and would move the hero while scrolling).
+        if (window.matchMedia('(pointer: fine)').matches) {
+          let vw = window.innerWidth, vh = window.innerHeight;
+          const onResize = () => { vw = window.innerWidth; vh = window.innerHeight; };
+          const xTo = gsap.quickTo(orb.current, 'x', { duration: 1.1, ease: 'power3.out' });
+          const yTo = gsap.quickTo(orb.current, 'y', { duration: 1.1, ease: 'power3.out' });
+          const onMove = (e: PointerEvent) => {
+            xTo((e.clientX - vw / 2) * 0.05);
+            yTo((e.clientY - vh / 2) * 0.05);
+          };
+          window.addEventListener('pointermove', onMove, { passive: true });
+          window.addEventListener('resize', onResize, { passive: true });
+          return () => {
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('resize', onResize);
+          };
+        }
+        // No scroll-scrubbed fade-out here on purpose: that was the "curtain"
+        // that made the hero drag and hang behind a fast scroll.
       }, root);
     } catch { /* never crash the hero */ }
-    return () => { try { heroSplit?.revert(); } catch {} try { ctx?.revert(); } catch {} };
+    return () => {
+      cancelAnimationFrame(decodeRaf);
+      if (target) target.textContent = SUB;
+      try { heroSplit?.revert(); } catch {}
+      try { ctx?.revert(); } catch {}
+    };
   }, []);
 
   return (
@@ -187,17 +176,18 @@ export function Hero() {
               <Divider />
               <Stat label="Spoofed scans blocked" value={132984} format />
               <Divider />
-              <Stat label="QR rotation"         value={7}      suffix="s" />
+              <Stat label="QR rotation"         value={ROTATE_S} suffix="s" />
             </div>
           </div>
 
-          {/* Single, on-brand centerpiece: a live signed-QR credential. Replaces
-              the heavy external Spline scene — far faster (no multi-MB runtime /
-              network scene), fully on-brand, and great on mobile. */}
-          <div ref={qr} className="relative flex items-center justify-center">
+          {/* Centerpiece: a live, rotating signed-QR credential with the three
+              checks every scan must pass orbiting it. */}
+          <div className="relative flex items-center justify-center">
             <Spotlight className="-top-24 left-1/2 -translate-x-1/2" fill="rgba(255,255,255,0.18)" />
-            <div className="relative w-full max-w-[340px] mx-auto aspect-square">
-              <QrMosaic />
+            <div className="hero-qr relative w-full max-w-[340px] mx-auto aspect-square">
+              <div className="hero-breathe absolute inset-0">
+                <HeroQr />
+              </div>
               <OrbitChips />
             </div>
           </div>
@@ -228,10 +218,11 @@ function Stat({ label, value, suffix, decimals = 0, format }:
     const el = ref.current;
     if (!el) return;
     const obj = { v: 0 };
-    gsap.to(obj, {
+    const tween = gsap.to(obj, {
       v: value, duration: 2.4, ease: 'expo.out', delay: 0.7,
       onUpdate: () => { el.textContent = format ? Math.floor(obj.v).toLocaleString() : obj.v.toFixed(decimals); },
     });
+    return () => { tween.kill(); };
   }, [value, decimals, format]);
 
   return (
@@ -245,100 +236,78 @@ function Stat({ label, value, suffix, decimals = 0, format }:
   );
 }
 
-const N = 21;
-
-function isFinder(x: number, y: number) {
-  return (x < 7 && y < 7) || (x >= N - 7 && y < 7) || (x < 7 && y >= N - 7);
+/** A demo credential in the shape of a real signed token. Carries nothing
+ *  personal and isn't accepted anywhere — it just looks and rotates like one. */
+function makeToken(n: number) {
+  const hex = () => Math.random().toString(16).slice(2, 10);
+  return `atd://v1/CS301/${n}/${hex()}.${hex()}${hex()}`;
 }
 
-function finderOn(x: number, y: number) {
-  const lx = x >= N - 7 ? x - (N - 7) : x;
-  const ly = y >= N - 7 ? y - (N - 7) : y;
-  const d  = Math.min(lx, 6 - lx, ly, 6 - ly);
-  return d === 0 || d >= 2;
-}
-
-function rng(seed: number, i: number) {
-  const x = Math.sin(i * 9301 + 49297 + seed * 1000) * 233280;
-  return x - Math.floor(x);
-}
-
-function buildCells(seed: number) {
-  const cells: { on: boolean; isFnd: boolean }[] = [];
-  for (let y = 0; y < N; y++) {
-    for (let x = 0; x < N; x++) {
-      const fnd = isFinder(x, y);
-      cells.push({ isFnd: fnd, on: fnd ? finderOn(x, y) : rng(seed, x * 31 + y * 17) > 0.52 });
-    }
-  }
-  return cells;
-}
-
-function QrMosaic() {
-  const [tick, setTick]       = useState(0);
-  const [cells, setCells]     = useState(() => buildCells(0));
-  const [prevCells, setPrevCells] = useState<typeof cells>([]);
-  const [flipping, setFlipping]   = useState(false);
-  const flipRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+/**
+ * The hero QR: one SVG code that rotates every ROTATE_S seconds behind a
+ * countdown ring. Replaces the old 441-cell mosaic, which re-rendered every
+ * cell through React each second. Pauses while off-screen or in a hidden tab.
+ */
+function HeroQr() {
+  const [tick, setTick] = useState(0);
+  // Deterministic first token so the static HTML and first client render match.
+  const [token, setToken] = useState('atd://v1/CS301/0/5e1c07a2.9b4f3d10c28e7a64');
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // The mosaic re-renders 441 cells every second — only do that while it's
-  // actually on screen and the tab is visible (saves work during page scroll).
   useEffect(() => {
-    let id: ReturnType<typeof setInterval> | null = null;
-    const advance = () => {
-      setTick((t) => {
-        const next = t + 1;
-        setCells((prev) => { setPrevCells(prev); return buildCells(next); });
-        setFlipping(true);
-        if (flipRef.current) clearTimeout(flipRef.current);
-        flipRef.current = setTimeout(() => setFlipping(false), 350);
-        return next;
-      });
-    };
-    const start = () => { if (!id && !document.hidden) id = setInterval(advance, 1000); };
-    const stop = () => { if (id) { clearInterval(id); id = null; } };
     const el = rootRef.current;
-    const io = typeof IntersectionObserver !== 'undefined' && el
-      ? new IntersectionObserver(([e]) => (e.isIntersecting ? start() : stop()), { threshold: 0 })
+    let id: ReturnType<typeof setInterval> | null = null;
+    let inView = true;
+    const advance = () => setTick((t) => { const next = t + 1; setToken(makeToken(next)); return next; });
+    const sync = () => {
+      const run = inView && !document.hidden;
+      if (run && !id) id = setInterval(advance, ROTATE_S * 1000);
+      if (!run && id) { clearInterval(id); id = null; }
+    };
+    const io = el && typeof IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver(([e]) => { inView = e.isIntersecting; sync(); }, { threshold: 0 })
       : null;
-    if (io && el) io.observe(el); else start();
-    const onVis = () => (document.hidden ? stop() : (el ? undefined : start()));
-    document.addEventListener('visibilitychange', onVis);
-    return () => { stop(); io?.disconnect(); document.removeEventListener('visibilitychange', onVis); if (flipRef.current) clearTimeout(flipRef.current); };
+    if (io && el) io.observe(el);
+    document.addEventListener('visibilitychange', sync);
+    sync();
+    return () => {
+      if (id) clearInterval(id);
+      io?.disconnect();
+      document.removeEventListener('visibilitychange', sync);
+    };
   }, []);
 
   return (
     <div ref={rootRef} className="relative h-full w-full">
       <div className="absolute inset-0 rounded-[28px] glass shadow-[0_40px_100px_-20px_rgba(11,18,32,0.2)]" />
       <svg className="absolute inset-0 pointer-events-none z-10 w-full h-full" viewBox="0 0 100 100" aria-hidden>
-        <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(244,242,238,0.06)" strokeDasharray="2 5" />
-        <circle cx="50" cy="50" r="44" fill="none"
-          stroke="#F4F2EE" strokeWidth="1.5" strokeOpacity="0.55"
-          strokeDasharray="276.46" strokeDashoffset="0" strokeLinecap="round"
-          transform="rotate(-90 50 50)"
-          style={{ animation: 'qrCountdown 1s linear infinite' }}
+        <circle cx="50" cy="50" r="48.5" fill="none" stroke="rgba(244,242,238,0.07)" strokeDasharray="1.5 4" />
+        {/* Countdown to the next rotation; keyed so it restarts on every new code. */}
+        <circle key={tick} cx="50" cy="50" r="46.5" fill="none" pathLength={100}
+          stroke="#F4F2EE" strokeWidth="1.2" strokeOpacity="0.6" strokeLinecap="round"
+          strokeDasharray="100" transform="rotate(-90 50 50)"
+          style={{ animation: `qrRing ${ROTATE_S}s linear forwards` }}
         />
       </svg>
-      <div className="absolute inset-6 grid" style={{ gridTemplateColumns: `repeat(${N}, 1fr)`, gap: '2.5px' }}>
-        {cells.map((c, i) => {
-          const changed = !c.isFnd && prevCells[i] && prevCells[i].on !== c.on;
-          return (
-            <div key={i} className="qr-cell aspect-square" style={{
-              opacity: c.on ? 1 : 0,
-              transform: c.on ? 'scale(1)' : 'scale(0)',
-              transition: changed && flipping
-                ? `opacity 0.28s ease ${(i % 11) * 0.008}s, transform 0.28s ease ${(i % 11) * 0.008}s`
-                : 'none',
-            }} />
-          );
-        })}
+      <div className="absolute inset-[17%]">
+        <div key={tick} className="hero-qr-swap h-full w-full">
+          <QRCodeSVG
+            value={token}
+            size={240}
+            level="H"
+            bgColor="transparent"
+            fgColor="#F4F2EE"
+            role="img"
+            aria-label="Live rotating attendance QR code (demo)"
+            style={{ width: '100%', height: '100%', display: 'block' }}
+          />
+        </div>
       </div>
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-14 w-14 rounded-2xl bg-cream-50 dark:bg-[#13161D] grid place-items-center shadow-lg z-20">
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-14 w-14 rounded-2xl bg-cream-50 dark:bg-[#13161D] grid place-items-center shadow-lg z-20 ring-4 ring-[#0A0A0B]/60">
         <div className="h-6 w-6 rounded-lg bg-accent icon-pulse" />
       </div>
       <div className="absolute bottom-3 right-4 z-20 font-mono text-[9px] text-accent/60 tracking-widest select-none">
-        #{tick.toString().padStart(4, '0')} · 1s
+        #{tick.toString().padStart(4, '0')} · {ROTATE_S}s
       </div>
     </div>
   );
@@ -357,7 +326,7 @@ function OrbitChips() {
       {chips.map((c) => (
         <div
           key={c.label}
-          className="hero-chip absolute inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/55 px-2.5 py-1.5 text-[10.5px] font-medium tracking-wide text-white/85 backdrop-blur-md whitespace-nowrap"
+          className="hero-chip absolute inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/70 px-2.5 py-1.5 text-[10.5px] font-medium tracking-wide text-white/85 whitespace-nowrap"
           style={{ top: c.top, left: c.left, animation: `iconFloat 6s ease-in-out infinite`, animationDelay: c.delay, boxShadow: '0 8px 24px -10px rgba(0,0,0,0.7)' }}
         >
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-white">
@@ -377,7 +346,8 @@ function DrawUnderline() {
     if (!path) return;
     const len = path.getTotalLength();
     gsap.set(path, { strokeDasharray: len, strokeDashoffset: len });
-    gsap.to(path, { strokeDashoffset: 0, duration: 2.4, ease: 'power2.inOut', delay: 1.5 });
+    const tween = gsap.to(path, { strokeDashoffset: 0, duration: 2.4, ease: 'power2.inOut', delay: 1.5 });
+    return () => { tween.kill(); };
   }, []);
   return (
     <svg aria-hidden viewBox="0 0 400 24"

@@ -6,6 +6,11 @@ const config: Config = {
   theme: {
     container: { center: true, padding: '1.5rem', screens: { '2xl': '1280px' } },
     extend: {
+      // Tailwind's default scale stops at 12 columns; the dashboard's 14-bar
+      // chart collapsed into stacked stripes without this.
+      gridTemplateColumns: {
+        14: 'repeat(14, minmax(0, 1fr))',
+      },
       fontFamily: {
         sans:    ['var(--font-sans)', 'system-ui', 'sans-serif'],
         display: ['var(--font-sans)', 'system-ui', 'sans-serif'],

@@ -4,7 +4,6 @@ import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initGSAP } from '@/lib/gsap-init';
-import { useTheme } from '@/context/ThemeContext';
 import { SplitText } from './SplitText';
 
 if (typeof window !== 'undefined') initGSAP();
@@ -16,45 +15,52 @@ if (typeof window !== 'undefined') initGSAP();
 export function DashboardPreview() {
   const root = useRef<HTMLDivElement>(null);
   const card = useRef<HTMLDivElement>(null);
-  const { theme } = useTheme();
-  const barBg = theme === 'dark' ? 'rgba(240, 237, 230, 0.65)' : 'rgba(11,18,32,0.85)';
+  // Follows the theme through CSS variables (React theme state could be stale
+  // on first paint, leaving pale bars on the light card).
+  const barBg = 'rgb(var(--ink-rgb) / 0.72)';
 
   useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const desktop = window.matchMedia('(min-width: 768px) and (pointer: fine)').matches;
     const ctx = gsap.context(() => {
-      gsap.fromTo(
-        card.current,
-        { rotateX: 28, rotateY: -8, scale: 0.92, y: 80 },
-        {
-          rotateX: 0, rotateY: 0, scale: 1, y: 0,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: root.current,
-            start: 'top 80%',
-            end: 'center 55%',
-            scrub: 1,
+      if (desktop) {
+        // Scroll-scrubbed 3D tilt: desktop only — scrubbing on touch scroll
+        // re-runs this on every scroll event and janks phones.
+        gsap.fromTo(
+          card.current,
+          { rotateX: 28, rotateY: -8, scale: 0.92, y: 80 },
+          {
+            rotateX: 0, rotateY: 0, scale: 1, y: 0,
+            ease: 'none',
+            scrollTrigger: { trigger: root.current, start: 'top 80%', end: 'center 55%', scrub: 1 },
           },
-        },
-      );
+        );
+      } else {
+        gsap.fromTo(card.current,
+          { y: 40, opacity: 0 },
+          {
+            y: 0, opacity: 1, duration: 0.9, ease: 'power3.out', immediateRender: false,
+            scrollTrigger: { trigger: root.current, start: 'top 85%', once: true },
+          });
+      }
 
-      // animate bar columns
-      gsap.from('.bar', {
-        scaleY: 0,
-        transformOrigin: 'bottom',
-        stagger: 0.04,
-        duration: 1.1,
-        ease: 'expo.out',
-        scrollTrigger: { trigger: card.current, start: 'top 75%' },
-      });
-
-      // live scan ticker — cycle items
-      const ticker = gsap.utils.toArray<HTMLElement>('.tick-row');
-      ticker.forEach((row, i) => {
-        gsap.from(row, {
-          opacity: 0, x: -16,
-          duration: 0.6, delay: 0.5 + i * 0.12, ease: 'power2.out',
-          scrollTrigger: { trigger: card.current, start: 'top 75%' },
+      // Entrances below are fail-open: nothing is hidden until the trigger
+      // actually fires, so a skipped trigger can never strand them invisible.
+      gsap.fromTo('.bar',
+        { scaleY: 0 },
+        {
+          scaleY: 1, transformOrigin: 'bottom', stagger: 0.04, duration: 1.1, ease: 'expo.out',
+          immediateRender: false,
+          scrollTrigger: { trigger: card.current, start: 'top 85%', once: true },
         });
-      });
+
+      gsap.fromTo('.tick-row',
+        { opacity: 0, x: -16 },
+        {
+          opacity: 1, x: 0, duration: 0.6, ease: 'power2.out', stagger: 0.12, delay: 0.3,
+          immediateRender: false,
+          scrollTrigger: { trigger: card.current, start: 'top 85%', once: true },
+        });
 
       // counters
       gsap.utils.toArray<HTMLElement>('[data-counter]').forEach((el) => {

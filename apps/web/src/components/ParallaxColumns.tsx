@@ -30,7 +30,7 @@ export function ParallaxColumns() {
     try {
       ctx = gsap.context(() => {
         gsap.from('.pcol-item', {
-          y: 28, opacity: 0, filter: 'blur(6px)',
+          y: 28, opacity: 0,
           stagger: { each: 0.06, grid: 'auto', from: 'start' },
           ease: 'power3.out', duration: 0.85, immediateRender: false,
           scrollTrigger: { trigger: root.current, start: 'top 85%' },
@@ -60,7 +60,7 @@ export function ParallaxColumns() {
             [ 01.5 — by the numbers ]
           </div>
           <h2 className="font-display text-[2.6rem] md:text-[3.6rem] leading-[1.04] text-ink dark:text-[#F0EDE6]">
-            Numbers that <span className="italic text-accent">speak for</span> themselves.
+            Numbers that <span className="italic text-accent pr-[0.14em]">speak for</span> themselves.
           </h2>
         </div>
 

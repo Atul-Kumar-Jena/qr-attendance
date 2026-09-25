@@ -27,6 +27,15 @@ export function SmoothScroll() {
     let lenis: import('lenis').default | null = null;
     let tickerFn: ((time: number) => void) | null = null;
     let cancelled = false;
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    const root = document.documentElement;
+
+    // `is-scrolling` lets CSS hold the ambient background drifts still mid-scroll.
+    const markScrolling = () => {
+      if (!root.classList.contains('is-scrolling')) root.classList.add('is-scrolling');
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => root.classList.remove('is-scrolling'), 220);
+    };
 
     import('lenis').then(({ default: Lenis }) => {
       if (cancelled) return;
@@ -37,6 +46,7 @@ export function SmoothScroll() {
       });
 
       lenis.on('scroll', ScrollTrigger.update);
+      lenis.on('scroll', markScrolling);
 
       tickerFn = (time: number) => { lenis?.raf(time * 1000); };
       gsap.ticker.add(tickerFn);
@@ -45,6 +55,8 @@ export function SmoothScroll() {
 
     return () => {
       cancelled = true;
+      clearTimeout(idleTimer);
+      root.classList.remove('is-scrolling');
       if (tickerFn) { try { gsap.ticker.remove(tickerFn); } catch {} }
       try { lenis?.destroy(); } catch {}
     };

@@ -18,7 +18,6 @@ import { Footer } from '@/components/Footer';
 import { ScrollProgress } from '@/components/ScrollProgress';
 import { ScrollReveal } from '@/components/ScrollReveal';
 import { SmoothScroll } from '@/components/SmoothScroll';
-import { DarkModeNudge } from '@/components/DarkModeNudge';
 
 export default function Page() {
   return (
@@ -26,7 +25,6 @@ export default function Page() {
       <SmoothScroll />
       <ScrollProgress />
       <ScrollReveal />
-      <DarkModeNudge />
       <Nav />
       {/* Modern SaaS skeleton: hero → social proof → the problem → how it works
           → features → by-the-numbers → security → product → testimonials →
